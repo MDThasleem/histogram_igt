@@ -1,5 +1,6 @@
 asahi_progs = [
 	'asahi_get_params',
+	'asahi_get_time',
 ]
 
 foreach prog : asahi_progs

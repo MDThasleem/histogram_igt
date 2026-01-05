@@ -42,3 +42,17 @@ void igt_asahi_get_params(int fd, uint32_t param_group, void *params, size_t siz
 	else
 		do_ioctl(fd, DRM_IOCTL_ASAHI_GET_PARAMS, &get_params);
 }
+
+/**
+ * igt_asahi_get_time:
+ * @fd: device file descriptor
+ * @get_time: pointer to drm_asahi_get_time struct
+ * @err: expected error code, 0 for success
+ */
+void igt_asahi_get_time(int fd, struct drm_asahi_get_time *get_time, int err)
+{
+	if (err)
+		do_ioctl_err(fd, DRM_IOCTL_ASAHI_GET_TIME, get_time, err);
+	else
+		do_ioctl(fd, DRM_IOCTL_ASAHI_GET_TIME, get_time);
+}
