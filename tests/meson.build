@@ -518,6 +518,8 @@ endif
 
 subdir('amdgpu')
 
+subdir('asahi')
+
 subdir('msm')
 
 subdir('panfrost')

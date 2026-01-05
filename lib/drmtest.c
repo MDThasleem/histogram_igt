@@ -222,6 +222,7 @@ static const struct module {
 	void (*modprobe)(const char *name);
 } modules[] = {
 	{ DRIVER_AMDGPU, "amdgpu" },
+	{ DRIVER_ASAHI, "asahi" },
 	{ DRIVER_INTEL, "i915", modprobe_i915 },
 	{ DRIVER_MSM, "msm" },
 	{ DRIVER_PANFROST, "panfrost" },

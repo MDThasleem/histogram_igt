@@ -107,6 +107,7 @@ lib_sources = [
 	'igt_store.c',
 	'igt_kmod.c',
 	'igt_ktap.c',
+	'igt_asahi.c',
 	'igt_panfrost.c',
 	'igt_panthor.c',
 	'igt_v3d.c',

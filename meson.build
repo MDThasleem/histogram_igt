@@ -285,6 +285,7 @@ includedir = get_option('includedir')
 libdir = get_option('libdir')
 libexecdir = join_paths(get_option('libexecdir'), 'igt-gpu-tools')
 amdgpudir = join_paths(libexecdir, 'amdgpu')
+asahidir = join_paths(libexecdir, 'asahi')
 msmdir = join_paths(libexecdir, 'msm')
 panfrostdir = join_paths(libexecdir, 'panfrost')
 panthordir = join_paths(libexecdir, 'panthor')
@@ -329,6 +330,12 @@ if get_option('use_rpath')
 		amdgpudir_rpathdir = join_paths(amdgpudir_rpathdir, '..')
 	endforeach
 	amdgpudir_rpathdir = join_paths(amdgpudir_rpathdir, libdir)
+
+	asahi_rpathdir = '$ORIGIN'
+	foreach p : asahidir.split('/')
+		asahi_rpathdir = join_paths(asahi_rpathdir, '..')
+	endforeach
+	asahi_rpathdir = join_paths(asahi_rpathdir, libdir)
 
 	msm_rpathdir = '$ORIGIN'
 	foreach p : msmdir.split('/')
@@ -381,6 +388,7 @@ else
 	bindir_rpathdir = ''
 	libexecdir_rpathdir = ''
 	amdgpudir_rpathdir = ''
+	asahi_rpathdir = ''
 	msm_rpathdir = ''
 	panfrost_rpathdir = ''
 	panthor_rpathdir = ''
