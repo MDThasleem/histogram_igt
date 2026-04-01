@@ -764,6 +764,9 @@ int igt_main_args("e", NULL, help_str, opt_handler, NULL)
 		igt_display_require(&data.display, data.gfx_fd);
 		igt_require(data.display.is_atomic);
 
+		/* Check if at least one active display connected */
+		igt_display_require_output(&data.display);
+
 		/* Get active pipes. */
 		for_each_crtc(&data.display, crtc)
 			active_crtcs[last_crtc_index++] = crtc->crtc_index;
