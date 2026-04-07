@@ -609,7 +609,7 @@ int main(int argc, char **argv)
 	unsigned int period_us;
 	struct igt_profiled_device *profiled_devices = NULL;
 	struct igt_drm_clients *clients = NULL;
-	int con_w = -1, con_h = -1;
+	int con_w = 80, con_h = 50;
 	int ret;
 	long n;
 
