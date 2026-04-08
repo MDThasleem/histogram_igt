@@ -67,6 +67,8 @@ xe_legacy_test_mode(int fd, struct drm_xe_engine_class_instance *eci,
 	} *data;
 	struct xe_spin_opts spin_opts = {
 		.preempt = flags & PREEMPT,
+		.multi_queue_switch = flags & MULTI_QUEUE,
+		.use_queue_timestamp = flags & MULTI_QUEUE,
 #define THREE_SEC	(3 * 1000000000ull)
 		.ctx_ticks = flags & LONG_SPIN ?
 			xe_spin_nsec_to_ticks(fd, 0, THREE_SEC) : 0,

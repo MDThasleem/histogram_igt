@@ -330,6 +330,12 @@ test_balancer(int fd, int gt, int class, int n_exec_queues, int n_execs,
  * SUBTEST: long-spin-reuse-many-preempt-media
  * Description: Test long spinners with many preemptable jobs, use queues again spinners complete on media GT
  *
+ * SUBTEST: multi-queue-long-spin-many-queue-switch
+ * Description: Test long spinners with many jobs with multi-queue switching
+ *
+ * SUBTEST: multi-queue-long-spin-reuse-many-queue-switch
+ * Description: Test long spinners with many jobs with multi-queue switching, use queues again once spinners complete
+ *
  * SUBTEST: gt-reset
  * Description: Test GT reset
  *
@@ -1178,6 +1184,23 @@ int igt_main()
 					  CLOSE_EXEC_QUEUES | CLOSE_FD |
 					  MULTI_QUEUE);
 	}
+
+	igt_subtest("multi-queue-long-spin-many-queue-switch")
+		xe_for_each_multi_queue_engine(fd, hwe) {
+			xe_legacy_test_mode(fd, hwe, 4, 8,
+					    LONG_SPIN | MULTI_QUEUE,
+					    LEGACY_MODE_ADDR, false);
+			break;
+		}
+
+	igt_subtest("multi-queue-long-spin-reuse-many-queue-switch")
+		xe_for_each_multi_queue_engine(fd, hwe) {
+			xe_legacy_test_mode(fd, hwe, 4, 8,
+					    LONG_SPIN | MULTI_QUEUE |
+					    LONG_SPIN_REUSE_QUEUE,
+					    LEGACY_MODE_ADDR, false);
+			break;
+		}
 
 	igt_fixture()
 		drm_close_driver(fd);
