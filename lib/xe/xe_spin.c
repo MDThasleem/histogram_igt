@@ -179,14 +179,15 @@ void xe_spin_init(struct xe_spin *spin, struct xe_spin_opts *opts)
 	 * Insert a MI_SEMAPHORE_WAIT_CMD instruction with condition controlled
 	 * by the user which acts as a queue switch point in multi queue mode.
 	 */
-	if (opts->multi_queue_switch) {
+	if (opts->multi_queue_switch || opts->multi_queue_switch_on_wait) {
 		uint64_t wait_addr = opts->addr + offsetof(struct xe_spin, wait_cond);
+		uint32_t sema_cmd = MI_SEMAPHORE_WAIT_CMD | MI_SEMAPHORE_POLL |
+				    MI_SEMAPHORE_SAD_EQ_SDD | 3;
 
-		spin->batch[b++] = MI_SEMAPHORE_WAIT_CMD |
-				MI_SEMAPHORE_POLL |
-				MI_SEMAPHORE_QUEUE_SWITCH_MODE |
-				MI_SEMAPHORE_SAD_EQ_SDD |
-				3;
+		if (opts->multi_queue_switch_on_wait)
+			sema_cmd |= MI_SEMAPHORE_QUEUE_SWITCH_MODE;
+
+		spin->batch[b++] = sema_cmd;
 		spin->batch[b++] = 0;
 		spin->batch[b++] = wait_addr;
 		spin->batch[b++] = wait_addr >> 32;

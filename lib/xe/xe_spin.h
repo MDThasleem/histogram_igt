@@ -46,7 +46,10 @@ struct xe_spin_mem_copy {
  * struct xe_spin_opts
  * @addr: offset of spinner within vm
  * @preempt: allow spinner to be preempted or not
- * @multi_queue_switch: Add a multi-queue switch point
+ * @multi_queue_switch: Add a SEMAPHORE_WAIT multi-queue switch point
+ * and have the queue switch happen after command is parsed.
+ * @multi_queue_switch_on_wait: Add a SEMAPHORE_WAIT multi-queue switch point
+ * and have the queue switch only happen if waiting on the semaphore.
  * @ctx_ticks: number of ticks after which spinner is stopped, applied if > 0
  * @mem_copy: container of objects used for memory copy (optional)
  *
@@ -56,6 +59,7 @@ struct xe_spin_opts {
 	uint64_t addr;
 	bool preempt;
 	bool multi_queue_switch;
+	bool multi_queue_switch_on_wait;
 	uint32_t ctx_ticks;
 	bool write_timestamp;
 	struct xe_spin_mem_copy *mem_copy;
