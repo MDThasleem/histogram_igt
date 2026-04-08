@@ -51,6 +51,7 @@ struct xe_spin_mem_copy {
  * @multi_queue_switch_on_wait: Add a SEMAPHORE_WAIT multi-queue switch point
  * and have the queue switch only happen if waiting on the semaphore.
  * @ctx_ticks: number of ticks after which spinner is stopped, applied if > 0
+ * @use_queue_timestamp: Use QUEUE_TIMESTAMP register instead of CTX_TIMESTAMP
  * @mem_copy: container of objects used for memory copy (optional)
  *
  * Used to initialize struct xe_spin spinner behavior.
@@ -62,6 +63,7 @@ struct xe_spin_opts {
 	bool multi_queue_switch_on_wait;
 	uint32_t ctx_ticks;
 	bool write_timestamp;
+	bool use_queue_timestamp;
 	struct xe_spin_mem_copy *mem_copy;
 };
 

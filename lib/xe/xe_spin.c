@@ -25,7 +25,8 @@
 #define MI_LRI_CS_MMIO				(1 << 19)
 #define MI_LRR_DST_CS_MMIO			(1 << 19)
 #define MI_LRR_SRC_CS_MMIO			(1 << 18)
-#define CTX_TIMESTAMP 0x3a8
+#define CTX_TIMESTAMP		0x3a8
+#define QUEUE_TIMESTAMP		0x4c0
 #define CS_GPR(x) (0x600 + 8 * (x))
 
 enum { START_TS, NOW_TS };
@@ -67,7 +68,7 @@ void xe_spin_init(struct xe_spin *spin, struct xe_spin_opts *opts)
 		spin->batch[b++] = CS_GPR(START_TS) + 4;
 		spin->batch[b++] = 0;
 		spin->batch[b++] = MI_LOAD_REGISTER_REG | MI_LRR_DST_CS_MMIO | MI_LRR_SRC_CS_MMIO;
-		spin->batch[b++] = CTX_TIMESTAMP;
+		spin->batch[b++] = opts->use_queue_timestamp ? QUEUE_TIMESTAMP : CTX_TIMESTAMP;
 		spin->batch[b++] = CS_GPR(START_TS);
 	}
 
@@ -83,7 +84,7 @@ void xe_spin_init(struct xe_spin *spin, struct xe_spin_opts *opts)
 
 	if (opts->write_timestamp) {
 		spin->batch[b++] = MI_LOAD_REGISTER_REG | MI_LRR_DST_CS_MMIO | MI_LRR_SRC_CS_MMIO;
-		spin->batch[b++] = CTX_TIMESTAMP;
+		spin->batch[b++] = opts->use_queue_timestamp ? QUEUE_TIMESTAMP : CTX_TIMESTAMP;
 		spin->batch[b++] = CS_GPR(NOW_TS);
 
 		spin->batch[b++] = MI_STORE_REGISTER_MEM_GEN8 | MI_SRM_CS_MMIO;
@@ -97,7 +98,7 @@ void xe_spin_init(struct xe_spin *spin, struct xe_spin_opts *opts)
 		spin->batch[b++] = CS_GPR(NOW_TS) + 4;
 		spin->batch[b++] = 0;
 		spin->batch[b++] = MI_LOAD_REGISTER_REG | MI_LRR_DST_CS_MMIO | MI_LRR_SRC_CS_MMIO;
-		spin->batch[b++] = CTX_TIMESTAMP;
+		spin->batch[b++] = opts->use_queue_timestamp ? QUEUE_TIMESTAMP : CTX_TIMESTAMP;
 		spin->batch[b++] = CS_GPR(NOW_TS);
 
 		/* delta = now - start; inverted to match COND_BBE */
