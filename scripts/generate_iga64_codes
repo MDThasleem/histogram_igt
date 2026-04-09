@@ -45,7 +45,7 @@ done < <(objcopy --dump-section .iga64_assembly=/dev/stdout $OBJ /dev/null)
 MD5_ASMS="$(md5sum <<< "$(< $IGT_SRCDIR/lib/iga64_macros.h) ${ASMS[@]}" | cut -b1-32)"
 MD5_PRE="$(grep -Po '(?<=^#define MD5_SUM_IGA64_ASMS )\S{32,32}' $INPUT 2>/dev/null)"
 
-if [ "$MD5_ASMS" = "$MD5_PRE" ]; then
+if [ "$MD5_ASMS" = "$MD5_PRE" -a "${FORCE_IGA64_REBUILD:-0}" = "0" ]; then
     echo "iga64 assemblies not changed, reusing pre-compiled file $INPUT."
     cp -p $INPUT $OUTPUT
     exit 0
