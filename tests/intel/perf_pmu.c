@@ -1521,6 +1521,8 @@ test_frequency(int gem_fd, unsigned int gt)
 	fd[0] = open_group(gem_fd, __I915_PMU_REQUESTED_FREQUENCY(gt), -1);
 	fd[1] = open_group(gem_fd, __I915_PMU_ACTUAL_FREQUENCY(gt), fd[0]);
 
+	igt_pm_ignore_slpc_efficient_freq(gem_fd, sysfs, true);
+
 	/*
 	 * Set GPU to min frequency and read PMU counters.
 	 */
@@ -1586,8 +1588,11 @@ test_frequency(int gem_fd, unsigned int gt)
 	igt_warn_on_f(read_value != min_freq,
 		      "Unable to restore min frequency to saved value [%u MHz], now %u MHz\n",
 		      min_freq, read_value);
+	igt_pm_ignore_slpc_efficient_freq(gem_fd, sysfs, false);
+
 	close(fd[0]);
 	close(fd[1]);
+	close(sysfs);
 	put_ahnd(ahnd);
 
 	igt_info("Min frequency: requested %.1f, actual %.1f\n",
