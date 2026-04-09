@@ -49,36 +49,36 @@ static void gpgpu_shader__prefetch_fault(struct gpgpu_shader *shdr,
 {
 	igt_assert_f((addr & 0x3) == 0, "address must be aligned to DWord!\n");
 
-	emit_iga64_code(shdr, xe_prefetch_fault_prefetch, "			\n\
-#define IGA64_FLAGS \"\"							\n\
-#if GEN_VER >= 3500								\n\
-L0:										\n\
-// Set base address with scalar register					\n\
-(W)	mov (1)		s0.0<1>:ud		ARG(0):ud			\n\
-(W)	mov (1)		s0.1<1>:ud		ARG(1):ud			\n\
-										\n\
-// A64 offset									\n\
-(W)	mov (8)		r30.0<1>:uq		0x0:uq				\n\
-										\n\
-// efficient 64bit Read with cached L1, cached L2 and cached L3			\n\
-// sendg ugm load with SBID 3							\n\
-// Message Descriptor								\n\
-//      bspec:71885								\n\
-//      0x99C00 =>								\n\
-//      [45:44] Offset Scaling: 0 (disable)					\n\
-//      [43:22] Global Offset: 0						\n\
-//      [21] Overfetch: 0 (disable)						\n\
-//      [19:16] Cache: 9 (L1 cached, L2 cached and L3 cached)			\n\
-//      [15:14] Address Type and Size: 2 (Flat A64 Base, A64 Index)		\n\
-//      [13:11] Data Size: 3 (D64)						\n\
-//      [10:10] Transpose : 1 (enable)						\n\
-//      [9:7] Vector Size: 0 (Vector length 1)					\n\
-//      [5:0] Opcode: 0 (Load)							\n\
-// Prefetch operations are implemented using a NULL destination register.       \n\
-(W)	sendg.ugm (1|M0)	null	r30:1	null:0	s0.0	0x99C00	{A@1,$5}\n\
-										\n\
-#endif										\n\
-	", lower_32_bits(addr), upper_32_bits(addr));
+	emit_iga64_code(shdr, xe_prefetch_fault_prefetch, R"(
+#define IGA64_FLAGS ""
+#if GEN_VER >= 3500
+L0:
+// Set base address with scalar register
+(W)	mov (1)		s0.0<1>:ud		ARG(0):ud
+(W)	mov (1)		s0.1<1>:ud		ARG(1):ud
+
+// A64 offset
+(W)	mov (8)		r30.0<1>:uq		0x0:uq
+
+// efficient 64bit Read with cached L1, cached L2 and cached L3
+// sendg ugm load with SBID 3
+// Message Descriptor
+//      bspec:71885
+//      0x99C00 =>
+//      [45:44] Offset Scaling: 0 (disable)
+//      [43:22] Global Offset: 0
+//      [21] Overfetch: 0 (disable)
+//      [19:16] Cache: 9 (L1 cached, L2 cached and L3 cached)
+//      [15:14] Address Type and Size: 2 (Flat A64 Base, A64 Index)
+//      [13:11] Data Size: 3 (D64)
+//      [10:10] Transpose : 1 (enable)
+//      [9:7] Vector Size: 0 (Vector length 1)
+//      [5:0] Opcode: 0 (Load)
+// Prefetch operations are implemented using a NULL destination register.
+(W)	sendg.ugm (1|M0)	null	r30:1	null:0	s0.0	0x99C00	{A@1,$5}
+
+#endif
+	)", lower_32_bits(addr), upper_32_bits(addr));
 }
 
 static struct intel_buf *

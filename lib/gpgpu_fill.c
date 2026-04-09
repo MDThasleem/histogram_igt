@@ -286,49 +286,49 @@ static struct gpgpu_shader *__xehp_gpgpu_kernel(int i915)
 {
 	struct gpgpu_shader *kernel = gpgpu_shader_create(i915);
 
-	emit_iga64_code(kernel, gpgpu_fill, "					\n\
-// fill up r1 with target colour						\n\
-mov (4|M0)		r1.0<1>:ub	r1.0<0;1,0>:ub				\n\
-// prepare block x offset (Thread Group Id X * 16)				\n\
-shl (1|M0)		r2.0<1>:ud	r0.1<0;1,0>:ud	0x4:ud			\n\
-// prepare block y offset (Thread Group Id Y)					\n\
-mov (1|M0)		r2.1<1>:ud	r0.6<0;1,0>:ud				\n\
-// zero message header payload							\n\
-mov (8|M0)		r4.0<1>:ud	0x0:ud					\n\
-// fill up message payload with target colour					\n\
-mov (16|M0)		r5.0<1>:ud	r1.0<0;1,0>:ud				\n\
-#if GEN_VER < 2000								\n\
-// load block offsets into message header payload				\n\
-mov (2|M0)		r4.0<1>:ud	r2.0<2;2,1>:ud				\n\
-// load block width								\n\
-mov (1|M0)		r4.2<1>:ud	0xF:ud					\n\
-// load FFTID from R0 header							\n\
-mov (1|M0)		r4.4<1>:ud	r0.5<0;1,0>:ud				\n\
-// Media block write to bti[0] surface						\n\
-// Message Descriptor								\n\
-//	0x40A8000:								\n\
-//	[28:25]		Mlen: 2							\n\
-//	[24:20]		Rlen: 0							\n\
-//	[19]		Header: 1 (included)					\n\
-//	[18:14]		MessageType: 0xA (media block write)			\n\
-//	[7:0]		BTI: 0							\n\
-send.dc1 (16|M0)	null	r4	src1_null	0x0	0x40A8000	\n\
-#else										\n\
-// load block offsets into message header payload				\n\
-mov (2|M0)		r4.5<1>:ud	r2.0<2;2,1>:ud				\n\
-// load block width								\n\
-mov (1|M0)		 r4.14<1>:w	0xF:w					\n\
-// Typed 2D block store to bti[0] surface					\n\
-// Message Descriptor								\n\
-//	0x6400007:								\n\
-//	[30:29]		AddrType: 3 (BTI)					\n\
-//	[28:25]		Mlen: 2							\n\
-//	[24:20]		Rlen: 0							\n\
-//	[19:17]		Caching: 0  (use state settings for both L1 and L3)	\n\
-//	[5:0]		Opcode: 0x07  (store_block2d)				\n\
-send.tgm (16|M0)	null	r4	null	0x0	0x64000007		\n\
-#endif										\n\
-	");
+	emit_iga64_code(kernel, gpgpu_fill, R"(
+// fill up r1 with target colour
+mov (4|M0)		r1.0<1>:ub	r1.0<0;1,0>:ub
+// prepare block x offset (Thread Group Id X * 16)
+shl (1|M0)		r2.0<1>:ud	r0.1<0;1,0>:ud	0x4:ud
+// prepare block y offset (Thread Group Id Y)
+mov (1|M0)		r2.1<1>:ud	r0.6<0;1,0>:ud
+// zero message header payload
+mov (8|M0)		r4.0<1>:ud	0x0:ud
+// fill up message payload with target colour
+mov (16|M0)		r5.0<1>:ud	r1.0<0;1,0>:ud
+#if GEN_VER < 2000
+// load block offsets into message header payload
+mov (2|M0)		r4.0<1>:ud	r2.0<2;2,1>:ud
+// load block width
+mov (1|M0)		r4.2<1>:ud	0xF:ud
+// load FFTID from R0 header
+mov (1|M0)		r4.4<1>:ud	r0.5<0;1,0>:ud
+// Media block write to bti[0] surface
+// Message Descriptor
+//	0x40A8000:
+//	[28:25]		Mlen: 2
+//	[24:20]		Rlen: 0
+//	[19]		Header: 1 (included)
+//	[18:14]		MessageType: 0xA (media block write)
+//	[7:0]		BTI: 0
+send.dc1 (16|M0)	null	r4	src1_null	0x0	0x40A8000
+#else
+// load block offsets into message header payload
+mov (2|M0)		r4.5<1>:ud	r2.0<2;2,1>:ud
+// load block width
+mov (1|M0)		 r4.14<1>:w	0xF:w
+// Typed 2D block store to bti[0] surface
+// Message Descriptor
+//	0x6400007:
+//	[30:29]		AddrType: 3 (BTI)
+//	[28:25]		Mlen: 2
+//	[24:20]		Rlen: 0
+//	[19:17]		Caching: 0  (use state settings for both L1 and L3)
+//	[5:0]		Opcode: 0x07  (store_block2d)
+send.tgm (16|M0)	null	r4	null	0x0	0x64000007
+#endif
+	)");
 	gpgpu_shader__eot(kernel);
 	return kernel;
 }
