@@ -949,18 +949,16 @@ static void run_test_with_async_format_modifiers(data_t *data, void (*test)(data
 	igt_vec_init(&tested_formats, sizeof(struct format_mod));
 
 	for_each_crtc_with_valid_output(&data->display, crtc, data->output) {
+		struct format_mod f = {};
+
 		data->crtc = crtc;
 		test_init(data);
 
 		igt_assert_f(data->plane->format_mods_async.count > 0,
 			     "No async format/modifier supported\n");
 
-		for (int i = 0; i < data->plane->format_mods_async.count; i++) {
-			struct format_mod f = {
-				.format = data->plane->format_mods_async.formats[i],
-				.modifier = data->plane->format_mods_async.modifiers[i],
-			};
-
+		for_each_format_and_modifier(&data->plane->format_mods_async,
+					     f.format, f.modifier) {
 			if (skip_async_format_mod(data, f.format, f.modifier, &tested_formats)) {
 				igt_debug("Skipping format " IGT_FORMAT_FMT " / modifier "
 					   IGT_MODIFIER_FMT " on %s.%u\n",
@@ -1003,19 +1001,16 @@ static void run_test_with_modifiers(data_t *data, void (*test)(data_t *))
 		require_atomic_async_cap(data);
 
 	for_each_crtc_with_valid_output(&data->display, crtc, data->output) {
+		uint64_t modifier;
+
 		data->crtc = crtc;
 		test_init(data);
 
 		igt_require_f(data->plane->format_mods_async.count > 0,
 			     "No async format/modifier supported\n");
 
-		for (int i = 0; i < data->plane->format_mods_async.count; i++) {
-			uint64_t modifier = data->plane->format_mods_async.modifiers[i];
-			uint32_t format = data->plane->format_mods_async.formats[i];
-
-			if (format != DRM_FORMAT_XRGB8888)
-				continue;
-
+		for_each_modifier_with_format(&data->plane->format_mods_async,
+					      DRM_FORMAT_XRGB8888, modifier) {
 			if (modifier == DRM_FORMAT_MOD_LINEAR)
 				continue;
 
