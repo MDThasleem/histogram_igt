@@ -6334,7 +6334,8 @@ format_mods_union(struct igt_format_mods *format_mods_dst,
 				   format_mods_src->modifiers[i]);
 }
 
-static int display_format_mods_count(igt_display_t *display)
+static int display_format_mods_count(igt_display_t *display,
+				     const struct igt_format_mods *(*plane_format_mods)(igt_plane_t *plane))
 {
 	igt_crtc_t *crtc;
 	int count = 0;
@@ -6343,14 +6344,15 @@ static int display_format_mods_count(igt_display_t *display)
 		igt_plane_t *plane;
 
 		for_each_plane_on_crtc(crtc, plane)
-			count += plane->format_mods.count;
+			count += plane_format_mods(plane)->count;
 	}
 
 	return count;
 }
 
 static void display_format_mods_union(igt_display_t *display,
-				      struct igt_format_mods *format_mods)
+				      struct igt_format_mods *format_mods,
+				      const struct igt_format_mods *(*plane_format_mods)(igt_plane_t *plane))
 {
 	igt_crtc_t *crtc;
 
@@ -6358,29 +6360,41 @@ static void display_format_mods_union(igt_display_t *display,
 		igt_plane_t *plane;
 
 		for_each_plane_on_crtc(crtc, plane)
-			format_mods_union(format_mods, &plane->format_mods);
+			format_mods_union(format_mods, plane_format_mods(plane));
 	}
 }
 
-static void igt_fill_display_format_mod(igt_display_t *display)
+static void display_format_mods_fill(igt_display_t *display,
+				     struct igt_format_mods *format_mods,
+				     const struct igt_format_mods *(*plane_format_mods)(igt_plane_t *plane))
 {
-	int count = display_format_mods_count(display);
+	int count = display_format_mods_count(display, plane_format_mods);
 
 	if (!count)
 		return;
 
-	format_mods_alloc(&display->format_mods, count);
+	format_mods_alloc(format_mods, count);
 
 	/*
 	 * Initial count was an upper bound and may include
 	 * duplicates. The final count, without duplicates,
 	 * is determined while filling the arrays.
 	 */
-	display->format_mods.count = 0;
+	format_mods->count = 0;
 
-	display_format_mods_union(display, &display->format_mods);
+	display_format_mods_union(display, format_mods, plane_format_mods);
 
-	igt_assert_lte(display->format_mods.count, count);
+	igt_assert_lte(format_mods->count, count);
+}
+
+static const struct igt_format_mods *plane_format_mods(igt_plane_t *plane)
+{
+	return &plane->format_mods;
+}
+
+static void igt_fill_display_format_mod(igt_display_t *display)
+{
+	display_format_mods_fill(display, &display->format_mods, plane_format_mods);
 }
 
 /**
