@@ -1147,18 +1147,8 @@ static void test_format_plane(data_t *data, igt_crtc_t *crtc,
 	struct format_mod ref = {};
 	igt_crc_t* crcset;
 	bool result = true;
-	bool found = false;
 
-	for (int i = 0; i < plane->format_mods.count; i++) {
-		uint64_t modifier = plane->format_mods.modifiers[i];
-
-		if (data->mod == modifier) {
-			found = true;
-			break;
-		}
-	}
-
-	igt_skip_on_f(!found,
+	igt_require_f(igt_format_mods_has_modifier(&plane->format_mods, data->mod),
 		      "Modifier " IGT_MODIFIER_FMT " not supported on plane %d\n",
 		      IGT_MODIFIER_ARGS(data->mod), plane->index);
 
