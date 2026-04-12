@@ -6277,6 +6277,20 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 	}
 }
 
+static bool igt_format_mods_has_format_and_modifier(const struct igt_format_mods *format_mods,
+						    uint32_t format, uint64_t modifier)
+{
+	int i;
+
+	for (i = 0; i < format_mods->count; i++) {
+		if (format_mods->formats[i] == format &&
+		    format_mods->modifiers[i] == modifier)
+			return true;
+	}
+
+	return false;
+}
+
 /**
  * igt_plane_has_format_mod:
  * @plane: Target plane
@@ -6288,16 +6302,8 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 bool igt_plane_has_format_mod(igt_plane_t *plane, uint32_t format,
 			      uint64_t modifier)
 {
-	int i;
-
-	for (i = 0; i < plane->format_mods.count; i++) {
-		if (plane->format_mods.formats[i] == format &&
-		    plane->format_mods.modifiers[i] == modifier)
-			return true;
-
-	}
-
-	return false;
+	return igt_format_mods_has_format_and_modifier(&plane->format_mods,
+						       format, modifier);
 }
 
 static int igt_count_display_format_mod(igt_display_t *display)
@@ -6323,15 +6329,15 @@ igt_add_display_format_mod(igt_display_t *display, uint32_t format,
 {
 	int i;
 
-	for (i = 0; i < display->format_mods.count; i++) {
-		if (display->format_mods.formats[i] == format &&
-		    display->format_mods.modifiers[i] == modifier)
-			return;
+	if (igt_format_mods_has_format_and_modifier(&display->format_mods,
+						    format, modifier))
+		return;
 
-	}
+	i = display->format_mods.count;
 
 	display->format_mods.formats[i] = format;
 	display->format_mods.modifiers[i] = modifier;
+
 	display->format_mods.count++;
 }
 
@@ -6378,16 +6384,8 @@ static void igt_fill_display_format_mod(igt_display_t *display)
 bool igt_display_has_format_mod(igt_display_t *display, uint32_t format,
 				uint64_t modifier)
 {
-	int i;
-
-	for (i = 0; i < display->format_mods.count; i++) {
-		if (display->format_mods.formats[i] == format &&
-		    display->format_mods.modifiers[i] == modifier)
-			return true;
-
-	}
-
-	return false;
+	return igt_format_mods_has_format_and_modifier(&display->format_mods,
+						       format, modifier);
 }
 
 /**
