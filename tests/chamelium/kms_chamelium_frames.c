@@ -1032,9 +1032,9 @@ int igt_main()
 	igt_describe(test_display_one_mode_desc);
 	connector_dynamic_subtest("hdmi-crc-nonplanar-formats", HDMIA)
 	{
-			int k;
 			igt_output_t *output;
 			igt_plane_t *primary;
+			uint32_t format;
 
 			output = chamelium_prepare_output(&data, port,
 							  IGT_CUSTOM_EDID_BASE);
@@ -1042,17 +1042,12 @@ int igt_main()
 				output, DRM_PLANE_TYPE_PRIMARY);
 			igt_assert(primary);
 
-			for (k = 0; k < primary->format_mods.count; k++) {
-				uint32_t format = primary->format_mods.formats[k];
-				uint64_t modifier = primary->format_mods.modifiers[k];
-
+			for_each_format_with_modifier(&primary->format_mods,
+						      format, DRM_FORMAT_MOD_LINEAR) {
 				if (!igt_fb_supported_format(format))
 					continue;
 
 				if (igt_format_is_yuv(format))
-					continue;
-
-				if (modifier != DRM_FORMAT_MOD_LINEAR)
 					continue;
 
 				igt_dynamic_f(
@@ -1071,9 +1066,9 @@ int igt_main()
 	igt_describe(test_display_one_mode_desc);
 	connector_dynamic_subtest("hdmi-cmp-planar-formats", HDMIA)
 	{
-			int k;
 			igt_output_t *output;
 			igt_plane_t *primary;
+			uint32_t format;
 
 			output = chamelium_prepare_output(&data, port,
 							  IGT_CUSTOM_EDID_BASE);
@@ -1081,17 +1076,12 @@ int igt_main()
 				output, DRM_PLANE_TYPE_PRIMARY);
 			igt_assert(primary);
 
-			for (k = 0; k < primary->format_mods.count; k++) {
-				uint32_t format = primary->format_mods.formats[k];
-				uint64_t modifier = primary->format_mods.modifiers[k];
-
+			for_each_format_with_modifier(&primary->format_mods,
+						      format, DRM_FORMAT_MOD_LINEAR) {
 				if (!igt_fb_supported_format(format))
 					continue;
 
 				if (!igt_format_is_yuv(format))
-					continue;
-
-				if (modifier != DRM_FORMAT_MOD_LINEAR)
 					continue;
 
 				igt_dynamic_f(
