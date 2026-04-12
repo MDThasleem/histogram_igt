@@ -871,11 +871,6 @@ static void test_crc(data_t *data)
 
 static void require_linear_modifier(data_t *data)
 {
-	if(!igt_plane_has_prop(data->plane, IGT_PLANE_IN_FORMATS_ASYNC)) {
-		data->modifier = DRM_FORMAT_MOD_LINEAR;
-		return;
-	}
-
 	for (int i = 0; i < data->plane->format_mods_async.count; i++) {
 		uint64_t modifier = data->plane->format_mods_async.modifiers[i];
 
