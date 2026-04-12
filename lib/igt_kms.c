@@ -6253,6 +6253,9 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 	if (!igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS)) {
 		fill_plane_default_format_mods(plane, &plane->format_mods);
 
+		if (igt_has_drm_cap(display->drm_fd, DRM_CAP_ASYNC_PAGE_FLIP))
+			fill_plane_default_format_mods(plane, &plane->format_mods_async);
+
 		return;
 	}
 
