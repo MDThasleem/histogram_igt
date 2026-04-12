@@ -816,6 +816,18 @@ igt_output_crtc_t *__igt_output_crtc_populate(igt_display_t *display,
 	     (mode) < &(output)->config.connector->modes[(output)->config.connector->count_modes]; \
 	     (mode)++)
 
+/**
+ * for_each_plane_format:
+ * @plane: a pointer to an #igt_plane_t structure
+ * @format: format iterator
+ *
+ * This for loop iterates over all formats supported by @plane.
+ */
+#define for_each_plane_format(plane, format) \
+	for (int __i = 0; __i < (plane)->drm_plane->count_formats; __i++) \
+		for_each_if (((format) = (plane)->drm_plane->formats[__i], \
+			      1))
+
 #define IGT_FIXED(i,f)	((i) << 16 | (f))
 
 /**
