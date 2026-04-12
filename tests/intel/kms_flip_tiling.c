@@ -230,7 +230,6 @@ int igt_main()
 		bool run_in_simulation = igt_run_in_simulation();
 
 		for_each_crtc_with_valid_output(&data.display, crtc, output) {
-			uint32_t format[2];
 			uint64_t modifier[2];
 			igt_plane_t *plane;
 
@@ -244,20 +243,10 @@ int igt_main()
 
 			plane = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
 
-			for (int i = 0; i < plane->format_mods.count; i++) {
-				format[0] = plane->format_mods.formats[i];
-				modifier[0] = plane->format_mods.modifiers[i];
-
-				if (format[0] != data.testformat)
-					continue;
-
-				for (int j = 0; j < plane->format_mods.count; j++) {
-					format[1] = plane->format_mods.formats[j];
-					modifier[1] = plane->format_mods.modifiers[j];
-
-					if (format[1] != data.testformat)
-						continue;
-
+			for_each_modifier_with_format(&plane->format_mods,
+						      data.testformat, modifier[0]) {
+				for_each_modifier_with_format(&plane->format_mods,
+							      data.testformat, modifier[1]) {
 					if (run_in_simulation &&
 					    (!is_basic_tiling_modifier(modifier[0]) ||
 					     !is_basic_tiling_modifier(modifier[1])))
