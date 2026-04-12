@@ -877,7 +877,9 @@ static void require_linear_modifier(data_t *data)
 	}
 
 	for (int i = 0; i < data->plane->async_format_mod_count; i++) {
-		if (data->plane->async_modifiers[i] == DRM_FORMAT_MOD_LINEAR) {
+		uint64_t modifier = data->plane->async_modifiers[i];
+
+		if (modifier == DRM_FORMAT_MOD_LINEAR) {
 			data->modifier = DRM_FORMAT_MOD_LINEAR;
 			return;
 		}
@@ -1025,8 +1027,9 @@ static void run_test_with_modifiers(data_t *data, void (*test)(data_t *))
 
 		for (int i = 0; i < data->plane->async_format_mod_count; i++) {
 			uint64_t modifier = data->plane->async_modifiers[i];
+			uint32_t format = data->plane->async_formats[i];
 
-			if (data->plane->async_formats[i] != DRM_FORMAT_XRGB8888)
+			if (format != DRM_FORMAT_XRGB8888)
 				continue;
 
 			if (modifier == DRM_FORMAT_MOD_LINEAR)

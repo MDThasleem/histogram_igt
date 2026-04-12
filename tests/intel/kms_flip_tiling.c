@@ -230,6 +230,8 @@ int igt_main()
 		bool run_in_simulation = igt_run_in_simulation();
 
 		for_each_crtc_with_valid_output(&data.display, crtc, output) {
+			uint32_t format[2];
+			uint64_t modifier[2];
 			igt_plane_t *plane;
 
 			igt_display_reset(&data.display);
@@ -243,21 +245,22 @@ int igt_main()
 			plane = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
 
 			for (int i = 0; i < plane->format_mod_count; i++) {
-				if (plane->formats[i] != data.testformat)
+				format[0] = plane->formats[i];
+				modifier[0] = plane->modifiers[i];
+
+				if (format[0] != data.testformat)
 					continue;
 
 				for (int j = 0; j < plane->format_mod_count; j++) {
-					uint64_t modifier[2] = {
-						plane->modifiers[i],
-						plane->modifiers[j],
-					};
+					format[1] = plane->formats[j];
+					modifier[1] = plane->modifiers[j];
 
-					if (plane->formats[j] != data.testformat)
+					if (format[1] != data.testformat)
 						continue;
 
 					if (run_in_simulation &&
-					    (!is_basic_tiling_modifier(plane->modifiers[i]) ||
-					     !is_basic_tiling_modifier(plane->modifiers[j])))
+					    (!is_basic_tiling_modifier(modifier[0]) ||
+					     !is_basic_tiling_modifier(modifier[1])))
 						continue;
 
 					igt_dynamic_f("pipe-%s-%s-%s-to-%s",

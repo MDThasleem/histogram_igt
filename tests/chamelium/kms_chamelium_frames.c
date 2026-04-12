@@ -307,10 +307,13 @@ static void randomize_plane_setup(chamelium_data_t *data, igt_plane_t *plane,
 	unsigned int i;
 
 	/* First pass to count the supported formats. */
-	for (i = 0; i < plane->format_mod_count; i++)
-		if (igt_fb_supported_format(plane->formats[i]) &&
-		    (allow_yuv || !igt_format_is_yuv(plane->formats[i])))
+	for (i = 0; i < plane->format_mod_count; i++) {
+		uint32_t f = plane->formats[i];
+
+		if (igt_fb_supported_format(f) &&
+		    (allow_yuv || !igt_format_is_yuv(f)))
 			idx[count++] = i;
+	}
 
 	igt_assert(count > 0);
 
@@ -1039,23 +1042,23 @@ int igt_main()
 			igt_assert(primary);
 
 			for (k = 0; k < primary->format_mod_count; k++) {
-				if (!igt_fb_supported_format(
-					    primary->formats[k]))
+				uint32_t format = primary->formats[k];
+				uint64_t modifier = primary->modifiers[k];
+
+				if (!igt_fb_supported_format(format))
 					continue;
 
-				if (igt_format_is_yuv(primary->formats[k]))
+				if (igt_format_is_yuv(format))
 					continue;
 
-				if (primary->modifiers[k] !=
-				    DRM_FORMAT_MOD_LINEAR)
+				if (modifier != DRM_FORMAT_MOD_LINEAR)
 					continue;
 
 				igt_dynamic_f(
 					"%s",
-					igt_format_str(primary->formats[k]))
+					igt_format_str(format))
 					test_display_one_mode(
-						&data, port,
-						primary->formats[k],
+						&data, port, format,
 						CHAMELIUM_CHECK_CRC, 1);
 			}
 		}
@@ -1078,23 +1081,23 @@ int igt_main()
 			igt_assert(primary);
 
 			for (k = 0; k < primary->format_mod_count; k++) {
-				if (!igt_fb_supported_format(
-					    primary->formats[k]))
+				uint32_t format = primary->formats[k];
+				uint64_t modifier = primary->modifiers[k];
+
+				if (!igt_fb_supported_format(format))
 					continue;
 
-				if (!igt_format_is_yuv(primary->formats[k]))
+				if (!igt_format_is_yuv(format))
 					continue;
 
-				if (primary->modifiers[k] !=
-				    DRM_FORMAT_MOD_LINEAR)
+				if (modifier != DRM_FORMAT_MOD_LINEAR)
 					continue;
 
 				igt_dynamic_f(
 					"%s",
-					igt_format_str(primary->formats[k]))
+					igt_format_str(format))
 					test_display_one_mode(
-						&data, port,
-						primary->formats[k],
+						&data, port, format,
 						CHAMELIUM_CHECK_CHECKERBOARD,
 						1);
 			}
