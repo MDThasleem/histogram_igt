@@ -6251,6 +6251,9 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 	uint64_t blob_id;
 
 	if (!igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS)) {
+		/* IN_FORMATS_ASYNC should never be present without IN_FORMATS */
+		igt_assert(!igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS_ASYNC));
+
 		fill_plane_default_format_mods(plane, &plane->format_mods);
 
 		if (igt_has_drm_cap(display->drm_fd, DRM_CAP_ASYNC_PAGE_FLIP))
@@ -6266,6 +6269,15 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 
 	blob_data = (const struct drm_format_modifier_blob *)blob->data;
 	igt_parse_format_mod_blob(blob_data, &plane->format_mods);
+
+	if (!igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS_ASYNC) &&
+	    igt_has_drm_cap(display->drm_fd, DRM_CAP_ASYNC_PAGE_FLIP)) {
+		igt_warn("Driver has IN_FORMATS but no IN_FORMATS_ASYNC while supporting async flips\n");
+
+		/* assume everything supports async flips */
+		igt_parse_format_mod_blob(blob_data, &plane->format_mods_async);
+	}
+
 	drmModeFreePropertyBlob(blob);
 
 	if (igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS_ASYNC)) {
