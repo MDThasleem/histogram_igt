@@ -1145,6 +1145,7 @@ static void test_format_plane(data_t *data, igt_crtc_t *crtc,
 	igt_crc_t ref_crc[MAX_CRC_SET][ARRAY_SIZE(colors_extended)];
 	struct igt_vec tested_formats;
 	struct format_mod ref = {};
+	struct format_mod f = {};
 	igt_crc_t* crcset;
 	bool result = true;
 
@@ -1205,14 +1206,7 @@ static void test_format_plane(data_t *data, igt_crtc_t *crtc,
 	 */
 	igt_require(num_unique_crcs(ref_crc[MULTIPLE_CRC_SET], data->num_colors) > 1);
 
-	for (int i = 0; i < plane->format_mods.count; i++) {
-		uint32_t format = plane->format_mods.formats[i];
-		uint64_t modifier = plane->format_mods.modifiers[i];
-		struct format_mod f = {
-			.format = format,
-			.modifier = modifier,
-		};
-
+	for_each_format_and_modifier(&plane->format_mods, f.format, f.modifier) {
 		if (data->mod != f.modifier)
 			continue;
 
@@ -1275,17 +1269,17 @@ static void test_format_plane(data_t *data, igt_crtc_t *crtc,
 static bool skip_plane(data_t *data, igt_plane_t *plane)
 {
 	int index = plane->index;
-	int i;
+	uint64_t modifier;
+	uint32_t format;
 
-	for (i = 0; i < plane->format_mods.count; i++) {
-		uint64_t modifier = plane->format_mods.modifiers[i];
-
+	for_each_format_and_modifier(&plane->format_mods, format, modifier) {
 		if (IS_AMD_FMT_MOD(modifier) &&
 		    (AMD_FMT_MOD_GET(DCC, modifier) ||
 		     AMD_FMT_MOD_GET(DCC_RETILE, modifier))) {
 			igt_debug("Skipping planes with DCC or DCC_RETILE\n");
 			return true;
 		}
+		(void)format;
 	}
 
 	if (data->extended)
