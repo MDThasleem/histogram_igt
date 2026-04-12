@@ -606,7 +606,7 @@ static void test_plane_rotation(data_t *data, int plane_type, bool test_bad_form
 
 	for_each_crtc_with_valid_output(display, crtc, output) {
 		igt_plane_t *plane;
-		int i, j, c;
+		int i, c;
 
 		igt_display_reset(display);
 
@@ -678,12 +678,11 @@ static void test_plane_rotation(data_t *data, int plane_type, bool test_bad_form
 
 			if (!data->override_fmt) {
 				struct igt_vec tested_formats;
+				uint32_t format;
 
 				igt_vec_init(&tested_formats, sizeof(uint32_t));
 
-				for (j = 0; j < plane->drm_plane->count_formats; j++) {
-					uint32_t format = plane->drm_plane->formats[j];
-
+				for_each_plane_format(plane, format) {
 					if (!test_format(data, &tested_formats, format))
 						continue;
 

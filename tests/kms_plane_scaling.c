@@ -800,16 +800,16 @@ test_scaler_with_pixel_format_crtc(data_t *d, double sf_plane,
 
 	for_each_plane_on_crtc(crtc, plane) {
 		struct igt_vec tested_formats;
+		int iteration = 0;
+		uint32_t format;
 
 		if (plane->type == DRM_PLANE_TYPE_CURSOR)
 			continue;
 
 		igt_vec_init(&tested_formats, sizeof(uint32_t));
 
-		for (int j = 0; j < plane->drm_plane->count_formats; j++) {
-			uint32_t format = plane->drm_plane->formats[j];
-
-			if (!test_crtc_iteration(d, crtc, j))
+		for_each_plane_format(plane, format) {
+			if (!test_crtc_iteration(d, crtc, iteration++))
 				continue;
 
 			if (test_format(d, &tested_formats, format) &&
