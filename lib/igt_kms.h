@@ -539,6 +539,7 @@ struct _igt_display {
 	bool first_commit;
 
 	struct igt_format_mods format_mods;
+	struct igt_format_mods format_mods_async;
 };
 
 typedef struct {

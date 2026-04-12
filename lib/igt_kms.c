@@ -6392,9 +6392,15 @@ static const struct igt_format_mods *plane_format_mods(igt_plane_t *plane)
 	return &plane->format_mods;
 }
 
+static const struct igt_format_mods *plane_format_mods_async(igt_plane_t *plane)
+{
+	return &plane->format_mods_async;
+}
+
 static void igt_fill_display_format_mod(igt_display_t *display)
 {
 	display_format_mods_fill(display, &display->format_mods, plane_format_mods);
+	display_format_mods_fill(display, &display->format_mods_async, plane_format_mods_async);
 }
 
 /**
