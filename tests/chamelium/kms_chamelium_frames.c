@@ -305,14 +305,15 @@ static void randomize_plane_setup(chamelium_data_t *data, igt_plane_t *plane,
 	uint32_t idx[plane->format_mods.count];
 	unsigned int count = 0;
 	unsigned int i;
+	uint32_t f;
+	uint64_t m;
 
 	/* First pass to count the supported formats. */
-	for (i = 0; i < plane->format_mods.count; i++) {
-		uint32_t f = plane->format_mods.formats[i];
-
+	for_each_format_and_modifier(&plane->format_mods, f, m) {
 		if (igt_fb_supported_format(f) &&
 		    (allow_yuv || !igt_format_is_yuv(f)))
 			idx[count++] = i;
+		(void)m;
 	}
 
 	igt_assert(count > 0);
