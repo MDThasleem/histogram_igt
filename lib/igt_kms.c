@@ -6227,28 +6227,31 @@ static void igt_parse_format_mod_blob(const struct drm_format_modifier_blob *blo
 	igt_assert_eq(idx, format_mods->count);
 }
 
+static void fill_plane_default_format_mods(igt_plane_t *plane,
+					   struct igt_format_mods *format_mods)
+{
+	drmModePlanePtr p = plane->drm_plane;
+
+	format_mods_alloc(format_mods, p->count_formats);
+
+	/*
+	 * We don't know which modifiers are
+	 * supported, so we'll assume linear only.
+	 */
+	for (int i = 0; i < plane->format_mods.count; i++) {
+		format_mods->formats[i] = p->formats[i];
+		format_mods->modifiers[i] = DRM_FORMAT_MOD_LINEAR;
+	}
+}
+
 static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane)
 {
 	const struct drm_format_modifier_blob *blob_data;
 	drmModePropertyBlobPtr blob;
 	uint64_t blob_id;
-	int count = 0;
 
 	if (!igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS)) {
-		drmModePlanePtr p = plane->drm_plane;
-
-		count = p->count_formats;
-
-		format_mods_alloc(&plane->format_mods, count);
-
-		/*
-		 * We don't know which modifiers are
-		 * supported, so we'll assume linear only.
-		 */
-		for (int i = 0; i < count; i++) {
-			plane->format_mods.formats[i] = p->formats[i];
-			plane->format_mods.modifiers[i] = DRM_FORMAT_MOD_LINEAR;
-		}
+		fill_plane_default_format_mods(plane, &plane->format_mods);
 
 		return;
 	}
