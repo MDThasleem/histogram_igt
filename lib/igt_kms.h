@@ -1231,6 +1231,13 @@ bool igt_connector_event_detected(struct udev_monitor *mon, uint32_t conn_id,
 void igt_flush_uevents(struct udev_monitor *mon);
 void igt_cleanup_uevents(struct udev_monitor *mon);
 
+bool igt_format_mods_has_format_and_modifier(const struct igt_format_mods *format_mods,
+					     uint32_t format, uint64_t modifier);
+bool igt_format_mods_has_format(const struct igt_format_mods *format_mods,
+				uint32_t format);
+bool igt_format_mods_has_modifier(const struct igt_format_mods *format_mods,
+				  uint64_t modifier);
+
 bool igt_display_has_format_mod(igt_display_t *display, uint32_t format, uint64_t modifier);
 bool igt_plane_has_format_mod(igt_plane_t *plane, uint32_t format, uint64_t modifier);
 

@@ -6292,8 +6292,16 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 	}
 }
 
-static bool igt_format_mods_has_format_and_modifier(const struct igt_format_mods *format_mods,
-						    uint32_t format, uint64_t modifier)
+/**
+ * igt_format_mods_has_format_and_modifier:
+ * @format_mods: a pointer to an #igt_format_mods structure
+ * @format: Pixel format
+ * @modifier: Modifier
+ *
+ * Returns: True if @format_mods includes the given @format/@modifier tuple, else false
+ */
+bool igt_format_mods_has_format_and_modifier(const struct igt_format_mods *format_mods,
+					     uint32_t format, uint64_t modifier)
 {
 	uint64_t _modifier;
 	uint32_t _format;
@@ -6301,6 +6309,50 @@ static bool igt_format_mods_has_format_and_modifier(const struct igt_format_mods
 	for_each_format_and_modifier(format_mods, _format, _modifier) {
 		if (_format == format && _modifier == modifier)
 			return true;
+	}
+
+	return false;
+}
+
+/**
+ * igt_format_mods_has_format:
+ * @format_mods: a pointer to an #igt_format_mods structure
+ * @format: Pixel format
+ *
+ * Returns: True if @format_mods includes the given @format, else false
+ */
+bool igt_format_mods_has_format(const struct igt_format_mods *format_mods,
+				uint32_t format)
+{
+	uint64_t _modifier;
+	uint32_t _format;
+
+	for_each_format_and_modifier(format_mods, _format, _modifier) {
+		if (_format == format)
+			return true;
+		(void)_modifier;
+	}
+
+	return false;
+}
+
+/**
+ * igt_format_mods_has_modifier:
+ * @format_mods: a pointer to an #igt_format_mods structure
+ * @modifier: Modifier
+ *
+ * Returns: True if @format_mods includes the given @modifier, else false
+ */
+bool igt_format_mods_has_modifier(const struct igt_format_mods *format_mods,
+				  uint64_t modifier)
+{
+	uint64_t _modifier;
+	uint32_t _format;
+
+	for_each_format_and_modifier(format_mods, _format, _modifier) {
+		if (_modifier == modifier)
+			return true;
+		(void)_format;
 	}
 
 	return false;
