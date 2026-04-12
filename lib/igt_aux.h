@@ -250,6 +250,9 @@ void igt_debug_interactive_mode_check(const char *var, const char *expected);
 			      __cmp(x, y, op), \
 			      __cmp_once(x, y, igt_unique(igt_tokencat(prefix, __x)), igt_unique(igt_tokencat(prefix, __y)), op))
 
+#define assert_type(x, type) \
+	(void)({_Static_assert(__builtin_types_compatible_p(typeof(x), type), #x " must be " #type);})
+
 #define min(x, y)	__careful_cmp(x, y, <, min)
 #define max(x, y)	__careful_cmp(x, y, >, max)
 

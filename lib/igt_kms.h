@@ -855,6 +855,50 @@ igt_output_crtc_t *__igt_output_crtc_populate(igt_display_t *display,
 		for_each_if (((format) = (plane)->drm_plane->formats[__i], \
 			      1))
 
+/**
+ * for_each_format_and_modifier:
+ * @format_mods: a pointer to an #igt_format_mod structure
+ * @format: format iterator
+ * @modifier: modifier iterator
+ *
+ * This for loop iterates over all format+modifier combinations.
+ */
+#define for_each_format_and_modifier(format_mods, format, modifier) \
+	for (int igt_unique(__i) = 0; igt_unique(__i) < (format_mods)->count; igt_unique(__i)++) \
+		for_each_if ((assert_type((format), uint32_t), \
+			      assert_type((modifier), uint64_t), \
+			      (format) = (format_mods)->formats[igt_unique(__i)], \
+			      (modifier) = (format_mods)->modifiers[igt_unique(__i)], \
+			      1))
+
+/**
+ * for_each_format_with_modifier:
+ * @format_mods: a pointer to an #igt_format_mod structure
+ * @modifier: specified modifier
+ * @format: format iterator
+ *
+ * This for loop iterates over all formats supporting @modifier.
+ */
+#define for_each_format_with_modifier(format_mods, format, modifier) \
+	for (int igt_unique(__i) = 0; igt_unique(__i) < (format_mods)->count; igt_unique(__i)++) \
+		for_each_if ((assert_type((format), uint32_t), \
+			      (format) = (format_mods)->formats[igt_unique(__i)], \
+			      (modifier) == (format_mods)->modifiers[igt_unique(__i)]))
+
+/**
+ * for_each_modifier_with_format:
+ * @format_mods: a pointer to an #igt_format_mod structure
+ * @format: specified format
+ * @modifier: modifier iterator
+ *
+ * This for loop iterates over all modifiers supporting @format.
+ */
+#define for_each_modifier_with_format(format_mods, format, modifier) \
+	for (int igt_unique(__i) = 0; igt_unique(__i) < (format_mods)->count; igt_unique(__i)++) \
+		for_each_if ((assert_type((modifier), uint64_t), \
+			      (modifier) = (format_mods)->modifiers[igt_unique(__i)], \
+			      (format) == (format_mods)->formats[igt_unique(__i)]))
+
 #define IGT_FIXED(i,f)	((i) << 16 | (f))
 
 /**

@@ -6295,11 +6295,11 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 static bool igt_format_mods_has_format_and_modifier(const struct igt_format_mods *format_mods,
 						    uint32_t format, uint64_t modifier)
 {
-	int i;
+	uint64_t _modifier;
+	uint32_t _format;
 
-	for (i = 0; i < format_mods->count; i++) {
-		if (format_mods->formats[i] == format &&
-		    format_mods->modifiers[i] == modifier)
+	for_each_format_and_modifier(format_mods, _format, _modifier) {
+		if (_format == format && _modifier == modifier)
 			return true;
 	}
 
