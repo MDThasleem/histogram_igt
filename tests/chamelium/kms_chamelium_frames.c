@@ -302,13 +302,13 @@ static void randomize_plane_setup(chamelium_data_t *data, igt_plane_t *plane,
 				  uint64_t *modifier, bool allow_yuv)
 {
 	int min_dim;
-	uint32_t idx[plane->format_mod_count];
+	uint32_t idx[plane->format_mods.count];
 	unsigned int count = 0;
 	unsigned int i;
 
 	/* First pass to count the supported formats. */
-	for (i = 0; i < plane->format_mod_count; i++) {
-		uint32_t f = plane->formats[i];
+	for (i = 0; i < plane->format_mods.count; i++) {
+		uint32_t f = plane->format_mods.formats[i];
 
 		if (igt_fb_supported_format(f) &&
 		    (allow_yuv || !igt_format_is_yuv(f)))
@@ -318,8 +318,8 @@ static void randomize_plane_setup(chamelium_data_t *data, igt_plane_t *plane,
 	igt_assert(count > 0);
 
 	i = idx[rand() % count];
-	*format = plane->formats[i];
-	*modifier = plane->modifiers[i];
+	*format = plane->format_mods.formats[i];
+	*modifier = plane->format_mods.modifiers[i];
 
 	update_tiled_modifier(plane, *width, *height, *format, modifier);
 
@@ -1041,9 +1041,9 @@ int igt_main()
 				output, DRM_PLANE_TYPE_PRIMARY);
 			igt_assert(primary);
 
-			for (k = 0; k < primary->format_mod_count; k++) {
-				uint32_t format = primary->formats[k];
-				uint64_t modifier = primary->modifiers[k];
+			for (k = 0; k < primary->format_mods.count; k++) {
+				uint32_t format = primary->format_mods.formats[k];
+				uint64_t modifier = primary->format_mods.modifiers[k];
 
 				if (!igt_fb_supported_format(format))
 					continue;
@@ -1080,9 +1080,9 @@ int igt_main()
 				output, DRM_PLANE_TYPE_PRIMARY);
 			igt_assert(primary);
 
-			for (k = 0; k < primary->format_mod_count; k++) {
-				uint32_t format = primary->formats[k];
-				uint64_t modifier = primary->modifiers[k];
+			for (k = 0; k < primary->format_mods.count; k++) {
+				uint32_t format = primary->format_mods.formats[k];
+				uint64_t modifier = primary->format_mods.modifiers[k];
 
 				if (!igt_fb_supported_format(format))
 					continue;

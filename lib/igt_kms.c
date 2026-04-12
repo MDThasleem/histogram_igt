@@ -6232,19 +6232,19 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 
 		count = p->count_formats;
 
-		plane->format_mod_count = count;
-		plane->formats = calloc(count, sizeof(plane->formats[0]));
-		igt_assert(plane->formats);
-		plane->modifiers = calloc(count, sizeof(plane->modifiers[0]));
-		igt_assert(plane->modifiers);
+		plane->format_mods.count = count;
+		plane->format_mods.formats = calloc(count, sizeof(plane->format_mods.formats[0]));
+		igt_assert(plane->format_mods.formats);
+		plane->format_mods.modifiers = calloc(count, sizeof(plane->format_mods.modifiers[0]));
+		igt_assert(plane->format_mods.modifiers);
 
 		/*
 		 * We don't know which modifiers are
 		 * supported, so we'll assume linear only.
 		 */
 		for (int i = 0; i < count; i++) {
-			plane->formats[i] = p->formats[i];
-			plane->modifiers[i] = DRM_FORMAT_MOD_LINEAR;
+			plane->format_mods.formats[i] = p->formats[i];
+			plane->format_mods.modifiers[i] = DRM_FORMAT_MOD_LINEAR;
 		}
 
 		return;
@@ -6256,7 +6256,7 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 		return;
 
 	blob_data = (const struct drm_format_modifier_blob *)blob->data;
-	igt_parse_format_mod_blob(blob_data, &plane->formats, &plane->modifiers, &plane->format_mod_count);
+	igt_parse_format_mod_blob(blob_data, &plane->format_mods.formats, &plane->format_mods.modifiers, &plane->format_mods.count);
 	drmModeFreePropertyBlob(blob);
 
 	if (igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS_ASYNC)) {
@@ -6266,7 +6266,7 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 			return;
 
 		blob_data = (const struct drm_format_modifier_blob *)blob->data;
-		igt_parse_format_mod_blob(blob_data, &plane->async_formats, &plane->async_modifiers, &plane->async_format_mod_count);
+		igt_parse_format_mod_blob(blob_data, &plane->format_mods_async.formats, &plane->format_mods_async.modifiers, &plane->format_mods_async.count);
 		drmModeFreePropertyBlob(blob);
 	}
 }
@@ -6284,9 +6284,9 @@ bool igt_plane_has_format_mod(igt_plane_t *plane, uint32_t format,
 {
 	int i;
 
-	for (i = 0; i < plane->format_mod_count; i++) {
-		if (plane->formats[i] == format &&
-		    plane->modifiers[i] == modifier)
+	for (i = 0; i < plane->format_mods.count; i++) {
+		if (plane->format_mods.formats[i] == format &&
+		    plane->format_mods.modifiers[i] == modifier)
 			return true;
 
 	}
@@ -6304,7 +6304,7 @@ static int igt_count_display_format_mod(igt_display_t *display)
 
 		for_each_plane_on_crtc(crtc,
 				       plane) {
-			count += plane->format_mod_count;
+			count += plane->format_mods.count;
 		}
 	}
 
@@ -6317,16 +6317,16 @@ igt_add_display_format_mod(igt_display_t *display, uint32_t format,
 {
 	int i;
 
-	for (i = 0; i < display->format_mod_count; i++) {
-		if (display->formats[i] == format &&
-		    display->modifiers[i] == modifier)
+	for (i = 0; i < display->format_mods.count; i++) {
+		if (display->format_mods.formats[i] == format &&
+		    display->format_mods.modifiers[i] == modifier)
 			return;
 
 	}
 
-	display->formats[i] = format;
-	display->modifiers[i] = modifier;
-	display->format_mod_count++;
+	display->format_mods.formats[i] = format;
+	display->format_mods.modifiers[i] = modifier;
+	display->format_mods.count++;
 }
 
 static void igt_fill_display_format_mod(igt_display_t *display)
@@ -6337,21 +6337,21 @@ static void igt_fill_display_format_mod(igt_display_t *display)
 	if (!count)
 		return;
 
-	display->formats = calloc(count, sizeof(display->formats[0]));
-	igt_assert(display->formats);
-	display->modifiers = calloc(count, sizeof(display->modifiers[0]));
-	igt_assert(display->modifiers);
+	display->format_mods.formats = calloc(count, sizeof(display->format_mods.formats[0]));
+	igt_assert(display->format_mods.formats);
+	display->format_mods.modifiers = calloc(count, sizeof(display->format_mods.modifiers[0]));
+	igt_assert(display->format_mods.modifiers);
 
 	for_each_crtc(display, crtc) {
 		igt_plane_t *plane;
 
 		for_each_plane_on_crtc(crtc,
 				       plane) {
-			for (int i = 0; i < plane->format_mod_count; i++) {
+			for (int i = 0; i < plane->format_mods.count; i++) {
 				igt_add_display_format_mod(display,
-							   plane->formats[i],
-							   plane->modifiers[i]);
-				igt_assert_lte(display->format_mod_count, count);
+							   plane->format_mods.formats[i],
+							   plane->format_mods.modifiers[i]);
+				igt_assert_lte(display->format_mods.count, count);
 			}
 		}
 	}
@@ -6370,9 +6370,9 @@ bool igt_display_has_format_mod(igt_display_t *display, uint32_t format,
 {
 	int i;
 
-	for (i = 0; i < display->format_mod_count; i++) {
-		if (display->formats[i] == format &&
-		    display->modifiers[i] == modifier)
+	for (i = 0; i < display->format_mods.count; i++) {
+		if (display->format_mods.formats[i] == format &&
+		    display->format_mods.modifiers[i] == modifier)
 			return true;
 
 	}

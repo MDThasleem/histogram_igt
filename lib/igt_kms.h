@@ -427,6 +427,12 @@ typedef struct {
 
 } igt_colorop_t;
 
+struct igt_format_mods {
+	uint64_t *modifiers;
+	uint32_t *formats;
+	int count;
+};
+
 typedef struct _igt_plane {
 	/*< private >*/
 	igt_crtc_t *crtc;
@@ -457,13 +463,8 @@ typedef struct _igt_plane {
 	uint32_t props[IGT_NUM_PLANE_PROPS];
 	uint64_t values[IGT_NUM_PLANE_PROPS];
 
-	uint64_t *modifiers;
-	uint32_t *formats;
-	int format_mod_count;
-
-	uint64_t *async_modifiers;
-	uint32_t *async_formats;
-	int async_format_mod_count;
+	struct igt_format_mods format_mods;
+	struct igt_format_mods format_mods_async;
 
 	igt_colorop_t *color_pipelines[IGT_NUM_PLANE_COLOR_PIPELINES];
 	int num_color_pipelines;
@@ -537,9 +538,7 @@ struct _igt_display {
 	bool has_plane_color_pipeline;
 	bool first_commit;
 
-	uint64_t *modifiers;
-	uint32_t *formats;
-	int format_mod_count;
+	struct igt_format_mods format_mods;
 };
 
 typedef struct {

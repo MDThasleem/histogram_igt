@@ -664,11 +664,11 @@ static void test_invalid(data_t *data)
 
 	flags = DRM_MODE_PAGE_FLIP_ASYNC | DRM_MODE_PAGE_FLIP_EVENT;
 
-	mod1 = data->plane->async_modifiers[0];
-	mod2 = data->plane->async_modifiers[data->plane->async_format_mod_count - 1];
+	mod1 = data->plane->format_mods_async.modifiers[0];
+	mod2 = data->plane->format_mods_async.modifiers[data->plane->format_mods_async.count - 1];
 
 	/* Need at least 2 different modifiers to test invalid case */
-	igt_require_f(data->plane->async_format_mod_count >= 2 && mod1 != mod2,
+	igt_require_f(data->plane->format_mods_async.count >= 2 && mod1 != mod2,
 		      "Need at least 2 different async modifiers for invalid test\n");
 
 	igt_info("using modifier1 %s and modifier2 %s\n",
@@ -876,8 +876,8 @@ static void require_linear_modifier(data_t *data)
 		return;
 	}
 
-	for (int i = 0; i < data->plane->async_format_mod_count; i++) {
-		uint64_t modifier = data->plane->async_modifiers[i];
+	for (int i = 0; i < data->plane->format_mods_async.count; i++) {
+		uint64_t modifier = data->plane->format_mods_async.modifiers[i];
 
 		if (modifier == DRM_FORMAT_MOD_LINEAR) {
 			data->modifier = DRM_FORMAT_MOD_LINEAR;
@@ -968,13 +968,13 @@ static void run_test_with_async_format_modifiers(data_t *data, void (*test)(data
 		data->crtc = crtc;
 		test_init(data);
 
-		igt_assert_f(data->plane->async_format_mod_count > 0,
+		igt_assert_f(data->plane->format_mods_async.count > 0,
 			     "No async format/modifier supported\n");
 
-		for (int i = 0; i < data->plane->async_format_mod_count; i++) {
+		for (int i = 0; i < data->plane->format_mods_async.count; i++) {
 			struct format_mod f = {
-				.format = data->plane->async_formats[i],
-				.modifier = data->plane->async_modifiers[i],
+				.format = data->plane->format_mods_async.formats[i],
+				.modifier = data->plane->format_mods_async.modifiers[i],
 			};
 
 			if (skip_async_format_mod(data, f.format, f.modifier, &tested_formats)) {
@@ -1022,12 +1022,12 @@ static void run_test_with_modifiers(data_t *data, void (*test)(data_t *))
 		data->crtc = crtc;
 		test_init(data);
 
-		igt_require_f(data->plane->async_format_mod_count > 0,
+		igt_require_f(data->plane->format_mods_async.count > 0,
 			     "No async format/modifier supported\n");
 
-		for (int i = 0; i < data->plane->async_format_mod_count; i++) {
-			uint64_t modifier = data->plane->async_modifiers[i];
-			uint32_t format = data->plane->async_formats[i];
+		for (int i = 0; i < data->plane->format_mods_async.count; i++) {
+			uint64_t modifier = data->plane->format_mods_async.modifiers[i];
+			uint32_t format = data->plane->format_mods_async.formats[i];
 
 			if (format != DRM_FORMAT_XRGB8888)
 				continue;

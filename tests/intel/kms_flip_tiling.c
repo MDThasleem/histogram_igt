@@ -244,16 +244,16 @@ int igt_main()
 
 			plane = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
 
-			for (int i = 0; i < plane->format_mod_count; i++) {
-				format[0] = plane->formats[i];
-				modifier[0] = plane->modifiers[i];
+			for (int i = 0; i < plane->format_mods.count; i++) {
+				format[0] = plane->format_mods.formats[i];
+				modifier[0] = plane->format_mods.modifiers[i];
 
 				if (format[0] != data.testformat)
 					continue;
 
-				for (int j = 0; j < plane->format_mod_count; j++) {
-					format[1] = plane->formats[j];
-					modifier[1] = plane->modifiers[j];
+				for (int j = 0; j < plane->format_mods.count; j++) {
+					format[1] = plane->format_mods.formats[j];
+					modifier[1] = plane->format_mods.modifiers[j];
 
 					if (format[1] != data.testformat)
 						continue;
