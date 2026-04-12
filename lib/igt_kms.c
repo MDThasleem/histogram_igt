@@ -6306,23 +6306,6 @@ bool igt_plane_has_format_mod(igt_plane_t *plane, uint32_t format,
 						       format, modifier);
 }
 
-static int igt_count_display_format_mod(igt_display_t *display)
-{
-	igt_crtc_t *crtc;
-	int count = 0;
-
-	for_each_crtc(display, crtc) {
-		igt_plane_t *plane;
-
-		for_each_plane_on_crtc(crtc,
-				       plane) {
-			count += plane->format_mods.count;
-		}
-	}
-
-	return count;
-}
-
 static void
 format_mods_append(struct igt_format_mods *format_mods,
 		   uint32_t format, uint64_t modifier)
@@ -6351,6 +6334,21 @@ format_mods_union(struct igt_format_mods *format_mods_dst,
 				   format_mods_src->modifiers[i]);
 }
 
+static int display_format_mods_count(igt_display_t *display)
+{
+	igt_crtc_t *crtc;
+	int count = 0;
+
+	for_each_crtc(display, crtc) {
+		igt_plane_t *plane;
+
+		for_each_plane_on_crtc(crtc, plane)
+			count += plane->format_mods.count;
+	}
+
+	return count;
+}
+
 static void display_format_mods_union(igt_display_t *display,
 				      struct igt_format_mods *format_mods)
 {
@@ -6366,7 +6364,7 @@ static void display_format_mods_union(igt_display_t *display,
 
 static void igt_fill_display_format_mod(igt_display_t *display)
 {
-	int count = igt_count_display_format_mod(display);
+	int count = display_format_mods_count(display);
 
 	if (!count)
 		return;
