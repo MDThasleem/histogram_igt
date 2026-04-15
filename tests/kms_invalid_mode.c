@@ -118,7 +118,15 @@ adjust_mode_clock_too_high(data_t *data, drmModeModeInfoPtr mode)
 {
 	int max_dotclock = data->max_dotclock;
 
-	igt_require(max_dotclock != 0);
+	/*
+	 * If max_dotclock is unavailable (e.g., non-Intel platforms),
+	 * use -1 as an invalid clock value. This will be converted to
+	 * UINT_MAX, which clearly exceeds any reasonable hardware limit.
+	 */
+	if (max_dotclock == 0) {
+		mode->clock = -1;
+		return true;
+	}
 
 	/*
 	 * Newer platforms can support modes higher than the maximum dot clock
