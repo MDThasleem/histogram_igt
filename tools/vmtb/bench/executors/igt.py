@@ -17,17 +17,101 @@ logger = logging.getLogger('IgtExecutor')
 
 
 class IgtType(enum.Enum):
-    EXEC_BASIC = 1
-    EXEC_STORE = 2
-    SPIN_BATCH = 3
+    # Basic/generic IGT tests:
+    EXEC_BASIC = enum.auto()
+    EXEC_STORE = enum.auto()
+    SPIN_BATCH = enum.auto()
+    # VF migration workloads - xe_exec_reset/long_spin subtests:
+    EXEC_RESET_LONG_SPIN_MANY_PREEMPT = enum.auto()
+    EXEC_RESET_LONG_SPIN_MANY_PREEMPT_MEDIA = enum.auto()
+    EXEC_RESET_LONG_SPIN_MANY_PREEMPT_THREADS = enum.auto()
+    EXEC_RESET_LONG_SPIN_MANY_PREEMPT_GT0_THREADS = enum.auto()
+    EXEC_RESET_LONG_SPIN_MANY_PREEMPT_GT1_THREADS = enum.auto()
+    EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT = enum.auto()
+    EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_MEDIA = enum.auto()
+    EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_THREADS = enum.auto()
+    EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_GT0_THREADS = enum.auto()
+    EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_GT1_THREADS = enum.auto()
+    EXEC_RESET_LONG_SPIN_SYS_REUSE_MANY_PREEMPT_THREADS = enum.auto()
+    EXEC_RESET_LONG_SPIN_COMP_REUSE_MANY_PREEMPT_THREADS = enum.auto()
+    # VF migration workloads - xe_exec_reset/cancel subtests:
+    EXEC_RESET_CANCEL = enum.auto()
+    EXEC_RESET_CANCEL_PREEMPT = enum.auto()
+    EXEC_RESET_CANCEL_TIMESLICE_PREEMPT = enum.auto()
+    EXEC_RESET_CANCEL_TIMESLICE_MANY_PREEMPT = enum.auto()
+    # VF migration workloads - xe_exec_threads subtests:
+    EXEC_THREADS_BASIC = enum.auto()
+    EXEC_THREADS_BAL_BASIC = enum.auto()
+    EXEC_THREADS_CM_USERPTR_INVALIDATE = enum.auto()
+    EXEC_THREADS_BAL_MIXED_USERPTR_INVALIDATE = enum.auto()
+    EXEC_THREADS_MANY_QUEUES = enum.auto()
+    # VF migration workloads - xe_ccs subtest:
+    CCS_BLOCK_COPY_COMPRESSED = enum.auto()
+    # VF migration workloads - xe_compute_preempt subtest:
+    COMPUTE_PREEMPT_MANY = enum.auto()
 
 
 # Mappings of driver specific (i915/xe) IGT instances:
 # {IGT type: (i915 IGT name, xe IGT name)}
 igt_tests: typing.Dict[IgtType, typing.Tuple[str, str]] = {
-    IgtType.EXEC_BASIC: ('igt@gem_exec_basic@basic', 'igt@xe_exec_basic@once-basic'),
-    IgtType.EXEC_STORE: ('igt@gem_exec_store@dword', 'igt@xe_exec_store@basic-store'),
-    IgtType.SPIN_BATCH: ('igt@gem_spin_batch@legacy', 'igt@xe_spin_batch@spin-basic')
+    # Basic/generic IGT tests:
+    IgtType.EXEC_BASIC:
+      ('igt@gem_exec_basic@basic', 'igt@xe_exec_basic@once-basic'),
+    IgtType.EXEC_STORE:
+      ('igt@gem_exec_store@dword', 'igt@xe_exec_store@basic-store'),
+    IgtType.SPIN_BATCH:
+      ('igt@gem_spin_batch@legacy', 'igt@xe_spin_batch@spin-basic'),
+    # VF migration workloads - xe_exec_reset/long_spin subtests:
+    IgtType.EXEC_RESET_LONG_SPIN_MANY_PREEMPT:
+      ('n/a', 'igt@xe_exec_reset@long-spin-many-preempt'),
+    IgtType.EXEC_RESET_LONG_SPIN_MANY_PREEMPT_MEDIA:
+      ('n/a', 'igt@xe_exec_reset@long-spin-many-preempt-media'),
+    IgtType.EXEC_RESET_LONG_SPIN_MANY_PREEMPT_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-many-preempt-threads'),
+    IgtType.EXEC_RESET_LONG_SPIN_MANY_PREEMPT_GT0_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-many-preempt-gt0-threads'),
+    IgtType.EXEC_RESET_LONG_SPIN_MANY_PREEMPT_GT1_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-many-preempt-gt1-threads'),
+    IgtType.EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT:
+      ('n/a', 'igt@xe_exec_reset@long-spin-reuse-many-preempt'),
+    IgtType.EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_MEDIA:
+      ('n/a', 'igt@xe_exec_reset@long-spin-reuse-many-preempt-media'),
+    IgtType.EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-reuse-many-preempt-threads'),
+    IgtType.EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_GT0_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-reuse-many-preempt-gt0-threads'),
+    IgtType.EXEC_RESET_LONG_SPIN_REUSE_MANY_PREEMPT_GT1_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-reuse-many-preempt-gt1-threads'),
+    IgtType.EXEC_RESET_LONG_SPIN_SYS_REUSE_MANY_PREEMPT_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-sys-reuse-many-preempt-threads'),
+    IgtType.EXEC_RESET_LONG_SPIN_COMP_REUSE_MANY_PREEMPT_THREADS:
+      ('n/a', 'igt@xe_exec_reset@long-spin-comp-reuse-many-preempt-threads'),
+    # VF migration workloads - xe_exec_reset/cancel subtests:
+    IgtType.EXEC_RESET_CANCEL:
+      ('n/a', 'igt@xe_exec_reset@cancel'),
+    IgtType.EXEC_RESET_CANCEL_PREEMPT:
+      ('n/a', 'igt@xe_exec_reset@cancel-preempt'),
+    IgtType.EXEC_RESET_CANCEL_TIMESLICE_PREEMPT:
+      ('n/a', 'igt@xe_exec_reset@cancel-timeslice-preempt'),
+    IgtType.EXEC_RESET_CANCEL_TIMESLICE_MANY_PREEMPT:
+      ('n/a', 'igt@xe_exec_reset@cancel-timeslice-many-preempt'),
+    # VF migration workloads - xe_exec_threads subtests:
+    IgtType.EXEC_THREADS_BASIC:
+      ('n/a', 'igt@xe_exec_threads@threads-basic'),
+    IgtType.EXEC_THREADS_BAL_BASIC:
+      ('n/a', 'igt@xe_exec_threads@threads-bal-basic'),
+    IgtType.EXEC_THREADS_CM_USERPTR_INVALIDATE:
+      ('n/a', 'igt@xe_exec_threads@threads-cm-userptr-invalidate'),
+    IgtType.EXEC_THREADS_BAL_MIXED_USERPTR_INVALIDATE:
+      ('n/a', 'igt@xe_exec_threads@threads-bal-mixed-userptr-invalidate'),
+    IgtType.EXEC_THREADS_MANY_QUEUES:
+      ('n/a', 'igt@xe_exec_threads@threads-many-queues'),
+    # VF migration workloads - xe_ccs subtest:
+    IgtType.CCS_BLOCK_COPY_COMPRESSED:
+      ('n/a', 'igt@xe_ccs@block-copy-compressed'),
+    # VF migration workloads - xe_compute_preempt subtest:
+    IgtType.COMPUTE_PREEMPT_MANY:
+      ('n/a', 'igt@xe_compute_preempt@compute-preempt-many')
     }
 
 
