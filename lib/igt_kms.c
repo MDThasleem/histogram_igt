@@ -7508,10 +7508,11 @@ int igt_crtc_num_scalers(igt_crtc_t *crtc)
 		 * as a rough approximation of the # of scalars.. it may
 		 * undercount on some hw, but it will not overcount
 		 */
-		for_each_plane_on_crtc(crtc,
-				       plane) {
-			for (unsigned i = 0; i < plane->format_mod_count; i++) {
-				if (igt_format_is_yuv(plane->formats[i])) {
+		for_each_plane_on_crtc(crtc, plane) {
+			uint32_t format;
+
+			for_each_plane_format(plane, format) {
+				if (igt_format_is_yuv(format)) {
 					num_scalers++;
 					break;
 				}
