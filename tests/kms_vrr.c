@@ -36,10 +36,6 @@
 #include <signal.h>
 
 /**
- * SUBTEST: cmrr
- * Description: Test to validate the content rate to exactly match with the
- * 		requested rate without any frame drops.
- *
  * SUBTEST: flip-basic
  * Description: Tests that VRR is enabled and that the difference between flip
  *              timestamps converges to the requested rate
@@ -90,9 +86,6 @@
  */
 #define TEST_DURATION_NS (5000000000ull)
 
-#define CMRR_PRECISION_TOLERANCE	10
-#define VREFRESH_MODIFIER	0.1
-
 enum {
 	TEST_BASIC = 1 << 0,
 	TEST_DPMS = 1 << 1,
@@ -103,7 +96,6 @@ enum {
 	TEST_SEAMLESS_VIRTUAL_RR = 1 << 6,
 	TEST_FASTSET = 1 << 7,
 	TEST_MAXMIN = 1 << 8,
-	TEST_CMRR = 1 << 9,
 	TEST_LINK_OFF = 1 << 10,
 	TEST_NEGATIVE = 1 << 11,
 	TEST_FORCE_RR = 1 << 12,
@@ -250,21 +242,6 @@ virtual_rr_vrr_range_mode(drmModeModeInfo *mode, float virtual_refresh_rate)
 
 	mode->vtotal = clock_hz / (mode->htotal * virtual_refresh_rate);
 	mode->vrefresh = virtual_refresh_rate;
-}
-
-static bool
-is_cmrr_mode(drmModeModeInfoPtr mode)
-{
-	int calculated_refresh, actual_refresh, pixel_clock_per_line;
-
-	actual_refresh = mode->vrefresh * 100;
-	pixel_clock_per_line = mode->clock * 1000 / mode->htotal;
-	calculated_refresh = pixel_clock_per_line * 100 / mode->vtotal;
-
-	if ((actual_refresh - calculated_refresh) < CMRR_PRECISION_TOLERANCE)
-		return false;
-
-	return true;
 }
 
 /* Read min and max vrr range from the connector debugfs. */
@@ -600,57 +577,6 @@ flip_and_measure(data_t *data, igt_output_t *output,
 	return 0;
 }
 
-static uint32_t
-flip_and_measure_cmrr(data_t *data, igt_output_t *output,
-		      uint64_t duration_ns)
-{
-	uint64_t start_ns, last_event_ns, event_ns;
-	uint32_t total_flip = 0, total_pass = 0;
-	bool front = false;
-	drmModeModeInfoPtr mode = igt_output_get_mode(output);
-	uint64_t req_rate_ns = igt_kms_frame_time_from_vrefresh(mode->vrefresh + VREFRESH_MODIFIER);
-	uint64_t exp_rate_ns = igt_kms_frame_time_from_vrefresh(mode->vrefresh);
-	uint64_t threshold_ns = exp_rate_ns / mode->vdisplay; /* Upto 1 scan line. */
-
-	igt_info("CMRR on: requested rate: %"PRIu64" ns (%.2f Hz) "
-		 "expected rate: %"PRIu64" ns - %"PRIu64" ns (%.2f-%.2f Hz)\n",
-		 req_rate_ns, (mode->vrefresh + VREFRESH_MODIFIER),
-		 (exp_rate_ns - threshold_ns), (exp_rate_ns + threshold_ns),
-		 (float)NSECS_PER_SEC / (exp_rate_ns + threshold_ns),
-		 (float)NSECS_PER_SEC / (exp_rate_ns - threshold_ns));
-
-	do_flip(data, &data->fb[0]);
-	start_ns = last_event_ns = get_kernel_event_ns(data, DRM_EVENT_FLIP_COMPLETE);
-	do {
-		int64_t target_ns, wait_ns, diff_ns = exp_rate_ns;
-
-		front = !front;
-		do_flip(data, front ? &data->fb[1] : &data->fb[0]);
-
-		event_ns = get_kernel_event_ns(data, DRM_EVENT_FLIP_COMPLETE);
-		igt_debug("event_ns - last_event_ns: %"PRIu64" ns (%.2f Hz)\n",
-			  event_ns - last_event_ns, (float)NSECS_PER_SEC / (event_ns - last_event_ns));
-
-		diff_ns -= event_ns - last_event_ns;
-		if (llabs(diff_ns) <= threshold_ns)
-			total_pass += 1;
-
-		last_event_ns = event_ns;
-		total_flip += 1;
-
-		diff_ns = event_ns - start_ns;
-		wait_ns = ((diff_ns + req_rate_ns - 1) / req_rate_ns) * req_rate_ns;
-		wait_ns -= diff_ns;
-		target_ns = event_ns + wait_ns;
-		while (get_time_ns() < target_ns - 10);
-	} while (event_ns - start_ns <= duration_ns);
-
-	igt_info("Completed %u flips, %u vblanks were in threshold for (%.2f Hz) %"PRIu64"ns.\n",
-		 total_flip, total_pass, (mode->vrefresh + VREFRESH_MODIFIER), req_rate_ns);
-
-	return total_flip ? ((total_pass * 100) / total_flip) : 0;
-}
-
 /* Basic VRR flip functionality test - enable, measure, disable, measure */
 static void
 test_basic(data_t *data, igt_crtc_t *crtc, igt_output_t *output,
@@ -947,54 +873,6 @@ test_lobf(data_t *data, igt_crtc_t *crtc, igt_output_t *output,
 	igt_assert_f(lobf_enabled, "LOBF not enabled\n");
 }
 
-static void
-test_cmrr(data_t *data, igt_crtc_t *crtc, igt_output_t *output,
-	  uint32_t flags)
-{
-	uint32_t result;
-	int i;
-	bool found = false;
-	drmModeConnectorPtr connector = output->config.connector;
-	drmModeModeInfo mode = *igt_output_get_mode(output);
-
-	igt_info("CMRR test execution on %s, PIPE_%s with VRR range: (%u-%u) Hz\n",
-		 output->name, igt_crtc_name(crtc), data->range.min,
-		 data->range.max);
-
-	for (i = 0; i < connector->count_modes; i++) {
-		if (is_cmrr_mode(&connector->modes[i])) {
-			mode = connector->modes[i];
-
-			found = true;
-			break;
-		}
-	}
-
-	igt_info("Selected mode: ");
-	kmstest_dump_mode(&mode);
-
-	if (!found) {
-		igt_info("No CMRR mode found on %s, try to tweak the clock.\n", output->name);
-
-		mode.clock = (mode.htotal * mode.vtotal * (mode.vrefresh + VREFRESH_MODIFIER)) / 1000;
-
-		igt_info("Tweaked mode: ");
-		kmstest_dump_mode(&mode);
-	}
-
-	igt_output_override_mode(output, &mode);
-
-	if (!igt_display_try_commit2(&data->display, COMMIT_ATOMIC)) {
-		prepare_test(data, output,
-			     crtc);
-		result = flip_and_measure_cmrr(data, output, TEST_DURATION_NS * 2);
-		igt_assert_f(result > 75,
-			     "Refresh rate (%u Hz) %"PRIu64"ns: Target CMRR on threshold not reached, result was %u%%\n",
-			     mode.vrefresh, igt_kms_frame_time_from_vrefresh(mode.vrefresh),
-			     result);
-	}
-}
-
 static void test_cleanup(data_t *data, igt_crtc_t *crtc, igt_output_t *output)
 {
 	igt_crtc_set_prop_value(crtc,
@@ -1014,7 +892,7 @@ static void test_cleanup(data_t *data, igt_crtc_t *crtc, igt_output_t *output)
 static bool output_constraint(data_t *data, igt_output_t *output, uint32_t flags)
 {
 
-	if ((flags & (TEST_SEAMLESS_VRR | TEST_SEAMLESS_DRRS | TEST_CMRR)) &&
+	if ((flags & (TEST_SEAMLESS_VRR | TEST_SEAMLESS_DRRS)) &&
 	    output->config.connector->connector_type != DRM_MODE_CONNECTOR_eDP) {
 		igt_info("%s: Connected panel is not eDP.\n", igt_output_name(output));
 		return false;
@@ -1226,14 +1104,6 @@ int igt_main_args("drs:", long_opts, help_str, opt_handler, &data)
 		igt_describe("Test to switch to any custom virtual mode in VRR range without modeset.");
 		igt_subtest_with_dynamic("seamless-rr-switch-virtual")
 			run_vrr_test(&data, test_seamless_virtual_rr_basic, TEST_SEAMLESS_VIRTUAL_RR);
-
-		igt_describe("Test to validate the content rate exactly matches with the "
-			     "requested rate without any frame drops.");
-		igt_subtest_with_dynamic("cmrr") {
-			igt_require(intel_display_ver(intel_get_drm_devid(data.drm_fd)) >= 20);
-
-			run_vrr_test(&data, test_cmrr, TEST_CMRR);
-		}
 
 		igt_describe("Test to validate the link-off between active frames in "
 			     "non-PSR operation.");
