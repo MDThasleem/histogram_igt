@@ -88,15 +88,6 @@ IGT_TEST_DESCRIPTION("Test to validate content adaptive sharpness filter");
 #define MAX_PIXELS_FOR_3_TAP_FILTER	(1920 * 1080)
 #define MAX_PIXELS_FOR_5_TAP_FILTER	(3840 * 2160)
 #define NROUNDS				10
-#define INVALID_TEST ((type == TEST_INVALID_FILTER_WITH_SCALER) \
-		   || (type == TEST_INVALID_FILTER_WITH_PLANE) \
-		   || (type == TEST_INVALID_PLANE_WITH_FILTER) \
-		   || (type == TEST_INVALID_FILTER_WITH_SCALING_MODE))
-#define SET_PLANES ((type == TEST_FILTER_UPSCALE) \
-		||  (type == TEST_FILTER_DOWNSCALE) \
-		||  (type == TEST_INVALID_FILTER_WITH_SCALER) \
-		||  (type == TEST_INVALID_FILTER_WITH_PLANE) \
-		||  (type == TEST_INVALID_FILTER_WITH_SCALING_MODE))
 
 enum test_type {
 	TEST_FILTER_BASIC,
@@ -326,12 +317,37 @@ static int test_filter_toggle(data_t *data)
 	return ret;
 }
 
-static void test_sharpness_filter(data_t *data,  enum test_type type)
+static bool is_invalid_test(enum test_type type)
+{
+	switch (type) {
+	case TEST_INVALID_FILTER_WITH_SCALER:
+	case TEST_INVALID_FILTER_WITH_PLANE:
+	case TEST_INVALID_PLANE_WITH_FILTER:
+	case TEST_INVALID_FILTER_WITH_SCALING_MODE:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool needs_extra_planes(enum test_type type)
+{
+	switch (type) {
+	case TEST_FILTER_UPSCALE:
+	case TEST_FILTER_DOWNSCALE:
+	case TEST_INVALID_FILTER_WITH_SCALER:
+	case TEST_INVALID_FILTER_WITH_PLANE:
+	case TEST_INVALID_FILTER_WITH_SCALING_MODE:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static void test_sharpness_filter(data_t *data, enum test_type type)
 {
 	igt_output_t *output = data->output;
 	drmModeModeInfo *mode = data->mode;
-	int height = mode->hdisplay;
-	int width =  mode->vdisplay;
 	igt_crc_t ref_crc, crc;
 	igt_pipe_crc_t *pipe_crc = NULL;
 	int ret;
@@ -342,56 +358,30 @@ static void test_sharpness_filter(data_t *data,  enum test_type type)
 		      "No requested format/modifier on pipe %s\n",
 		      igt_crtc_name(data->crtc));
 
-	setup_fb(data->drm_fd, height, width, data->format, data->modifier, &data->fb[0]);
+	setup_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+		 data->format, data->modifier, &data->fb[0]);
 	igt_plane_set_fb(data->plane[0], &data->fb[0]);
 
 	if (type == TEST_FILTER_ROTATION) {
-		if (igt_plane_has_rotation(data->plane[0], data->rotation))
-			igt_plane_set_rotation(data->plane[0], data->rotation);
-		else
-			igt_skip("No requested rotation on pipe %s\n",
-				 igt_crtc_name(data->crtc));
+		igt_skip_on_f(!igt_plane_has_rotation(data->plane[0],
+						      data->rotation),
+			      "No requested rotation on pipe %s\n",
+			      igt_crtc_name(data->crtc));
+		igt_plane_set_rotation(data->plane[0], data->rotation);
 	}
 
 	if (type == TEST_INVALID_FILTER_WITH_SCALING_MODE)
 		igt_require_f(has_scaling_mode(output), "No connecter scaling mode found on %s\n", output->name);
 
-	if (SET_PLANES)
+	if (needs_extra_planes(type))
 		set_planes(data, type);
 
 	set_filter_strength_on_pipe(data);
-
-	if (!INVALID_TEST && data->filter_strength != 0)
-		igt_debug("Sharpened image should be observed for filter strength > 0\n");
 
 	if (type == TEST_INVALID_FILTER_WITH_SCALING_MODE)
 		ret = igt_display_try_commit_atomic(&data->display, 0, NULL);
 	else
 		ret = igt_display_try_commit2(&data->display, COMMIT_ATOMIC);
-
-	if (type == TEST_FILTER_DPMS || type == TEST_FILTER_SUSPEND) {
-		pipe_crc = igt_crtc_crc_new(data->crtc,
-					    IGT_PIPE_CRC_SOURCE_AUTO);
-		igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
-	}
-
-	if (type == TEST_FILTER_DPMS) {
-		kmstest_set_connector_dpms(data->drm_fd,
-					   output->config.connector,
-					   DRM_MODE_DPMS_OFF);
-		kmstest_set_connector_dpms(data->drm_fd,
-					   output->config.connector,
-					   DRM_MODE_DPMS_ON);
-	}
-
-	if (type == TEST_FILTER_SUSPEND)
-		igt_system_suspend_autoresume(SUSPEND_STATE_MEM,
-					      SUSPEND_TEST_NONE);
-
-	if (type == TEST_FILTER_DPMS || type == TEST_FILTER_SUSPEND) {
-		igt_pipe_crc_collect_crc(pipe_crc, &crc);
-		igt_assert_crc_equal(&crc, &ref_crc);
-	}
 
 	if (type == TEST_FILTER_TOGGLE)
 		ret |= test_filter_toggle(data);
@@ -408,13 +398,33 @@ static void test_sharpness_filter(data_t *data,  enum test_type type)
 		ret = igt_display_try_commit2(&data->display, COMMIT_ATOMIC);
 	}
 
-	if (INVALID_TEST)
+	if (type == TEST_FILTER_DPMS || type == TEST_FILTER_SUSPEND) {
+		pipe_crc = igt_crtc_crc_new(data->crtc,
+					    IGT_PIPE_CRC_SOURCE_AUTO);
+		igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
+
+		if (type == TEST_FILTER_DPMS) {
+			kmstest_set_connector_dpms(data->drm_fd,
+						   output->config.connector,
+						   DRM_MODE_DPMS_OFF);
+			kmstest_set_connector_dpms(data->drm_fd,
+						   output->config.connector,
+						   DRM_MODE_DPMS_ON);
+		} else {
+			igt_system_suspend_autoresume(SUSPEND_STATE_MEM,
+						      SUSPEND_TEST_NONE);
+		}
+
+		igt_pipe_crc_collect_crc(pipe_crc, &crc);
+		igt_assert_crc_equal(&crc, &ref_crc);
+		igt_pipe_crc_free(pipe_crc);
+	}
+
+	if (is_invalid_test(type))
 		igt_assert_eq(ret, -EINVAL);
 	else
 		igt_assert_eq(ret, 0);
 
-	/* clean-up */
-	igt_pipe_crc_free(pipe_crc);
 	cleanup(data);
 }
 
