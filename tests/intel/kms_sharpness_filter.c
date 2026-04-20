@@ -423,6 +423,56 @@ static bool has_sharpness_filter(igt_crtc_t *crtc)
 	return igt_crtc_has_prop(crtc, IGT_CRTC_SHARPNESS_STRENGTH);
 }
 
+static const char * const test_type_names[] = {
+	[TEST_FILTER_BASIC]                     = "basic",
+	[TEST_FILTER_MODIFIERS]                 = NULL,
+	[TEST_FILTER_ROTATION]                  = NULL,
+	[TEST_FILTER_FORMATS]                   = NULL,
+	[TEST_FILTER_STRENGTH]                  = NULL,
+	[TEST_FILTER_TOGGLE]                    = "toggle",
+	[TEST_FILTER_TAP]                       = NULL,
+	[TEST_FILTER_DPMS]                      = "dpms",
+	[TEST_FILTER_SUSPEND]                   = "suspend",
+	[TEST_FILTER_UPSCALE]                   = "upscale",
+	[TEST_FILTER_DOWNSCALE]                 = "downscale",
+	[TEST_INVALID_FILTER_WITH_SCALER]       = "invalid-filter-with-scaler",
+	[TEST_INVALID_FILTER_WITH_PLANE]        = "invalid-filter-with-plane",
+	[TEST_INVALID_PLANE_WITH_FILTER]        = "invalid-plane-with-filter",
+	[TEST_INVALID_FILTER_WITH_SCALING_MODE] = NULL,
+};
+
+static void build_test_suffix(data_t *data, enum test_type type,
+			      char *name, size_t len)
+{
+	if (test_type_names[type]) {
+		snprintf(name, len, "-%s", test_type_names[type]);
+		return;
+	}
+
+	/* suffix depends on the current test parameters */
+	switch (type) {
+	case TEST_FILTER_MODIFIERS:
+		snprintf(name, len, "-%s", data->modifier_name);
+		break;
+	case TEST_FILTER_ROTATION:
+		snprintf(name, len, "-%srot",
+			 igt_plane_rotation_name(data->rotation));
+		break;
+	case TEST_FILTER_FORMATS:
+		snprintf(name, len, "-%s", igt_format_str(data->format));
+		break;
+	case TEST_FILTER_STRENGTH:
+		snprintf(name, len, "-strength-%d", data->filter_strength);
+		break;
+	case TEST_INVALID_FILTER_WITH_SCALING_MODE:
+		snprintf(name, len, "-invalid-filter-with-scaling-mode-%s",
+			 kmstest_scaling_mode_str(data->scaling_mode));
+		break;
+	default:
+		igt_assert_f(false, "Unhandled test type %d\n", type);
+	}
+}
+
 static void
 run_sharpness_filter_test(data_t *data, enum test_type type)
 {
@@ -446,7 +496,8 @@ run_sharpness_filter_test(data_t *data, enum test_type type)
 			 * Until then, run on non-joiner mode in joiner configuration.
 			 */
 			if (is_joiner_mode(data->drm_fd, data->output)) {
-				data->mode = igt_get_non_joiner_mode(data->drm_fd, data->output);
+				data->mode = igt_get_non_joiner_mode(data->drm_fd,
+								     data->output);
 				if (!data->mode) {
 					igt_info("No non-joiner mode found on output %s\n",
 						 igt_output_name(data->output));
@@ -476,9 +527,6 @@ run_sharpness_filter_test(data_t *data, enum test_type type)
 
 			if (type == TEST_FILTER_TAP) {
 				drmModeModeInfo *modes[3] = { NULL, NULL, NULL };
-				int num_taps = ARRAY_SIZE(filter_tap_list);
-
-				igt_assert(num_taps == 3);
 
 				get_modes_for_filter_taps(output, modes);
 				for (int i = 0; i < 3; i++) {
@@ -486,11 +534,16 @@ run_sharpness_filter_test(data_t *data, enum test_type type)
 					if (!modes[i])
 						continue;
 					data->mode = modes[i];
-				        igt_info("Mode %dx%d@%d on output %s\n", data->mode->hdisplay, data->mode->vdisplay,
-						  data->mode->vrefresh, igt_output_name(data->output));
-					igt_output_override_mode(data->output, data->mode);
+					igt_info("Mode %dx%d@%d on output %s\n",
+						 data->mode->hdisplay,
+						 data->mode->vdisplay,
+						 data->mode->vrefresh,
+						 igt_output_name(data->output));
+					igt_output_override_mode(data->output,
+								 data->mode);
 
-					snprintf(name, sizeof(name), "-tap-%d", data->filter_tap);
+					snprintf(name, sizeof(name), "-tap-%d",
+						 data->filter_tap);
 					igt_dynamic_f("pipe-%s-%s%s",
 						       igt_crtc_name(data->crtc),
 						       data->output->name, name)
@@ -499,59 +552,13 @@ run_sharpness_filter_test(data_t *data, enum test_type type)
 
 				if (data->limited)
 					break;
-
 				continue;
 			}
 
-			switch (type) {
-			case TEST_FILTER_BASIC:
-				snprintf(name, sizeof(name), "-basic");
-				break;
-			case TEST_FILTER_MODIFIERS:
-				snprintf(name, sizeof(name), "-%s", data->modifier_name);
-				break;
-			case TEST_FILTER_ROTATION:
-				snprintf(name, sizeof(name), "-%srot", igt_plane_rotation_name(data->rotation));
-				break;
-			case TEST_FILTER_FORMATS:
-				snprintf(name, sizeof(name), "-%s", igt_format_str(data->format));
-				break;
-			case TEST_FILTER_STRENGTH:
-				snprintf(name, sizeof(name), "-strength-%d", data->filter_strength);
-				break;
-			case TEST_FILTER_TOGGLE:
-				snprintf(name, sizeof(name), "-toggle");
-				break;
-			case TEST_FILTER_DPMS:
-				snprintf(name, sizeof(name), "-dpms");
-				break;
-			case TEST_FILTER_SUSPEND:
-				snprintf(name, sizeof(name), "-suspend");
-				break;
-			case TEST_FILTER_UPSCALE:
-				snprintf(name, sizeof(name), "-upscale");
-				break;
-			case TEST_FILTER_DOWNSCALE:
-				snprintf(name, sizeof(name), "-downscale");
-				break;
-			case TEST_INVALID_FILTER_WITH_SCALER:
-				snprintf(name, sizeof(name), "-invalid-filter-with-scaler");
-				break;
-			case TEST_INVALID_FILTER_WITH_PLANE:
-				snprintf(name, sizeof(name), "-invalid-filter-with-plane");
-				break;
-			case TEST_INVALID_PLANE_WITH_FILTER:
-				snprintf(name, sizeof(name), "-invalid-plane-with-filter");
-				break;
-			case TEST_INVALID_FILTER_WITH_SCALING_MODE:
-				snprintf(name, sizeof(name), "-invalid-filter-with-scaling-mode-%s", kmstest_scaling_mode_str(data->scaling_mode));
-				break;
-			default:
-				igt_assert(0);
-			}
+			build_test_suffix(data, type, name, sizeof(name));
 
 			igt_dynamic_f("pipe-%s-%s%s",
-				        igt_crtc_name(data->crtc),
+				      igt_crtc_name(data->crtc),
 				      data->output->name, name)
 				test_sharpness_filter(data, type);
 
@@ -559,6 +566,15 @@ run_sharpness_filter_test(data_t *data, enum test_type type)
 				break;
 		}
 	}
+}
+
+static void set_data_defaults(data_t *data)
+{
+	data->modifier        = DRM_FORMAT_MOD_LINEAR;
+	data->modifier_name   = modifiers[0].name;
+	data->rotation        = IGT_ROTATION_0;
+	data->format          = DRM_FORMAT_XRGB8888;
+	data->filter_strength = MID_FILTER_STRENGTH;
 }
 
 static int opt_handler(int opt, int opt_index, void *_data)
@@ -595,20 +611,14 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 
 	igt_describe("Verify basic content adaptive sharpness filter.");
 	igt_subtest_with_dynamic("filter-basic") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
-
+		set_data_defaults(&data);
 		run_sharpness_filter_test(&data, TEST_FILTER_BASIC);
 	}
 
 	igt_describe("Verify that varying strength(0-255), affects "
 		     "the degree of sharpeness applied.");
 	igt_subtest_with_dynamic("filter-strength") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
+		set_data_defaults(&data);
 
 		for (int i = 0; i < ARRAY_SIZE(filter_strength_list); i++) {
 			data.filter_strength = filter_strength_list[i];
@@ -620,9 +630,7 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 	igt_describe("Verify content adaptive sharpness filter with "
 		     "varying modifiers.");
 	igt_subtest_with_dynamic("filter-modifiers") {
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
+		set_data_defaults(&data);
 
 		for (int i = 0; i < ARRAY_SIZE(modifiers); i++) {
 			data.modifier = modifiers[i].modifier;
@@ -635,9 +643,7 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 	igt_describe("Verify content adaptive sharpness filter with "
 		     "varying rotations.");
 	igt_subtest_with_dynamic("filter-rotations") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
+		set_data_defaults(&data);
 
 		for (int i = 0; i < ARRAY_SIZE(rotations); i++) {
 			data.rotation = rotations[i];
@@ -649,9 +655,7 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 	igt_describe("Verify content adaptive sharpness filter with "
 		     "varying formats.");
 	igt_subtest_with_dynamic("filter-formats") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.filter_strength = MID_FILTER_STRENGTH;
+		set_data_defaults(&data);
 
 		for (int i = 0; i < ARRAY_SIZE(formats); i++) {
 			data.format = formats[i];
@@ -663,10 +667,7 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 	igt_describe("Verify toggling between enabling and disabling "
 		     "content adaptive sharpness filter.");
 	igt_subtest_with_dynamic("filter-toggle") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-
+		set_data_defaults(&data);
 		data.filter_strength = MAX_FILTER_STRENGTH;
 		run_sharpness_filter_test(&data, TEST_FILTER_TOGGLE);
 	}
@@ -674,55 +675,35 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 	igt_describe("Verify that following a resolution change, "
 		     "distict taps are selected.");
 	igt_subtest_with_dynamic("filter-tap") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
-
+		set_data_defaults(&data);
 		run_sharpness_filter_test(&data, TEST_FILTER_TAP);
 	}
 
 	igt_describe("Verify content adaptive sharpness filter "
 		     "with DPMS.");
 	igt_subtest_with_dynamic("filter-dpms") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
-
+		set_data_defaults(&data);
 		run_sharpness_filter_test(&data, TEST_FILTER_DPMS);
 	}
 
 	igt_describe("Verify content adaptive sharpness filter "
 		     "with suspend.");
 	igt_subtest_with_dynamic("filter-suspend") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
-
+		set_data_defaults(&data);
 		run_sharpness_filter_test(&data, TEST_FILTER_SUSPEND);
 	}
 
 	igt_describe("Verify content adaptive sharpness filter "
 		     "with 1 plane scaler enabled.");
 	igt_subtest_with_dynamic("filter-scaler-upscale") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
-
+		set_data_defaults(&data);
 		run_sharpness_filter_test(&data, TEST_FILTER_UPSCALE);
 	}
 
 	igt_describe("Verify content adaptive sharpness filter "
 		     "with 1 plane scaler enabled.");
 	igt_subtest_with_dynamic("filter-scaler-downscale") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
-
+		set_data_defaults(&data);
 		run_sharpness_filter_test(&data, TEST_FILTER_DOWNSCALE);
 	}
 
@@ -730,11 +711,7 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 		     "when 2 plane scalers have already been enabled and "
 		     "attempt is made to enable sharpness filter.");
 	igt_subtest_with_dynamic("invalid-filter-with-scaler") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
-
+		set_data_defaults(&data);
 		run_sharpness_filter_test(&data, TEST_INVALID_FILTER_WITH_SCALER);
 	}
 
@@ -742,10 +719,8 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 		     "when 2 NV12 planes have already been enabled and attempt is "
 		     "made to enable the sharpness filter.");
 	igt_subtest_with_dynamic("invalid-filter-with-plane") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
+		set_data_defaults(&data);
 		data.format = DRM_FORMAT_NV12;
-		data.filter_strength = MID_FILTER_STRENGTH;
 
 		run_sharpness_filter_test(&data, TEST_INVALID_FILTER_WITH_PLANE);
 	}
@@ -754,10 +729,8 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 		     "when 1 NV12 plane and sharpness filter have already been enabled "
 		     "and attempt is made to enable the second NV12 plane.");
 	igt_subtest_with_dynamic("invalid-plane-with-filter") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
+		set_data_defaults(&data);
 		data.format = DRM_FORMAT_NV12;
-		data.filter_strength = MID_FILTER_STRENGTH;
 
 		run_sharpness_filter_test(&data, TEST_INVALID_PLANE_WITH_FILTER);
 	}
@@ -766,10 +739,7 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 		     "when scaling mode is already enabled and attempt is made "
 		     "to enable sharpness filter.");
 	igt_subtest_with_dynamic("invalid-filter-with-scaling-mode") {
-		data.modifier = DRM_FORMAT_MOD_LINEAR;
-		data.rotation = IGT_ROTATION_0;
-		data.format = DRM_FORMAT_XRGB8888;
-		data.filter_strength = MID_FILTER_STRENGTH;
+		set_data_defaults(&data);
 
 		for (int k = 0; k < ARRAY_SIZE(scaling_modes); k++) {
 			data.scaling_mode = scaling_modes[k];
