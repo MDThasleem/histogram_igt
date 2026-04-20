@@ -609,6 +609,22 @@ static void build_test_suffix(data_t *data, enum test_type type,
 	}
 }
 
+static drmModeModeInfo *find_lowest_mode(igt_output_t *output)
+{
+	drmModeModeInfo *low = NULL, *mode;
+
+	for_each_connector_mode(output, mode) {
+		int pixels = mode->hdisplay * mode->vdisplay;
+		int low_pixels = low ? low->hdisplay * low->vdisplay : INT_MAX;
+
+		if (pixels < low_pixels ||
+		    (pixels == low_pixels && mode->vrefresh < low->vrefresh))
+			low = mode;
+	}
+
+	return low;
+}
+
 static void
 run_sharpness_filter_test(data_t *data, enum test_type type)
 {
@@ -647,7 +663,22 @@ run_sharpness_filter_test(data_t *data, enum test_type type)
 					 data->mode->vdisplay,
 					 data->mode->vrefresh);
 			} else {
-				data->mode = igt_output_get_mode(data->output);
+				if (is_invalid_test(type)) {
+					data->mode = igt_output_get_mode(data->output);
+				} else {
+					data->mode = find_lowest_mode(data->output);
+					if (!data->mode) {
+						igt_info("No mode found on output %s\n",
+							 igt_output_name(data->output));
+						continue;
+					}
+
+					igt_info("Executing on lowest mode %dx%d@%d@%s\n",
+						 data->mode->hdisplay,
+						 data->mode->vdisplay,
+						 data->mode->vrefresh,
+						 data->output->name);
+				}
 			}
 
 			if (!has_sharpness_filter(data->crtc)) {
