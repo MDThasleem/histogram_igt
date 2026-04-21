@@ -2981,8 +2981,8 @@ void igt_display_reset_outputs(igt_display_t *display)
 				igt_swap(*old_primary, *new_primary);
 				igt_swap(old_primary->index, new_primary->index);
 
-				igt_assert_neq(old_primary->index, 0);
-				igt_assert_eq(new_primary->index, 0);
+				igt_assert_eq(old_primary->index, 0);
+				igt_assert_neq(new_primary->index, 0);
 			} else {
 				igt_assert(old_primary == new_primary);
 
