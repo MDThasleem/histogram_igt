@@ -30,15 +30,16 @@
  * Mega feature: General Display Features
  */
 
-#include "igt.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "igt.h"
+
 /**
- * SUBTEST:
+ * SUBTEST: basic
  * Description: Use the display CRC support to validate pwrite to an already
  *              uncached future scanout buffer.
  */
@@ -192,22 +193,29 @@ static void run_test(data_t *data)
 	igt_skip("no valid crtc/connector combinations found\n");
 }
 
-static data_t data;
+static data_t data = { };
 
-int igt_simple_main()
+int igt_main()
 {
-	data.drm_fd = drm_open_driver_master(DRIVER_INTEL);
-	kmstest_set_vt_graphics_mode();
+	igt_fixture() {
+		data.drm_fd = drm_open_driver_master(DRIVER_INTEL);
+		kmstest_set_vt_graphics_mode();
 
-	igt_display_require(&data.display, data.drm_fd);
-	igt_display_require_output(&data.display);
-	igt_require_pipe_crc(data.drm_fd);
+		igt_display_require(&data.display, data.drm_fd);
+		igt_display_require_output(&data.display);
+		igt_require_pipe_crc(data.drm_fd);
 
-	data.devid = intel_get_drm_devid(data.drm_fd);
-	data.pipe_crc = NULL;
+		data.devid = intel_get_drm_devid(data.drm_fd);
+		data.pipe_crc = NULL;
+	}
 
-	run_test(&data);
+	igt_describe("Use the display CRC support to validate pwrite "
+		     "to an already uncached future scanout buffer.");
+	igt_subtest("basic")
+		run_test(&data);
 
-	igt_display_fini(&data.display);
-	drm_close_driver(data.drm_fd);
+	igt_fixture() {
+		igt_display_fini(&data.display);
+		drm_close_driver(data.drm_fd);
+	}
 }
