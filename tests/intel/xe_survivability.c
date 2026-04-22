@@ -23,8 +23,8 @@
 
 /**
  * TEST: Comprehensive survivability mode testing
- * Category: Core
- * Mega feature: General Core features
+ * Category: Metrics
+ * Mega feature: Performance Monitoring Unit
  * Sub-category: Telemetry
  * Functionality: survivability mode
  * Description: Validate survivability mode functionality
