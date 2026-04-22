@@ -1216,7 +1216,7 @@ xe_vm_madvise_migrate_pages(int fd, uint32_t vm, uint64_t addr, uint64_t range)
 		      DRM_XE_MIGRATE_ALL_PAGES, 0);
 }
 
-static void
+static bool
 xe_vm_parse_execute_madvise(int fd, uint32_t vm, struct test_exec_data *data,
 			    size_t bo_size,
 			    struct drm_xe_engine_class_instance *eci,
@@ -1312,33 +1312,64 @@ xe_vm_parse_execute_madvise(int fd, uint32_t vm, struct test_exec_data *data,
 	if (flags & MADVISE_PAT_INDEX) {
 		uint32_t num_ranges;
 		struct drm_xe_mem_range_attr *mem_attrs;
+		uint8_t pat_idx = pat_value(fd);
+		bool is_uc_pat = (pat_value == intel_get_pat_idx_wt ||
+				  pat_value == intel_get_pat_idx_uc ||
+				  pat_value == intel_get_pat_idx_uc_comp);
+		int err;
 
 		if (bo_size)
 			bo_size = ALIGN(bo_size, SZ_4K);
 
+		if (is_uc_pat && !xe_has_vram(fd)) {
+			/* UC PAT should be rejected by kernel for CPU cached memory (iGPU only) */
+			if (flags & MADVISE_MULTI_VMA) {
+				err = __xe_vm_madvise(fd, vm, to_user_pointer(data) + bo_size,
+						      bo_size / 2, 0, DRM_XE_MEM_RANGE_ATTR_PAT,
+						      pat_idx, 0, 0);
+				igt_assert_eq(err, -EINVAL);
+
+				err = __xe_vm_madvise(fd, vm, to_user_pointer(data), bo_size,
+						      0, DRM_XE_MEM_RANGE_ATTR_PAT,
+						      pat_idx, 0, 0);
+				igt_assert_eq(err, -EINVAL);
+
+				err = __xe_vm_madvise(fd, vm, to_user_pointer(data) + bo_size / 2,
+						      bo_size / 4, 0, DRM_XE_MEM_RANGE_ATTR_PAT,
+						      pat_idx, 0, 0);
+				igt_assert_eq(err, -EINVAL);
+			} else {
+				err = __xe_vm_madvise(fd, vm, to_user_pointer(data), bo_size,
+						      0, DRM_XE_MEM_RANGE_ATTR_PAT, pat_idx, 0, 0);
+				igt_assert_eq(err, -EINVAL);
+			}
+			return true;  /* Skip exec for UC PAT tests on iGPU */
+		}
+
 		if (flags & MADVISE_MULTI_VMA) {
 			xe_vm_madvixe_pat_attr(fd, vm, to_user_pointer(data) + bo_size,
-					       bo_size / 2, pat_value(fd));
+					       bo_size / 2, pat_idx);
 			xe_vm_madvixe_pat_attr(fd, vm, to_user_pointer(data), bo_size,
-					       pat_value(fd));
+					       pat_idx);
 			xe_vm_madvixe_pat_attr(fd, vm, to_user_pointer(data) + bo_size / 2,
-					       bo_size / 4, pat_value(fd));
+					       bo_size / 4, pat_idx);
 		} else {
 			xe_vm_madvixe_pat_attr(fd, vm, to_user_pointer(data), bo_size,
-					       pat_value(fd));
+					       pat_idx);
 		}
 
 		mem_attrs = xe_vm_get_mem_attr_values_in_range(fd, vm, addr, bo_size, &num_ranges);
 		if (!mem_attrs) {
 			igt_debug("Failed to get memory attributes\n");
-			return;
+			return false;
 		}
 
 		for (uint32_t i = 0; i < num_ranges; i++)
-			igt_assert_eq_u32(mem_attrs[i].pat_index.val, pat_value(fd));
+			igt_assert_eq_u32(mem_attrs[i].pat_index.val, pat_idx);
 
 		free(mem_attrs);
 	}
+	return false;
 }
 
 static void
@@ -1560,8 +1591,9 @@ test_exec(int fd, struct drm_xe_engine_class_instance *eci,
 	addr = to_user_pointer(data);
 
 	if (flags & MADVISE_OP)
-		xe_vm_parse_execute_madvise(fd, vm, data, bo_size, eci, addr, flags, sync,
-					    pat_value);
+		if (xe_vm_parse_execute_madvise(fd, vm, data, bo_size, eci, addr, flags, sync,
+						pat_value))
+			goto cleanup;
 
 	if (flags & BO_UNMAP) {
 		bo_flags = DRM_XE_GEM_CREATE_FLAG_NEEDS_VISIBLE_VRAM;
@@ -1971,8 +2003,11 @@ cleanup:
 		gem_close(fd, bo);
 	}
 
-	munmap(bind_ufence, SZ_4K);
-	gem_close(fd, bind_sync);
+	if (bind_ufence)
+		munmap(bind_ufence, SZ_4K);
+
+	if (bind_sync)
+		gem_close(fd, bind_sync);
 
 	if (flags & BUSY)
 		igt_assert_eq(unbind_system_allocator(), -EBUSY);
