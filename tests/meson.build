@@ -359,6 +359,7 @@ intel_xe_eudebug_progs = [
 ]
 
 if build_xe_eudebug
+	build_info += 'Xe EUdebug **experimental** tests enabled.'
 	intel_xe_progs += intel_xe_eudebug_progs
 endif
 
@@ -455,7 +456,6 @@ endforeach
 intel_progs = intel_i915_xe_progs
 intel_progs += intel_i915_progs + intel_kms_progs
 if build_xe
-	build_info += 'Xe **experimental** tests enabled.'
 	intel_progs += intel_xe_progs
 endif
 
