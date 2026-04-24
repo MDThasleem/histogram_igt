@@ -841,6 +841,26 @@ int unigraf_get_max_lane_count(void)
 }
 
 /**
+ * unigraf_get_lt_rate() - Get the current link training rate
+ *
+ * Returns: The current link training rate in units of 270 MHz.
+ */
+uint32_t unigraf_get_lt_rate(void)
+{
+	return unigraf_read_u32(TSI_DPRX_LT_RATE_R);
+}
+
+/**
+ * unigraf_get_lt_lane_count() - Get the current link training lane count
+ *
+ * Returns: The current number of lanes being used in link training.
+ */
+uint32_t unigraf_get_lt_lane_count(void)
+{
+	return unigraf_read_u32(TSI_DPRX_LT_LANE_COUNT_R);
+}
+
+/**
  * unigraf_set_max_link_rate() - Set the maximum link rate advertised to the DUT
  * @bandwidth: The maximum link rate to configure on the device. Actual value is
  *        @bandwidth * 270000 kHz. Common values can be found in enum unigraf_rate
