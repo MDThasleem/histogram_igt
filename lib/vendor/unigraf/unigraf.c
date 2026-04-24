@@ -14,6 +14,7 @@
 #include "unigraf.h"
 #include "TSI.h"
 #include "TSI_types.h"
+#include "igt_aux.h"
 #include "igt_rc.h"
 
 #define unigraf_debug(fmt, ...)	igt_debug("TSI:%p: " fmt, unigraf_device, ##__VA_ARGS__)
@@ -56,6 +57,11 @@ static char *unigraf_connector_name;
  * UNIGRAF_DEFAULT_INPUT_NAME - Default input name to search on the unigraf device
  */
 #define UNIGRAF_DEFAULT_INPUT_NAME "DP RX"
+
+/**
+ * UNIGRAF_EDID_MAX_SIZE - Max EDID size that can be read from the unigraf. The
+ */
+#define UNIGRAF_EDID_MAX_SIZE 2048
 
 static void unigraf_close_device(void)
 {
@@ -127,6 +133,19 @@ static void unigraf_init(void)
 		unigraf_debug("Value read: " #config_id "=%d\n", value);					\
 		value;												\
 	})
+
+/**
+ * unigraf_write() - Helper to write a value to unigraf
+ * @config: config id to write
+ * @data: data to write
+ * @data_len: length of the data
+ */
+static void unigraf_write(TSI_CONFIG_ID config, const void *data, size_t data_len)
+{
+	unigraf_debug("Writing %zu bytes to 0x%x\n", data_len, config);
+
+	unigraf_assert(TSIX_TS_SetConfigItem(unigraf_device, config, data, data_len));
+}
 
 /**
  * unigraf_device_count() - Return the number of scanned devices
@@ -331,6 +350,46 @@ void unigraf_reset(void)
 	unigraf_plug();
 	unigraf_set_mst_stream_count(1);
 	unigraf_set_sst();
+}
+
+/**
+ * unigraf_read_edid() - Read the EDID from the specified stream
+ * @stream: The stream ID to read the EDID from
+ * @edid_size: Pointer to an integer where the size of the EDID will be stored
+ *
+ * Returns: A pointer to the EDID structure, or NULL if the operation failed. The caller
+ * is responsible to free this pointer.
+ */
+struct edid *unigraf_read_edid(uint32_t stream, uint32_t *edid_size)
+{
+	void *edid;
+
+	unigraf_debug("Read EDID for stream %d...\n", stream);
+
+	edid = calloc(UNIGRAF_EDID_MAX_SIZE, sizeof(char));
+
+	unigraf_write_u32(TSI_EDID_SELECT_STREAM, stream);
+	*edid_size = unigraf_assert(TSIX_TS_GetConfigItem(unigraf_device,
+							  TSI_EDID_TE_INPUT,
+							  edid, UNIGRAF_EDID_MAX_SIZE));
+
+	return edid;
+}
+
+/**
+ * unigraf_write_edid() - Write EDID data to the specified stream
+ * @stream: The stream ID to write the EDID to
+ * @edid: Pointer to the EDID structure to write
+ * @edid_size: Size of the EDID data in bytes
+ *
+ * This function writes the provided EDID data to the specified stream.
+ */
+void unigraf_write_edid(uint32_t stream, const struct edid *edid, uint32_t edid_size)
+{
+	unigraf_debug("Write EDID for stream %d...\n", stream);
+
+	unigraf_write_u32(TSI_EDID_SELECT_STREAM, stream);
+	unigraf_write(TSI_EDID_TE_INPUT, edid, min(edid_size, (uint32_t)UNIGRAF_EDID_MAX_SIZE));
 }
 
 /**
