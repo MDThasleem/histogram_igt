@@ -11,6 +11,8 @@
 #ifndef TESTS_CHAMELIUM_MONITOR_EDIDS_MONITOR_EDIDS_HELPER_H_
 #define TESTS_CHAMELIUM_MONITOR_EDIDS_MONITOR_EDIDS_HELPER_H_
 
+#include <stddef.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "igt_chamelium.h"
@@ -29,5 +31,8 @@ struct chamelium_edid *
 get_chameleon_edid_from_monitor_edid(struct chamelium *chamelium,
 				     const monitor_edid *edid);
 void free_chamelium_edid_from_monitor_edid(struct chamelium_edid *edid);
+
+struct edid *edid_from_monitor_edid(const monitor_edid *monitor_edid);
+const struct monitor_edid *get_edids_for_connector_type(uint32_t type, size_t *count, bool four_k);
 
 #endif /* TESTS_CHAMELIUM_MONITOR_EDIDS_MONITOR_EDIDS_HELPER_H_ */
