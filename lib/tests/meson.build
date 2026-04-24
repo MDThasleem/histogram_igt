@@ -13,6 +13,7 @@ lib_tests = [
 	'igt_fork_helper',
 	'igt_hook',
 	'igt_hook_integration',
+	'igt_kms_array_diff',
         'igt_ktap_parser',
 	'igt_list_only',
 	'igt_invalid_subtest_name',
