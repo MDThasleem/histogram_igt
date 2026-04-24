@@ -11,6 +11,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <xf86drmMode.h>
 
 /**
  * unigraf_assert: Helper macro to assert a TSI return value and retrieve a detailed error message.
@@ -41,6 +42,8 @@ bool unigraf_open_device(int drm_fd);
 void unigraf_require_device(int drm_fd);
 
 void unigraf_reset(void);
+
+drmModeConnectorPtr unigraf_get_connector(int drm_fd);
 
 struct edid *unigraf_read_edid(uint32_t stream, uint32_t *edid_size);
 
