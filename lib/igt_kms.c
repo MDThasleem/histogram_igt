@@ -90,6 +90,8 @@
  * library as a dependency.
  */
 
+#define WAIT_FOR_CONNECTOR_LOOP_SLEEP_US 10000
+
 /* list of connectors that need resetting on exit */
 #define MAX_CONNECTORS 32
 #define MAX_EDID 2
@@ -8186,4 +8188,45 @@ igt_crtc_t *igt_random_crtc(igt_display_t *display)
 	igt_skip_on_f(!n, "No CRTCs on device\n");
 
 	return crtcs[rand() % n];
+}
+
+/**
+ * igt_wait_for_connector_status:
+ * @drm_fd: drm file descriptor
+ * @connector_id: connector to monitor
+ * @timeout: maximum duration to wait, in second. Use -1.0 to set the timeout
+ *           to igt_default_detect_timeout().
+ * @drm_mode: mode to wait for, see enum drmModeConnection
+ *
+ * Wait for at most @timeout that the connector @connector_id  status
+ * become @drm_mode
+ * Returns: true when the status is reached, false if there is a timeout
+ */
+bool igt_wait_for_connector_status(int drm_fd, unsigned int connector_id, double timeout,
+				   int drm_mode)
+{
+	drmModeConnector *connector;
+	struct timespec start, end;
+
+	if (timeout < 0.0)
+		timeout = igt_default_display_detect_timeout();
+
+	igt_assert_eq(igt_gettime(&start), 0);
+	end = start;
+
+	while (igt_time_elapsed(&start, &end) <= timeout) {
+		connector = drmModeGetConnector(drm_fd, connector_id);
+		if (connector && connector->connection == drm_mode) {
+			drmModeFreeConnector(connector);
+			return true;
+		}
+		drmModeFreeConnector(connector);
+		usleep(WAIT_FOR_CONNECTOR_LOOP_SLEEP_US);
+		igt_assert_eq(igt_gettime(&end), 0);
+	}
+
+	igt_debug("Timeout waiting for connection status %d on connector %d\n", drm_mode,
+		  connector_id);
+
+	return false;
 }
