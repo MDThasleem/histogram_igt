@@ -2913,6 +2913,7 @@ void igt_display_reset_outputs(igt_display_t *display)
 			free(config->connector_path);
 		}
 		free(display->outputs);
+		display->n_outputs = 0;
 	}
 
 	resources = drmModeGetResources(display->drm_fd);
