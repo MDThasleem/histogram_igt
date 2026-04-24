@@ -1311,5 +1311,7 @@ get_array_diff(const uint32_t *array_a, int array_a_len, const uint32_t *array_b
 	       uint32_t **diff);
 
 int igt_get_crtc_index_from_connector_id(int drm_fd, int connector_id);
+igt_crtc_t *igt_get_crtc_for_output(igt_display_t *display,
+				    igt_output_t *output);
 
 #endif /* __IGT_KMS_H__ */
