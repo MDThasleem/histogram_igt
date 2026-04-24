@@ -8423,3 +8423,103 @@ uint32_t igt_get_connector_id_from_mst_path(int drm_fd, const void *mst_path)
 
 	return 0;
 }
+
+/**
+ * array_contains() - Search an element in the array
+ *
+ * @array: Pointer to the array to search into
+ * @array_len: Length of the array
+ * @value: Value to search in the array
+ *
+ * Returns true if @array contains @value
+ */
+static bool array_contains(const uint32_t *array, int array_len, uint32_t value)
+{
+	igt_assert(array_len == 0 || array);
+
+	for (int i = 0; i < array_len; i++)
+		if (array[i] == value)
+			return true;
+
+	return false;
+}
+
+/**
+ * get_array_diff() - Compute and return the set difference between two arrays
+ *
+ * @array_a: Pointer to the first array to compare
+ * @array_a_len: Length of the first array
+ * @array_b: Pointer to the second array to compare
+ * @array_b_len: Length of the second array
+ * @diff: Out pointer returning a array of items in @array_a but not
+ *        in @array_b. Can be NULL to only count the elements.
+ *
+ * Returns the number of element which are in @array_a but not in @array_b.
+ */
+int
+get_array_diff(const uint32_t *array_a, int array_a_len, const uint32_t *array_b, int array_b_len,
+	       uint32_t **diff)
+{
+	int diff_len = 0;
+
+	igt_assert(array_a_len == 0 || array_a);
+	igt_assert(array_b_len == 0 || array_b);
+
+	if (diff)
+		*diff = NULL;
+
+	for (int i = 0; i < array_a_len; i++) {
+		if (!array_contains(array_b, array_b_len, array_a[i])) {
+			if (diff) {
+				*diff = reallocarray(*diff, diff_len + 1, sizeof(**diff));
+				igt_assert(*diff);
+				(*diff)[diff_len] = array_a[i];
+			}
+
+			diff_len++;
+		}
+	}
+
+	return diff_len;
+}
+
+/**
+ * kms_wait_for_new_connectors() - Wait for new connector to appear
+ *
+ * @newly_connected: Out pointer returning the array of connectors currently
+ *                   found connected. If @newly_connected is not null, the
+ *                   content will be freed and replaced by a new allocation.
+ * @already_connected: Input pointer to array of connectors previously
+ *                     connected
+ * @already_connected_count: Length of @already_connected
+ * @drm_fd: DRM file descriptor
+ *
+ * Assert if:
+ * - @drm_fd is invalid
+ * - igt_get_time fails
+ * Returns: the number of connectors not in @already_connected and currently
+ * found connected.
+ */
+int kms_wait_for_new_connectors(uint32_t **newly_connected,
+				const uint32_t *already_connected,
+				int already_connected_count, int drm_fd)
+{
+	int newly_connected_count;
+	struct timespec start, end;
+
+	igt_assert(newly_connected);
+	igt_assert_fd(drm_fd);
+
+	igt_assert_eq(igt_gettime(&start), 0);
+	do {
+		if (*newly_connected)
+			free(*newly_connected);
+		newly_connected_count = igt_get_connected_connectors(drm_fd, newly_connected);
+		igt_assert_eq(igt_gettime(&end), 0);
+	} while (!get_array_diff(*newly_connected, newly_connected_count,
+			       already_connected, already_connected_count,
+			       NULL) &&
+		 igt_time_elapsed(&start, &end) <= igt_default_display_detect_timeout());
+
+	return newly_connected_count;
+}
