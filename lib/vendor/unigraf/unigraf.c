@@ -69,6 +69,13 @@ static bool unigraf_crc;
 #define UNIGRAF_CONFIG_USE_CRC_NAME "UseCRC"
 
 /**
+ * UNIGRAF_CONFIG_MST_STREAM_COUNT - Key for the stream count configuration
+ *
+ * Set to 0 to use SST, 1..4 for MST
+ */
+#define UNIGRAF_CONFIG_MST_STREAM_COUNT "MSTStreams"
+
+/**
  * UNIGRAF_DEFAULT_ROLE_NAME - Default role name to search on the unigraf device
  */
 #define UNIGRAF_DEFAULT_ROLE_NAME "USB-C, DP Alt Mode Source and Sink"
@@ -366,6 +373,7 @@ bool unigraf_open_device(int drm_fd)
 	int chosen_device = 0;
 	int chosen_role;
 	int chosen_input;
+	int unigraf_stream_count;
 
 	assert(igt_can_fail());
 
@@ -421,6 +429,15 @@ bool unigraf_open_device(int drm_fd)
 		if (cfg_error) {
 			unigraf_debug("CRC usage not configured, using unigraf CRC.\n");
 			unigraf_crc = true;
+		}
+
+		cfg_error = NULL;
+		unigraf_stream_count = g_key_file_get_integer(igt_key_file, UNIGRAF_CONFIG_GROUP,
+							      UNIGRAF_CONFIG_MST_STREAM_COUNT,
+							      &cfg_error);
+		if (cfg_error) {
+			unigraf_debug("MST usage not configured, using SST.\n");
+			unigraf_stream_count = 0;
 		}
 	}
 
@@ -499,6 +516,11 @@ bool unigraf_open_device(int drm_fd)
 	}
 
 	unigraf_reset();
+
+	if (!unigraf_stream_count)
+		unigraf_set_sst();
+	else
+		unigraf_set_mst_stream_count(unigraf_stream_count);
 
 	return unigraf_connector_name != NULL;
 }
