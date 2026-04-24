@@ -270,7 +270,7 @@ int igt_debugfs_tile_dir(int device, uint8_t tile)
  * Returns:
  * The directory fd, or -1 on failure.
  */
-int igt_debugfs_connector_dir(int device, char *conn_name, int mode)
+int igt_debugfs_connector_dir(int device, const char *conn_name, int mode)
 {
 	int dir, ret;
 
@@ -789,7 +789,7 @@ void __igt_debugfs_dump(int device, const char *filename, int level)
  *
  * Returns: 0 on success, -1 on failure.
  */
-int igt_debugfs_read_connector_file(int drm_fd, char *conn_name,
+int igt_debugfs_read_connector_file(int drm_fd, const char *conn_name,
 				    const char *filename, char *buf,
 				    size_t buf_size)
 {
@@ -819,7 +819,7 @@ int igt_debugfs_read_connector_file(int drm_fd, char *conn_name,
  *
  * Returns: 0 on success, -1 on failure.
  */
-int igt_debugfs_write_connector_file(int drm_fd, char *conn_name,
+int igt_debugfs_write_connector_file(int drm_fd, const char *conn_name,
 				     const char *filename, const char *data,
 				     size_t data_size)
 {
