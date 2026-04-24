@@ -156,6 +156,13 @@ lib_deps = [
 
 inc = [ inc, include_directories('vendor') ]
 
+if libtsi.found()
+	lib_deps += libtsi
+	lib_sources += [
+		'vendor/unigraf/unigraf.c'
+	]
+endif
+
 if libdrm_nouveau.found()
 	lib_deps += libdrm_nouveau
 	lib_sources += [
@@ -237,6 +244,9 @@ endif
 if chamelium.found()
 	lib_deps += chamelium
 	lib_sources += [ 'igt_chamelium.c', 'igt_chamelium_stream.c' ]
+endif
+
+if chamelium.found() or libtsi.found()
 	lib_sources += 'monitor_edids/monitor_edids_helper.c'
 endif
 
