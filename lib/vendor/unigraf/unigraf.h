@@ -13,6 +13,8 @@
 #include <stdint.h>
 #include <xf86drmMode.h>
 
+#include "igt_fb.h"
+
 /**
  * unigraf_assert: Helper macro to assert a TSI return value and retrieve a detailed error message.
  * @result: libTSI return value to check
@@ -70,5 +72,7 @@ bool unigraf_set_mst_stream_count(int count);
 int unigraf_get_mst_stream_max_count(void);
 
 void unigraf_select_stream(int stream);
+
+void unigraf_read_crc(int stream, igt_crc_t *out);
 
 #endif // UNIGRAF_H
