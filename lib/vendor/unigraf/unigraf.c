@@ -26,6 +26,7 @@
 static TSI_HANDLE unigraf_device;
 static char *unigraf_default_edid;
 static char *unigraf_connector_name;
+static bool unigraf_crc;
 
 /**
  * UNIGRAF_NAME_MAX - Maximum name length to be used for TSI functions
@@ -61,6 +62,11 @@ static char *unigraf_connector_name;
  * UNIGRAF_CONFIG_EDID_NAME - Key of the EDID name in the configuration file
  */
 #define UNIGRAF_CONFIG_EDID_NAME "EDID"
+
+/**
+ * UNIGRAF_CONFIG_USE_CRC_NAME - Key of the CRC selection in the configuration file
+ */
+#define UNIGRAF_CONFIG_USE_CRC_NAME "UseCRC"
 
 /**
  * UNIGRAF_DEFAULT_ROLE_NAME - Default role name to search on the unigraf device
@@ -366,6 +372,14 @@ bool unigraf_open_device(int drm_fd)
 		if (cfg_error) {
 			unigraf_debug("No default EDID set, use IGT default.\n");
 			cfg_edid_name = NULL;
+		}
+
+		cfg_error = NULL;
+		unigraf_crc = g_key_file_get_boolean(igt_key_file, UNIGRAF_CONFIG_GROUP,
+						     UNIGRAF_CONFIG_USE_CRC_NAME, &cfg_error);
+		if (cfg_error) {
+			unigraf_debug("CRC usage not configured, using unigraf CRC.\n");
+			unigraf_crc = true;
 		}
 	}
 
@@ -685,4 +699,15 @@ void unigraf_read_crc(int stream, igt_crc_t *out)
 					     &out->crc[2], sizeof(out->crc[2])));
 	out->n_words = 3;
 	out->has_valid_frame = false;
+}
+
+/**
+ * unigraf_use_crc() - Check if Unigraf device should be used for CRC computation
+ *
+ * Returns: true if the Unigraf device should be used for CRC computation,
+ *          false otherwise.
+ */
+bool unigraf_use_crc(void)
+{
+	return unigraf_crc;
 }
