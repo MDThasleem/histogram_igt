@@ -66,6 +66,9 @@
 #ifdef HAVE_CHAMELIUM
 #include "igt_chamelium.h"
 #endif
+#ifdef HAVE_UNIGRAF
+#include "unigraf/unigraf.h"
+#endif
 
 /**
  * SECTION:igt_kms
@@ -3134,6 +3137,10 @@ void igt_display_require(igt_display_t *display, int drm_fd)
 	igt_crtc_t *crtc;
 	int i, crtc_index;
 	bool is_intel_dev;
+
+#ifdef HAVE_UNIGRAF
+	unigraf_open_device(drm_fd);
+#endif
 
 	memset(display, 0, sizeof(igt_display_t));
 
