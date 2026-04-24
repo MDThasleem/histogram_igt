@@ -201,20 +201,20 @@ static bool run_link_rate_test(data_t *data, bool mst, bool uhbr)
 	char lane_str[32];
 
 	igt_display_reset(&data->display);
-	igt_reset_link_params(data->drm_fd, data->output);
+	i915_dp_reset_link_params(data->drm_fd, data->output);
 	do_modeset(data, mst);
 
 	/* Retrain at default/driver parameters */
-	igt_force_link_retrain(data->drm_fd, data->output, RETRAIN_COUNT);
+	i915_dp_force_link_retrain(data->drm_fd, data->output, RETRAIN_COUNT);
 	igt_assert_eq(check_condition_with_timeout(data->drm_fd, data->output,
-						   igt_get_dp_pending_retrain,
+						   i915_dp_get_pending_retrain,
 						   1.0, 20.0), 0);
 	assert_link_status_good(data, mst);
 
 	/* FIXME : Driver may lie max link rate or max lane count */
 	/* Read max_link_rate and max_lane_count */
-	max_link_rate = igt_get_max_link_rate(data->drm_fd, data->output);
-	max_lane_count = igt_get_max_lane_count(data->drm_fd, data->output);
+	max_link_rate = i915_dp_get_max_link_rate(data->drm_fd, data->output);
+	max_lane_count = i915_dp_get_max_lane_count(data->drm_fd, data->output);
 
 	/* Check sink supports uhbr or not */
 	is_uhbr_output = (max_link_rate >= UHBR_LINK_RATE);
@@ -233,14 +233,14 @@ static bool run_link_rate_test(data_t *data, bool mst, bool uhbr)
 		 data->output->name, rate_str, max_lane_count);
 
 	/* Force retrain at max link params */
-	igt_set_link_params(data->drm_fd, data->output, rate_str, lane_str);
-	igt_force_link_retrain(data->drm_fd, data->output, RETRAIN_COUNT);
+	i915_dp_set_link_params(data->drm_fd, data->output, rate_str, lane_str);
+	i915_dp_force_link_retrain(data->drm_fd, data->output, RETRAIN_COUNT);
 	igt_assert_eq(check_condition_with_timeout(data->drm_fd, data->output,
-						   igt_get_dp_pending_retrain,
+						   i915_dp_get_pending_retrain,
 						   1.0, 20.0), 0);
 	assert_link_status_good(data, mst);
 
-	current_link_rate = igt_get_current_link_rate(data->drm_fd, data->output);
+	current_link_rate = i915_dp_get_current_link_rate(data->drm_fd, data->output);
 	igt_info("Current link rate is %d\n", current_link_rate);
 	igt_assert_f(current_link_rate == max_link_rate,
 		     "Link training did not succeed at max link rate.\n");

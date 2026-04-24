@@ -241,12 +241,12 @@ static bool force_failure_and_wait(data_t *data,
 				   double interval,
 				   double timeout)
 {
-	igt_force_lt_failure(data->drm_fd, output, failure_type);
-	igt_force_link_retrain(data->drm_fd, output, retrain_count);
+	i915_dp_force_lt_failure(data->drm_fd, output, failure_type);
+	i915_dp_force_link_retrain(data->drm_fd, output, retrain_count);
 
 	/* Wait until there's no pending retrain */
 	if (check_condition_with_timeout(data->drm_fd, output,
-					 igt_get_dp_pending_retrain,
+					 i915_dp_get_pending_retrain,
 					 interval, timeout)) {
 		igt_info("Timed out waiting for pending retrain\n");
 		return false;
@@ -254,7 +254,7 @@ static bool force_failure_and_wait(data_t *data,
 
 	/* Wait until there's no pending LT failures */
 	if (check_condition_with_timeout(data->drm_fd, output,
-					 igt_get_dp_pending_lt_failures,
+					 i915_dp_get_pending_lt_failures,
 					 interval, timeout)) {
 		igt_info("Timed out waiting for pending LT failures\n");
 		return false;
@@ -354,7 +354,7 @@ static void test_fallback(data_t *data, bool is_mst)
 	retries = SPURIOUS_HPD_RETRY;
 
 	igt_display_reset(&data->display);
-	igt_reset_link_params(data->drm_fd, data->output);
+	i915_dp_reset_link_params(data->drm_fd, data->output);
 	if (!setup_outputs(data, is_mst, outputs,
 			   &output_count, modes, fbs,
 			   primaries))
@@ -362,13 +362,13 @@ static void test_fallback(data_t *data, bool is_mst)
 
 	igt_info("Testing link training fallback on %s\n",
 		 igt_output_name(data->output));
-	max_link_rate = igt_get_max_link_rate(data->drm_fd, data->output);
-	max_lane_count = igt_get_max_lane_count(data->drm_fd, data->output);
-	prev_link_rate = igt_get_current_link_rate(data->drm_fd, data->output);
-	prev_lane_count = igt_get_current_lane_count(data->drm_fd, data->output);
+	max_link_rate = i915_dp_get_max_link_rate(data->drm_fd, data->output);
+	max_lane_count = i915_dp_get_max_lane_count(data->drm_fd, data->output);
+	prev_link_rate = i915_dp_get_current_link_rate(data->drm_fd, data->output);
+	prev_lane_count = i915_dp_get_current_lane_count(data->drm_fd, data->output);
 
-	while (!igt_get_dp_link_retrain_disabled(data->drm_fd,
-						 data->output)) {
+	while (!i915_dp_get_link_retrain_disabled(data->drm_fd,
+						  data->output)) {
 		igt_info("Current link rate: %d, Current lane count: %d\n",
 			 prev_link_rate,
 			 prev_lane_count);
@@ -380,8 +380,8 @@ static void test_fallback(data_t *data, bool is_mst)
 						    1.0, 20.0),
 						    "Link training failure steps timed out\n");
 
-		if (igt_get_dp_link_retrain_disabled(data->drm_fd,
-						     data->output)) {
+		if (i915_dp_get_link_retrain_disabled(data->drm_fd,
+						      data->output)) {
 			igt_reset_connectors();
 			return;
 		}
@@ -401,8 +401,8 @@ static void test_fallback(data_t *data, bool is_mst)
 							  fbs,
 							  primaries), "modeset failed\n");
 		igt_assert_eq(data->output->values[IGT_CONNECTOR_LINK_STATUS], DRM_MODE_LINK_STATUS_GOOD);
-		curr_link_rate = igt_get_current_link_rate(data->drm_fd, data->output);
-		curr_lane_count = igt_get_current_lane_count(data->drm_fd, data->output);
+		curr_link_rate = i915_dp_get_current_link_rate(data->drm_fd, data->output);
+		curr_lane_count = i915_dp_get_current_lane_count(data->drm_fd, data->output);
 
 		igt_debug("Fallback state: prev %dx%d, curr %dx%d, max %dx%d, retries=%u\n",
 			  prev_link_rate, prev_lane_count,
@@ -427,8 +427,8 @@ static bool run_lt_fallback_test(data_t *data)
 	for_each_connected_output(&data->display, output) {
 		data->output = output;
 
-		if (!igt_has_force_link_training_failure_debugfs(data->drm_fd,
-								 data->output)) {
+		if (!i915_dp_has_force_link_training_failure_debugfs(data->drm_fd,
+								     data->output)) {
 			igt_info("Output %s doesn't support forcing link training failure\n",
 				 igt_output_name(data->output));
 			continue;
@@ -472,8 +472,8 @@ static void test_dsc_sst_fallback(data_t *data)
 	data->crtc = igt_first_crtc(&data->display);
 
 	igt_display_reset(&data->display);
-	igt_reset_link_params(data->drm_fd, data->output);
-	igt_force_link_retrain(data->drm_fd, data->output, RETRAIN_COUNT);
+	i915_dp_reset_link_params(data->drm_fd, data->output);
+	i915_dp_force_link_retrain(data->drm_fd, data->output, RETRAIN_COUNT);
 
 	/* Find a mode that doesn't require DSC initially */
 	for_each_connector_mode(data->output, mode) {
@@ -508,8 +508,8 @@ static void test_dsc_sst_fallback(data_t *data)
 			igt_info("Found mode %dx%d@%d %s that doesn't need DSC with link rate %d and lane count %d\n",
 				 non_dsc_mode->hdisplay, non_dsc_mode->vdisplay,
 				 non_dsc_mode->vrefresh, non_dsc_mode->name,
-				 igt_get_current_link_rate(data->drm_fd, data->output),
-				 igt_get_current_lane_count(data->drm_fd, data->output));
+				 i915_dp_get_current_link_rate(data->drm_fd, data->output),
+				 i915_dp_get_current_lane_count(data->drm_fd, data->output));
 			non_dsc_mode_found = true;
 			break;
 		}
@@ -519,7 +519,7 @@ static void test_dsc_sst_fallback(data_t *data)
 		      igt_output_name(data->output));
 
 	/* Repeatedly force link failure until DSC is required (or link is disabled) */
-	while (!igt_get_dp_link_retrain_disabled(data->drm_fd, data->output)) {
+	while (!i915_dp_get_link_retrain_disabled(data->drm_fd, data->output)) {
 		mon = igt_watch_uevents();
 
 		igt_assert_f(force_failure_and_wait(data, data->output,
@@ -527,8 +527,8 @@ static void test_dsc_sst_fallback(data_t *data)
 						    RETRAIN_COUNT, 1.0, 20.0),
 			     "Forcing DSC fallback timed out\n");
 
-		if (igt_get_dp_link_retrain_disabled(data->drm_fd,
-						     data->output)) {
+		if (i915_dp_get_link_retrain_disabled(data->drm_fd,
+						      data->output)) {
 			igt_reset_connectors();
 			igt_flush_uevents(mon);
 			return;
@@ -552,8 +552,8 @@ static void test_dsc_sst_fallback(data_t *data)
 			igt_info("mode %dx%d@%d now requires DSC with link rate %d and lane count %d\n",
 				 mode_to_check->hdisplay, mode_to_check->vdisplay,
 				 mode_to_check->vrefresh,
-				 igt_get_current_link_rate(data->drm_fd, data->output),
-				 igt_get_current_lane_count(data->drm_fd, data->output));
+				 i915_dp_get_current_link_rate(data->drm_fd, data->output),
+				 i915_dp_get_current_lane_count(data->drm_fd, data->output));
 			igt_info("DSC fallback successful on %s\n",
 				 igt_output_name(data->output));
 			dsc_fallback_successful = true;
@@ -580,8 +580,8 @@ static bool run_dsc_sst_fallaback_test(data_t *data)
 	for_each_connected_output(&data->display, output) {
 		data->output = output;
 
-		if (!igt_has_force_link_training_failure_debugfs(data->drm_fd,
-								 data->output)) {
+		if (!i915_dp_has_force_link_training_failure_debugfs(data->drm_fd,
+								     data->output)) {
 			igt_info("Output %s doesn't support forcing link training.\n",
 				 igt_output_name(data->output));
 			continue;

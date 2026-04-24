@@ -35,7 +35,7 @@
 #include "igt_core.h"
 
 /**
- * igt_parse_marked_value:
+ * i915_dp_parse_marked_value:
  * @buf: Buffer containing the content to parse
  * @marked_char: The character marking the value to parse
  * @result: Pointer to store the parsed value
@@ -44,7 +44,7 @@
  *
  * Returns: 0 on success, -1 on failure
  */
-static int igt_parse_marked_value(const char *buf, char marked_char, int *result)
+static int i915_dp_parse_marked_value(const char *buf, char marked_char, int *result)
 {
 	char *marked_ptr, *val_ptr;
 
@@ -65,13 +65,13 @@ static int igt_parse_marked_value(const char *buf, char marked_char, int *result
 }
 
  /**
-  * igt_get_current_link_rate:
+  * i915_dp_get_current_link_rate:
   * @drm_fd: A drm file descriptor
   * @output: Target output
   *
   * Returns: link_rate if set for output else -1
   */
-int igt_get_current_link_rate(int drm_fd, igt_output_t *output)
+int i915_dp_get_current_link_rate(int drm_fd, igt_output_t *output)
 {
 	char buf[512];
 	int res, ret;
@@ -81,19 +81,19 @@ int igt_get_current_link_rate(int drm_fd, igt_output_t *output)
 					      buf, sizeof(buf));
 	igt_assert_f(res == 0, "Unable to read %s/i915_dp_force_link_rate\n",
 		     output->name);
-	res = igt_parse_marked_value(buf, '*', &ret);
+	res = i915_dp_parse_marked_value(buf, '*', &ret);
 	igt_assert_f(res == 0, "Output %s not enabled\n", output->name);
 	return ret;
 }
 
 /**
- * igt_get_current_lane_count:
+ * i915_dp_get_current_lane_count:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * Returns: lane_count if set for output else -1
  */
-int igt_get_current_lane_count(int drm_fd, igt_output_t *output)
+int i915_dp_get_current_lane_count(int drm_fd, igt_output_t *output)
 {
 	char buf[512];
 	int res, ret;
@@ -103,19 +103,19 @@ int igt_get_current_lane_count(int drm_fd, igt_output_t *output)
 					      buf, sizeof(buf));
 	igt_assert_f(res == 0, "Unable to read %s/i915_dp_force_lane_count\n",
 		     output->name);
-	res = igt_parse_marked_value(buf, '*', &ret);
+	res = i915_dp_parse_marked_value(buf, '*', &ret);
 	igt_assert_f(res == 0, "Output %s not enabled\n", output->name);
 	return ret;
 }
 
 /**
- * igt_get_max_link_rate:
+ * i915_dp_get_max_link_rate:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * Returns: max_link_rate
  */
-int igt_get_max_link_rate(int drm_fd, igt_output_t *output)
+int i915_dp_get_max_link_rate(int drm_fd, igt_output_t *output)
 {
 	char buf[512];
 	int res, ret;
@@ -131,13 +131,13 @@ int igt_get_max_link_rate(int drm_fd, igt_output_t *output)
 }
 
 /**
- * igt_get_max_link_rate:
+ * i915_dp_get_max_lane_count:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * Returns: max_link_rate
  */
-int igt_get_max_lane_count(int drm_fd, igt_output_t *output)
+int i915_dp_get_max_lane_count(int drm_fd, igt_output_t *output)
 {
 	char buf[512];
 	int res, ret;
@@ -153,14 +153,14 @@ int igt_get_max_lane_count(int drm_fd, igt_output_t *output)
 }
 
 /**
- * igt_force_link_retrain:
+ * i915_dp_force_link_retrain:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  * @retrain_count: number of retraining required
  *
  * Force link retrain on the output.
  */
-void igt_force_link_retrain(int drm_fd, igt_output_t *output, int retrain_count)
+void i915_dp_force_link_retrain(int drm_fd, igt_output_t *output, int retrain_count)
 {
 	char value[2];
 	int res;
@@ -174,7 +174,7 @@ void igt_force_link_retrain(int drm_fd, igt_output_t *output, int retrain_count)
 }
 
 /**
- * igt_force_lt_failure:
+ * i915_dp_force_lt_failure:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  * @failure_count: 1 for same link param and
@@ -184,7 +184,7 @@ void igt_force_link_retrain(int drm_fd, igt_output_t *output, int retrain_count)
  * @failure_count: 1 for retraining with same link params
  *		   2 for retraining with reduced link params
  */
-void igt_force_lt_failure(int drm_fd, igt_output_t *output, int failure_count)
+void i915_dp_force_lt_failure(int drm_fd, igt_output_t *output, int failure_count)
 {
 	char value[2];
 	int res;
@@ -198,13 +198,13 @@ void igt_force_lt_failure(int drm_fd, igt_output_t *output, int failure_count)
 }
 
 /**
- * igt_get_dp_link_retrain_disabled:
+ * i915_dp_get_link_retrain_disabled:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * Returns: True if link retrain disabled, false otherwise
  */
-bool igt_get_dp_link_retrain_disabled(int drm_fd, igt_output_t *output)
+bool i915_dp_get_link_retrain_disabled(int drm_fd, igt_output_t *output)
 {
 	char buf[512];
 	int res;
@@ -218,6 +218,7 @@ bool igt_get_dp_link_retrain_disabled(int drm_fd, igt_output_t *output)
 }
 
 /**
+ * i915_dp_has_force_link_training_failure_debugfs:
  * Checks if the force link training failure debugfs
  * is available for a specific output.
  *
@@ -226,7 +227,7 @@ bool igt_get_dp_link_retrain_disabled(int drm_fd, igt_output_t *output)
  * Returns:
  *  true if the debugfs is available, false otherwise.
  */
-bool igt_has_force_link_training_failure_debugfs(int drmfd, igt_output_t *output)
+bool i915_dp_has_force_link_training_failure_debugfs(int drmfd, igt_output_t *output)
 {
 	char buf[512];
 	int res;
@@ -238,13 +239,13 @@ bool igt_has_force_link_training_failure_debugfs(int drmfd, igt_output_t *output
 }
 
 /**
- * igt_get_dp_pending_lt_failures:
+ * i915_dp_get_pending_lt_failures:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * Returns: Number of pending link training failures.
  */
-int igt_get_dp_pending_lt_failures(int drm_fd, igt_output_t *output)
+int i915_dp_get_pending_lt_failures(int drm_fd, igt_output_t *output)
 {
 	char buf[512];
 	int res, ret;
@@ -259,13 +260,13 @@ int igt_get_dp_pending_lt_failures(int drm_fd, igt_output_t *output)
 }
 
 /**
- * igt_dp_pending_retrain:
+ * i915_dp_get_pending_retrain:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * Returns: Number of pending link retrains.
  */
-int igt_get_dp_pending_retrain(int drm_fd, igt_output_t *output)
+int i915_dp_get_pending_retrain(int drm_fd, igt_output_t *output)
 {
 	char buf[512];
 	int res, ret;
@@ -280,14 +281,14 @@ int igt_get_dp_pending_retrain(int drm_fd, igt_output_t *output)
 }
 
 /**
- * igt_reset_link_params:
+ * i915_dp_reset_link_params:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * Reset link rate and lane count to auto, also installs exit handler
  * to set link rate and lane count to auto on exit
  */
-void igt_reset_link_params(int drm_fd, igt_output_t *output)
+void i915_dp_reset_link_params(int drm_fd, igt_output_t *output)
 {
 	bool valid;
 	drmModeConnector *temp;
@@ -312,15 +313,15 @@ void igt_reset_link_params(int drm_fd, igt_output_t *output)
 }
 
 /**
- * igt_set_link_params:
+ * i915_dp_set_link_params:
  * @drm_fd: A drm file descriptor
  * @output: Target output
  *
  * set link rate and lane count to given value, also installs exit handler
  * to set link rate and lane count to auto on exit
  */
-void igt_set_link_params(int drm_fd, igt_output_t *output,
-			 char *link_rate, char *lane_count)
+void i915_dp_set_link_params(int drm_fd, igt_output_t *output,
+			     char *link_rate, char *lane_count)
 {
 	bool valid;
 	drmModeConnector *temp;
