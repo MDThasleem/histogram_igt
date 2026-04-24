@@ -8190,6 +8190,31 @@ igt_crtc_t *igt_random_crtc(igt_display_t *display)
 	return crtcs[rand() % n];
 }
 
+static drmModeConnectorPtr igt_wait_for_connector(int drm_fd, unsigned int connector_id,
+						  double timeout)
+{
+	drmModeConnectorPtr connector = NULL;
+	struct timespec start, end;
+
+	connector = drmModeGetConnector(drm_fd, connector_id);
+	/*
+	 * This time is required as sometimes some id in the connector list are not totally
+	 * ready or can disappear
+	 */
+	igt_assert_eq(igt_gettime(&start), 0);
+	end = start;
+
+	while (!connector &&
+	       igt_time_elapsed(&start, &end) <= timeout) {
+		drmModeFreeConnector(connector);
+		connector = drmModeGetConnector(drm_fd, connector_id);
+		usleep(WAIT_FOR_CONNECTOR_LOOP_SLEEP_US);
+		igt_assert_eq(igt_gettime(&end), 0);
+	}
+
+	return connector;
+}
+
 /**
  * igt_wait_for_connector_status:
  * @drm_fd: drm file descriptor
@@ -8229,4 +8254,64 @@ bool igt_wait_for_connector_status(int drm_fd, unsigned int connector_id, double
 		  connector_id);
 
 	return false;
+}
+
+/**
+ * igt_get_connected_connectors:
+ *
+ * @drm_fd: DRM file descriptor
+ * @connector_ids: Out pointer for the array of connector ids connected. The function
+ * will allocate and store the pointer in this out pointer. The caller is
+ * responsible to free the inner pointer using free(*connector_ids).
+ *
+ * This will probe all the connectors and return the list of all
+ * connected connectors.
+ *
+ * Asserts if:
+ * - drm_fd is invalid
+ * - drmModeGetResources fails
+ * - reallocarray fails
+ * Returns: The number of connectors in @connector_ids
+ */
+int igt_get_connected_connectors(int drm_fd, uint32_t **connector_ids)
+{
+	uint32_t *tmp_alloc;
+	int connected_count = 0;
+	double timeout = igt_default_display_detect_timeout();
+	drmModeResPtr resources;
+
+	igt_assert_fd(drm_fd);
+	*connector_ids = NULL;
+
+	resources = drmModeGetResources(drm_fd);
+	igt_assert_f(resources, "drmModeGetResources failed");
+	for (int j = 0; j < resources->count_connectors; j++) {
+		int status = DRM_MODE_UNKNOWNCONNECTION;
+
+		drmModeConnectorPtr connector = igt_wait_for_connector(drm_fd,
+								       resources->connectors[j],
+								       timeout);
+
+		if (connector)
+			status = connector->connection;
+		drmModeFreeConnector(connector);
+
+		if (status == DRM_MODE_CONNECTED) {
+			tmp_alloc = reallocarray(*connector_ids,
+						 connected_count + 1,
+						 sizeof(**connector_ids));
+			if (!tmp_alloc) {
+				free(*connector_ids);
+				drmModeFreeResources(resources);
+				igt_assert_f(false, "Failed to allocate connector_ids list");
+			}
+
+			*connector_ids = tmp_alloc;
+			(*connector_ids)[connected_count] = resources->connectors[j];
+			connected_count++;
+		}
+	}
+	drmModeFreeResources(resources);
+
+	return connected_count;
 }
