@@ -143,6 +143,14 @@ struct _GKeyFile *igt_load_igtrc(void);
  */
 #define IGT_EXIT_ABORT 112
 
+/**
+ * DEFAULT_DETECT_TIMEOUT
+ *
+ * Default timeout in second used for some screen detection
+ * functions. It can be overiden by option DetectTimeout in the .igtrc file.
+ */
+#define DEFAULT_DETECT_TIMEOUT 3.0
+
 void __igt_assert_in_outer_scope(void);
 
 bool __igt_fixture(void);
@@ -445,6 +453,8 @@ void __igt_subtest_group_restore(int, int);
  * tests with subtests. Open-coding the main() function is not recommended.
  */
 #define igt_main() igt_main_args(NULL, NULL, NULL, NULL, NULL)
+
+double igt_default_display_detect_timeout(void);
 
 const char *igt_test_name(void);
 void igt_simple_init_parse_opts(int *argc, char **argv,
