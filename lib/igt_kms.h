@@ -1314,4 +1314,7 @@ int kms_wait_for_new_connectors(uint32_t **newly_connected,
 int
 get_array_diff(const uint32_t *array_a, int array_a_len, const uint32_t *array_b, int array_b_len,
 	       uint32_t **diff);
+
+int igt_get_crtc_index_from_connector_id(int drm_fd, int connector_id);
+
 #endif /* __IGT_KMS_H__ */
