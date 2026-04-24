@@ -303,6 +303,47 @@ drmModeConnectorPtr unigraf_get_connector(int drm_fd)
 }
 
 /**
+ * unigraf_get_connector_id_by_stream() - Get a connector id from a stream id
+ * @drm_fd: DRM device where the unigraf is attached
+ * @stream_id: Stream id in the MST streams
+ */
+int unigraf_get_connector_id_by_stream(int drm_fd, int stream_id)
+{
+	drmModeConnectorPtr main_connector = unigraf_get_connector(drm_fd);
+	drmModeResPtr res = drmModeGetResources(drm_fd);
+
+	char *mst_path;
+	int mst_path_len = asprintf(&mst_path, "mst:%d-", main_connector->connector_id);
+
+	igt_assert(mst_path_len >= 0);
+
+	for (int i = 0; i < res->count_connectors; i++) {
+		drmModePropertyBlobPtr path_blob = kmstest_get_path_blob(drm_fd,
+									 res->connectors[i]);
+
+		if (!path_blob || path_blob->length < mst_path_len)
+			continue;
+
+		if (!memcmp(path_blob->data, mst_path, mst_path_len)) {
+			if (!stream_id) {
+				drmModeFreePropertyBlob(path_blob);
+				drmModeFreeResources(res);
+				drmModeFreeConnector(main_connector);
+				return res->connectors[i];
+			}
+			stream_id--;
+		}
+
+		drmModeFreePropertyBlob(path_blob);
+	}
+
+	drmModeFreeResources(res);
+	drmModeFreeConnector(main_connector);
+
+	return 0;
+}
+
+/**
  * unigraf_open_device() - Search and open a device.
  * @drm_fd: File descriptor of the currently used drm device
  *
