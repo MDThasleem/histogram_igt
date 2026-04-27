@@ -38,17 +38,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "drmtest.h"
 #include "igt_aux.h"
 #include "igt_halffloat.h"
 #include "intel_chipset.h"
 #include "intel_io.h"
-#include "drmtest.h"
+#include "linux_scaffold.h"
 
-/* kernel types for intel_vbt_defs.h */
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
 #define __packed __attribute__ ((packed))
 
 #define _INTEL_BIOS_PRIVATE
