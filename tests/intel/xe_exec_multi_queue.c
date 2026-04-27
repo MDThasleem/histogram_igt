@@ -454,25 +454,24 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 	for (i = 0; i < num_queues; i++) {
 		uint64_t spin_addr = addr + i * sizeof(struct xe_spin);
 
-		xe_spin_init_opts(spin[i], .addr = spin_addr, .multi_queue_switch = true);
+		xe_spin_init_opts(spin[i], .addr = spin_addr, .multi_queue_switch = true,
+				  .write_timestamp = true);
+		/*
+		 * Pre-set all spinners to preempt-wait so each queue, once
+		 * scheduled, immediately blocks at the QUEUE_SWITCH_MODE semaphore
+		 * after writing its timestamp. The HW switches between queues at
+		 * this point, allowing all of them to schedule deterministically.
+		 */
+		xe_spin_preempt_wait(spin[i]);
 		sync.addr = spin_addr + (char *)&spin[i]->exec_sync - (char *)spin[i];
 		exec.exec_queue_id = exec_queues[i];
 		exec.address = spin_addr;
 		xe_exec(fd, &exec);
-
-		/* Wait for job on Q0 to start, other queues block behind Q0 */
-		if (!i)
-			xe_spin_wait_started(spin[i]);
 	}
 
-	sleep(sleep_duration);
-
-	/*
-	 * Expect the job on other queue to not get scheduled while the spinner
-	 * on q0 is not waiting on preempt condition.
-	 */
-	for (i = 1; i < num_queues; i++)
-		igt_assert(!xe_spin_started(spin[i]));
+	/* Wait for all queues to start and write timestamp */
+	for (i = 0; i < num_queues; i++)
+		while (!READ_ONCE(spin[i]->timestamp));
 
 	if (flags & DYN_PRIORITY) {
 		/* Assign increasing order of priority for secondary queues */
@@ -484,6 +483,36 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 		/* Wait for priorities to take effect */
 		sleep(sleep_duration);
 	}
+
+	/*
+	 * Clear timestamps and release all queues from the semaphore wait.
+	 * The order in which they next write a timestamp reveals the
+	 * priority-based scheduling order.
+	 */
+	for (i = 0; i < num_queues; i++) {
+		WRITE_ONCE(spin[i]->timestamp, 0);
+		xe_spin_preempt_nowait(spin[i]);
+
+		/*
+		 * For Q0, wait until it is running again to ensure it holds the engine
+		 * when priority arbitration is triggered.
+		 */
+		if (!i)
+			while (!READ_ONCE(spin[i]->timestamp));
+	}
+
+	/*
+	 * Sleep to allow xe_spin_preempt_nowait() to become visible to the GPU
+	 * for other queues before checking if they have been scheduled.
+	 */
+	usleep(10);
+
+	/*
+	 * Verify that secondary queues have not been scheduled while Q0
+	 * holds the engine.
+	 */
+	for (i = 1; i < num_queues; i++)
+		igt_assert(!READ_ONCE(spin[i]->timestamp));
 
 	/*
 	 * Trigger a queue switch by making the spinner on q0 to wait on preempt
@@ -501,7 +530,7 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 	i = 1;
 	while (i < num_queues) {
 		for (j = 1; j < num_queues; j++) {
-			if (xe_spin_started(spin[j]) && ((already_in_order & (1 << j)) == 0)) {
+			if (READ_ONCE(spin[j]->timestamp) && ((already_in_order & (1 << j)) == 0)) {
 				start_order[i] = j;
 				xe_spin_end(spin[j]);
 				xe_wait_ufence(fd, &spin[j]->exec_sync, USER_FENCE_VALUE,
