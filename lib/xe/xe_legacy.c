@@ -181,8 +181,13 @@ xe_legacy_test_mode(int fd, struct drm_xe_engine_class_instance *eci,
 		return;
 	}
 
-	for (i = 0; i < n_exec_queues && n_execs; i++)
+	for (i = 0; i < n_exec_queues && n_execs; i++) {
+		/*
+		 * Expectation here is that on reset, submissions will
+		 * still satisfy the syncobj_wait.
+		 */
 		igt_assert(syncobj_wait(fd, &syncobjs[i], 1, INT64_MAX, 0, NULL));
+	}
 
 	igt_assert(syncobj_wait(fd, &sync[0].handle, 1, INT64_MAX, 0, NULL));
 
