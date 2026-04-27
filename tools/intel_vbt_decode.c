@@ -1317,6 +1317,11 @@ static void dump_child_device(struct context *context,
 
 	if (context->bdb->version >= 263)
 		dump_edp_data_rate_override(child->edp_data_rate_override);
+
+	if (context->bdb->version >= 264) {
+		printf("\t\tDedicated External TC Port: %s\n", YESNO(child->dedicated_external));
+		printf("\t\tPort supports dynamic DDI allocation in TCSS: %s\n", YESNO(child->dyn_port_over_tc));
+	}
 }
 
 static void dump_child_devices(struct context *context, const uint8_t *devices,
