@@ -381,8 +381,8 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 		.syncs = to_user_pointer(&sync),
 	};
 	uint64_t vm_sync = 0, addr = BASE_ADDRESS;
-	uint32_t exec_queues[XE_EXEC_QUEUE_PRIORITY_N];
-	struct xe_spin *spin[XE_EXEC_QUEUE_PRIORITY_N];
+	uint32_t exec_queues[XE_EXEC_QUEUE_PRIORITY_N + 1];
+	struct xe_spin *spin[XE_EXEC_QUEUE_PRIORITY_N + 1];
 	uint32_t vm, num_queues, num_queue_priorities, bo = 0;
 	uint32_t start_order[XE_EXEC_QUEUE_PRIORITY_N] = { 0 };
 	int64_t fence_timeout = NSEC_PER_SEC;
@@ -403,7 +403,7 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 		.value = DRM_XE_MULTI_GROUP_CREATE,
 	};
 	uint64_t ext = to_user_pointer(&multi_queue);
-	int i, j, sleep_duration = 1;
+	int i, j;
 	void *bo_map;
 
 	num_queue_priorities = XE_EXEC_QUEUE_NUM_PRIORITIES;
@@ -415,12 +415,12 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 		 eci[0].engine_class, eci[0].engine_instance);
 
 	vm = xe_vm_create(fd, DRM_XE_VM_CREATE_FLAG_LR_MODE, 0);
-	bo_size = xe_bb_size(fd, sizeof(*spin[0]) * num_queues);
+	bo_size = xe_bb_size(fd, sizeof(*spin[0]) * (num_queues + 1));
 
 	bo = xe_bo_create(fd, vm, bo_size, vram_if_possible(fd, eci[0].gt_id),
 			  DRM_XE_GEM_CREATE_FLAG_NEEDS_VISIBLE_VRAM);
 	bo_map = xe_bo_map(fd, bo, bo_size);
-	for (i = 0; i < num_queues; i++)
+	for (i = 0; i < num_queues + 1; i++)
 		spin[i] = bo_map + i * sizeof(*spin[0]);
 
 	/* Use the default priority for Q0 because we are explicitly waiting for it below */
@@ -430,6 +430,11 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 	if (flags & DYN_PRIORITY) {
 		for (i = 1; i < num_queues; i++)
 			exec_queues[i] = xe_exec_queue_create(fd, vm, eci, ext);
+		/*
+		 * Create an extra queue in the same multi-queue group, used as
+		 * a barrier to confirm priority updates have taken effect.
+		 */
+		exec_queues[num_queues] = xe_exec_queue_create(fd, vm, eci, ext);
 	} else {
 		struct drm_xe_ext_set_property mq_priority = {
 			.base.name = DRM_XE_EXEC_QUEUE_EXTENSION_SET_PROPERTY,
@@ -474,14 +479,27 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 		while (!READ_ONCE(spin[i]->timestamp));
 
 	if (flags & DYN_PRIORITY) {
+		uint64_t barrier_spin_addr = addr + num_queues * sizeof(struct xe_spin);
+
 		/* Assign increasing order of priority for secondary queues */
 		for (i = 1; i < num_queues; i++)
 			xe_exec_queue_set_property(fd, exec_queues[i],
 						   DRM_XE_EXEC_QUEUE_SET_PROPERTY_MULTI_QUEUE_PRIORITY,
 						   i % num_queue_priorities);
 
-		/* Wait for priorities to take effect */
-		sleep(sleep_duration);
+		/*
+		 * Submit a barrier job on the extra queue to ensure priority
+		 * updates have taken effect before releasing the other queues.
+		 */
+		xe_spin_init_opts(spin[num_queues], .addr = barrier_spin_addr);
+		sync.addr = barrier_spin_addr +
+			((char *)&spin[num_queues]->exec_sync - (char *)spin[num_queues]);
+		exec.exec_queue_id = exec_queues[num_queues];
+		exec.address = barrier_spin_addr;
+		xe_exec(fd, &exec);
+		xe_spin_end(spin[num_queues]);
+		xe_wait_ufence(fd, &spin[num_queues]->exec_sync, USER_FENCE_VALUE,
+			       exec_queues[num_queues], fence_timeout);
 	}
 
 	/*
@@ -571,6 +589,10 @@ __test_priority(int fd, struct drm_xe_engine_class_instance *eci,
 
 	for (i = 0; i < num_queues; i++)
 		xe_exec_queue_destroy(fd, exec_queues[i]);
+
+	/* Destroy the extra queue */
+	if (flags & DYN_PRIORITY)
+		xe_exec_queue_destroy(fd, exec_queues[num_queues]);
 
 	munmap(bo_map, bo_size);
 	gem_close(fd, bo);
