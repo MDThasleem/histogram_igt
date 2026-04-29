@@ -114,6 +114,7 @@ lib_sources = [
 	'igt_amd.c',
 	'igt_edid.c',
 	'igt_eld.c',
+	'igt_hdr.c',
 	'igt_infoframe.c',
 	'igt_color.c',
 	'igt_color_lut.c',
