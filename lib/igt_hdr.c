@@ -222,3 +222,19 @@ bool igt_output_supports_hdr(igt_output_t *output)
 {
 	return igt_output_has_prop(output, IGT_CONNECTOR_HDR_OUTPUT_METADATA);
 }
+
+void igt_hdr_disable(igt_output_t *output)
+{
+	igt_hdr_set_metadata(output, NULL);
+	igt_output_set_prop_value(output, IGT_CONNECTOR_MAX_BPC, 8);
+}
+
+void igt_hdr_enable(igt_output_t *output)
+{
+	struct hdr_output_metadata meta;
+
+	/* Fill HDR metadata and enable it on the output */
+	igt_hdr_fill_st2084(&meta);
+	igt_hdr_set_metadata(output, &meta);
+	igt_output_set_prop_value(output, IGT_CONNECTOR_MAX_BPC, 10);
+}

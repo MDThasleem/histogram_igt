@@ -25,4 +25,7 @@ void igt_hdr_set_metadata(igt_output_t *output,
 
 bool igt_output_supports_hdr(igt_output_t *output);
 
+void igt_hdr_disable(igt_output_t *output);
+void igt_hdr_enable(igt_output_t *output);
+
 #endif /* IGT_HDR_H */
