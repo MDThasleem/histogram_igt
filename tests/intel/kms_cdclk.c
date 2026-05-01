@@ -271,8 +271,11 @@ static void test_mode_transition_on_all_outputs(data_t *data)
 
 	for_each_connected_output(display, output) {
 		mode_highres[count] = *igt_output_get_highres_mode(output);
-		igt_require_f(is_4k(mode_highres[count]), "Mode >= 4K not found on output %s.\n",
-			      igt_output_name(output));
+		if (!is_4k(mode_highres[count])) {
+			igt_info("Mode >= 4K not found on output %s; skipping\n",
+				 igt_output_name(output));
+			continue;
+		}
 
 		mode_lowres[count] = *get_lowres_mode(output);
 
