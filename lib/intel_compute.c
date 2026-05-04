@@ -2054,7 +2054,7 @@ static void xe3p_compute_exec_compute(int fd,
 	addr_bo_buffer_batch[b++] = 0x008004A0; /* dw3 */
 	addr_bo_buffer_batch[b++] = 0xBE040000; /* dw4 */
 	addr_bo_buffer_batch[b++] = 0xFFFFFFFF; /* dw5 */
-	addr_bo_buffer_batch[b++] = 0x000001FF; /* dw6 */
+	addr_bo_buffer_batch[b++] = 0x000003FF; /* dw6 */ // Local X/Y/Z Dimension
 
 	if (threadgroup_preemption)
 		addr_bo_buffer_batch[b++] = XE2_THREADGROUP_PREEMPT_XDIM; // Thread Group ID X Dimension
@@ -2081,7 +2081,7 @@ static void xe3p_compute_exec_compute(int fd,
 
 	addr_bo_buffer_batch[b++] = 0x00000000; /* dw22 */
 	addr_bo_buffer_batch[b++] = 0x00000000; /* dw23 */
-	addr_bo_buffer_batch[b++] = 0x0C000010; /* dw24 */
+	addr_bo_buffer_batch[b++] = 0x0C000000 | THREADS_PER_GROUP; /* dw24 */
 	addr_bo_buffer_batch[b++] = 0x00000000; /* dw25 */
 	addr_bo_buffer_batch[b++] = 0x00000400; /* dw26 */
 
@@ -2135,9 +2135,9 @@ static void xe3p_create_indirect_data(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = addr_output & 0xffffffff;
 	addr_bo_buffer_batch[b++] = addr_output >> 32;
 	addr_bo_buffer_batch[b++] = loop_count;
-	addr_bo_buffer_batch[b++] = 0x00000200;
-	addr_bo_buffer_batch[b++] = 0x00000001;
-	addr_bo_buffer_batch[b++] = 0x00000001;
+	addr_bo_buffer_batch[b++] = ENQUEUED_LOCAL_SIZE_X;
+	addr_bo_buffer_batch[b++] = ENQUEUED_LOCAL_SIZE_Y;
+	addr_bo_buffer_batch[b++] = ENQUEUED_LOCAL_SIZE_Z;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
