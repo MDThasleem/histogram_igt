@@ -65,12 +65,14 @@ IGT_TEST_DESCRIPTION("Xe tests for SR-IOV VF FLR (Functional Level Reset)");
 static const char STOP_REASON_ABORT[] = "ABORT";
 static const char STOP_REASON_FAIL[]  = "FAIL";
 static const char STOP_REASON_SKIP[]  = "SKIP";
+static const char XE_VFIO_PCI_MODULE[] = "xe_vfio_pci";
 
 #define DRIVER_OVERRIDE_TIMEOUT_MS 200
 
 static int g_wait_flr_ms = 200;
 static bool g_use_xe_vfio_pci = true;
 static bool g_extended_scope;
+static bool g_xe_vfio_loaded_initially;
 
 static struct g_mmio {
 	struct xe_mmio *mmio;
@@ -332,6 +334,28 @@ static void vf_unbind_driver_override(int pf_fd, unsigned int vf_id)
 	free(slot);
 }
 
+static void restore_xe_vfio_module(void)
+{
+	bool loaded = igt_kmod_is_loaded(XE_VFIO_PCI_MODULE);
+	int ret;
+
+	if (loaded == g_xe_vfio_loaded_initially)
+		return;
+
+	ret = g_xe_vfio_loaded_initially ?
+		igt_kmod_load(XE_VFIO_PCI_MODULE, NULL) :
+		igt_kmod_unload(XE_VFIO_PCI_MODULE);
+	igt_abort_on_f(ret,
+		       "Failed to %s %s during cleanup\n",
+		       g_xe_vfio_loaded_initially ? "load" : "unload",
+		       XE_VFIO_PCI_MODULE);
+
+	loaded = igt_kmod_is_loaded(XE_VFIO_PCI_MODULE);
+	igt_abort_on_f(loaded != g_xe_vfio_loaded_initially,
+		       "%s should be %s after cleanup\n",
+		       XE_VFIO_PCI_MODULE,
+		       g_xe_vfio_loaded_initially ? "loaded" : "unloaded");
+}
 /**
  * flr_exec_strategy - Function pointer for FLR execution strategy
  * @pf_fd: File descriptor for the Physical Function (PF).
@@ -395,7 +419,7 @@ static void verify_flr(int pf_fd, int num_vfs, struct subcheck *checks,
 
 	xe_vfio_loaded = false;
 	if (g_use_xe_vfio_pci)
-		xe_vfio_loaded = igt_kmod_load("xe_vfio_pci", NULL) >= 0;
+		xe_vfio_loaded = igt_kmod_load(XE_VFIO_PCI_MODULE, NULL) >= 0;
 	if (xe_vfio_loaded) {
 		vf_bound = calloc(num_vfs + 1, sizeof(*vf_bound));
 		igt_assert(vf_bound);
@@ -1030,7 +1054,7 @@ static void reset_only_subcheck_init(struct subcheck_data *data)
 		return;
 	}
 
-	if (!igt_kmod_is_loaded("xe_vfio_pci"))
+	if (!igt_kmod_is_loaded(XE_VFIO_PCI_MODULE))
 		set_skip_reason(data, "xe_vfio_pci is not loaded\n");
 }
 
@@ -1205,6 +1229,7 @@ int igt_main_args("evw:", long_options, help_str, opt_handler, NULL)
 		igt_require(igt_sriov_is_pf(pf_fd));
 		igt_require(igt_sriov_get_enabled_vfs(pf_fd) == 0);
 		autoprobe = igt_sriov_is_driver_autoprobe_enabled(pf_fd);
+		g_xe_vfio_loaded_initially = igt_kmod_is_loaded(XE_VFIO_PCI_MODULE);
 	}
 
 	igt_describe("Initiate FLR without any additional state checks.");
@@ -1254,6 +1279,7 @@ int igt_main_args("evw:", long_options, help_str, opt_handler, NULL)
 			    igt_sriov_disable_driver_autoprobe(pf_fd);
 		igt_abort_on_f(autoprobe != igt_sriov_is_driver_autoprobe_enabled(pf_fd),
 			       "Failed to restore sriov_drivers_autoprobe value\n");
+		restore_xe_vfio_module();
 		close(pf_fd);
 	}
 }
