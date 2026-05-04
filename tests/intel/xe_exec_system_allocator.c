@@ -2339,7 +2339,8 @@ test_compute(int fd, struct drm_xe_engine_class_instance *eci, size_t size,
 		igt_assert(compute_input);
 		env.input_addr = to_user_pointer(compute_input);
 
-		memset(compute_input, rand() % 255 + 1, size);
+		for (int j = 0; j < env.array_size; j++)
+			compute_input[j] = rand() / (float)RAND_MAX;
 
 		xe_run_intel_compute_kernel_on_engine(fd, eci, &env, EXECENV_PREF_SYSTEM);
 
