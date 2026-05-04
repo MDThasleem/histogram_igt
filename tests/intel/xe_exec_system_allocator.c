@@ -1380,7 +1380,10 @@ madvise_prefetch_op(int fd, uint32_t vm, uint64_t addr, size_t bo_size,
 	uint32_t num_ranges;
 
 	if (flags & PREFETCH_SPLIT_VMA) {
-		bo_size = ALIGN(bo_size, SZ_4K);
+		uint16_t dev_id = intel_get_drm_devid(fd);
+		size_t alignment = IS_PONTEVECCHIO(dev_id) ? SZ_64K : SZ_4K;
+
+		bo_size = ALIGN(bo_size, alignment);
 
 		xe_vm_prefetch_async(fd, vm, 0, 0, addr, bo_size, NULL, 0, 0);
 
@@ -2799,9 +2802,19 @@ int igt_main()
 
 	for (const struct section *s = msections; s->name; s++) {
 		igt_subtest_f("madvise-%s", s->name) {
-			xe_for_each_engine(fd, hwe)
-				test_exec(fd, hwe, 1, 1, SZ_64K, 0, 0, NULL,
+			xe_for_each_engine(fd, hwe) {
+				/*
+				 * PREFETCH_SPLIT_VMA splits the buffer in half
+				 * and migrates the first half. On platforms with
+				 * 64K VRAM granularity (e.g. PVC), each half
+				 * must be >= 64K, so use SZ_128K as bo_size.
+				 */
+				size_t bo_size = (s->flags & PREFETCH_SPLIT_VMA) ?
+						 SZ_128K : SZ_64K;
+
+				test_exec(fd, hwe, 1, 1, bo_size, 0, 0, NULL,
 					  NULL, s->flags, NULL);
+			}
 		}
 	}
 
