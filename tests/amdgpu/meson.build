@@ -20,6 +20,7 @@ if libdrm_amdgpu.found()
 			  'amd_freesync_video_mode',
 			  'amd_fuzzing',
 			  'amd_fuzzing_sysfs',
+			  'amd_fuzzing_debugfs',
 			  'amd_hotplug',
 			  'amd_gang_cs' ,
 			  'amd_ilr',
