@@ -20,8 +20,6 @@ extern "C" {
  * clean these up when kernel uapi headers are sync'd.
  */
 
-#define DRM_XE_VM_BIND_FLAG_DECOMPRESS	(1 << 7)
-
 #if defined(__cplusplus)
 }
 #endif
