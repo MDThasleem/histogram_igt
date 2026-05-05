@@ -21,6 +21,7 @@ if libdrm_amdgpu.found()
 			  'amd_fuzzing',
 			  'amd_fuzzing_sysfs',
 			  'amd_fuzzing_debugfs',
+			  'amd_fuzzing_kfd',
 			  'amd_hotplug',
 			  'amd_gang_cs' ,
 			  'amd_ilr',
