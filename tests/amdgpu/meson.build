@@ -19,6 +19,7 @@ if libdrm_amdgpu.found()
 			  'amd_dp_dsc',
 			  'amd_freesync_video_mode',
 			  'amd_fuzzing',
+			  'amd_fuzzing_sysfs',
 			  'amd_hotplug',
 			  'amd_gang_cs' ,
 			  'amd_ilr',
