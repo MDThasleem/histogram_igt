@@ -1267,13 +1267,14 @@ xehp_emit_compute_walk(struct intel_bb *ibb,
 	}
 }
 
-void
-xe3p_emit_compute_walk2(struct intel_bb *ibb,
-			unsigned int x, unsigned int y,
-			unsigned int width, unsigned int height,
-			struct xe3p_interface_descriptor_data *pidd,
-			uint32_t max_threads,
-			struct xe3p_cw2_interrupt_data *intdata)
+static void
+__xe3p_emit_compute_walk2(struct intel_bb *ibb,
+			  unsigned int x, unsigned int y,
+			  unsigned int width, unsigned int height,
+			  struct xe3p_interface_descriptor_data *pidd,
+			  uint32_t max_threads,
+			  struct xe3p_cw2_interrupt_data *intdata,
+			  struct xe3p_cw2_gpgpu_fill_data *filldata)
 {
 	/*
 	 * Max Threads represent range: [1, 2^16-1],
@@ -1281,6 +1282,14 @@ xe3p_emit_compute_walk2(struct intel_bb *ibb,
 	 */
 	const uint32_t MAX_THREADS = (1 << 16) - 1;
 	uint32_t x_dim, y_dim, mask, max;
+
+	if (filldata) {
+		if (width + x > filldata->buf_width)
+			width = filldata->buf_width - x;
+
+		if (height + y > filldata->buf_height)
+			height = filldata->buf_height - y;
+	}
 
 	/*
 	 * Simply do SIMD16 based dispatch, so every thread uses
@@ -1294,7 +1303,7 @@ xe3p_emit_compute_walk2(struct intel_bb *ibb,
 	 * thread group Y = height;
 	 */
 	x_dim = (x + width + 15) / 16;
-	y_dim = y + height;
+	y_dim = height + y * (filldata ? 0 : 1);
 
 	mask = (x + width) & 15;
 	if (mask == 0)
@@ -1332,9 +1341,15 @@ xe3p_emit_compute_walk2(struct intel_bb *ibb,
 	intel_bb_out(ibb, 1);						//dw8
 
 	/* Thread Group ID Starting X, Y, Z */
-	intel_bb_out(ibb, x / 16);					//dw9
-	intel_bb_out(ibb, y);						//dw10
-	intel_bb_out(ibb, 0);						//dw11
+	if (filldata) {
+		intel_bb_out(ibb, 0);					//dw9
+		intel_bb_out(ibb, 0);					//dw10
+		intel_bb_out(ibb, 0);					//dw11
+	} else {
+		intel_bb_out(ibb, x / 16);				//dw9
+		intel_bb_out(ibb, y);					//dw10
+		intel_bb_out(ibb, 0);					//dw11
+	}
 
 	/* partition type / id / size */
 	intel_bb_out(ibb, 0);						//dw12-13
@@ -1366,12 +1381,27 @@ xe3p_emit_compute_walk2(struct intel_bb *ibb,
 		}
 	}
 
-	/* Inline data */
-	/* DW31 and DW32 of Inline data will be copied into R0.14 and R0.15. */
-	/* The rest of DW33 through DW46 will be copied to the following GRFs. */
-	intel_bb_out(ibb, x_dim);					//dw31
-	for (int i = 0; i < 15; i++) {					//dw32-46
-		intel_bb_out(ibb, 0);
+	if (filldata) {
+		/* Inline data */
+		intel_bb_out(ibb, filldata->color);			//dw31
+		intel_bb_out(ibb, filldata->buf_width);			//dw32
+		intel_bb_out(ibb, filldata->buf_height);		//dw33
+		intel_bb_out(ibb, width);				//dw34
+		intel_bb_out(ibb, height);				//dw35
+		intel_bb_out(ibb, x);					//dw36
+		intel_bb_out(ibb, y);					//dw37
+		intel_bb_out(ibb, filldata->buf_addr);			//dw38
+		intel_bb_out(ibb, filldata->buf_addr >> 32);		//dw39
+		for (int i = 0; i < 7; i++)				//dw40-46
+			intel_bb_out(ibb, 0x0);
+
+	} else {
+		/* Inline data */
+		/* DW31 and DW32 of Inline data will be copied into R0.14 and R0.15. */
+		/* The rest of DW33 through DW46 will be copied to the following GRFs. */
+		intel_bb_out(ibb, x_dim);				//dw31
+		for (int i = 0; i < 15; i++)				//dw32-46
+			intel_bb_out(ibb, 0);
 	}
 
 	/* Post Sync command payload 1 */
@@ -1391,4 +1421,36 @@ xe3p_emit_compute_walk2(struct intel_bb *ibb,
 
 	/* Preempt CS Interrupt Vector: Saved by HW on a TG preemption */
 	intel_bb_out(ibb, 0);						//dw62
+}
+
+void
+xe3p_emit_compute_walk2(struct intel_bb *ibb,
+			unsigned int x, unsigned int y,
+			unsigned int width, unsigned int height,
+			struct xe3p_interface_descriptor_data *pidd,
+			uint32_t max_threads,
+			struct xe3p_cw2_interrupt_data *intdata)
+{
+	__xe3p_emit_compute_walk2(ibb, x, y, width, height,
+				  pidd, max_threads, intdata, NULL);
+}
+
+void
+xe3p_emit_fill_compute_walk2(struct intel_bb *ibb,
+			     unsigned int buf_width, unsigned int buf_height,
+			     uint64_t buf_addr,
+			     unsigned int x, unsigned int y,
+			     unsigned int width, unsigned int height,
+			     struct xe3p_interface_descriptor_data *pidd,
+			     uint8_t color)
+{
+	struct xe3p_cw2_gpgpu_fill_data filldata = {
+		.buf_width = buf_width,
+		.buf_height = buf_height,
+		.buf_addr = buf_addr,
+		.color = color,
+	};
+
+	__xe3p_emit_compute_walk2(ibb, x, y, width, height,
+				  pidd, 64, NULL, &filldata);
 }

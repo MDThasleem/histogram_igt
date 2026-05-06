@@ -599,8 +599,12 @@ void gpgpu_shader__eot(struct gpgpu_shader *shdr)
 (W)	mov (8|M0)               r112.0<1>:ud  r0.0<8;8,1>:ud			\n\
 #if GEN_VER < 1250								\n\
 (W)	send.ts (16|M0)          null r112 null 0x10000000 0x02000010 {EOT,@1}	\n\
-#else										\n\
+										\n\
+#elif GEN_VER <= 3000								\n\
 (W)	send.gtwy (8|M0)         null r112 src1_null     0 0x02000000 {EOT}	\n\
+										\n\
+#else										\n\
+(W)	sendg.gtwy (1|M0)        null     r0:1  null:0  0x0 {EOT}		\n\
 #endif										\n\
 		");
 }

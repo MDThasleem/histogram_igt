@@ -45,6 +45,13 @@ struct xe3p_cw2_interrupt_data {
 	uint64_t post_sync_val;
 };
 
+struct xe3p_cw2_gpgpu_fill_data {
+	uint32_t buf_width;
+	uint32_t buf_height;
+	uint64_t buf_addr;
+	uint8_t color;
+};
+
 uint32_t
 gen7_fill_curbe_buffer_data(struct intel_bb *ibb, uint8_t color);
 
@@ -167,5 +174,14 @@ xe3p_emit_compute_walk2(struct intel_bb *ibb,
 			struct xe3p_interface_descriptor_data *pidd,
 			uint32_t max_threads,
 			struct xe3p_cw2_interrupt_data *intdata);
+
+void
+xe3p_emit_fill_compute_walk2(struct intel_bb *ibb,
+			     unsigned int buf_width, unsigned int buf_height,
+			     uint64_t buf_addr,
+			     unsigned int x, unsigned int y,
+			     unsigned int width, unsigned int height,
+			     struct xe3p_interface_descriptor_data *pidd,
+			     uint8_t color);
 
 #endif /* GPU_CMDS_H */
