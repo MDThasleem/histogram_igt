@@ -707,10 +707,15 @@ test_legacy_mode(int fd, uint32_t vm, uint64_t addr, uint64_t userptr,
 	     i < n_execs; i++) {
 		int e = i % n_exec_queues;
 
-		if (flags & HANG && e == hang_exec_queue)
+		if (flags & HANG && e == hang_exec_queue) {
 			igt_assert_eq(data[i].data, 0x0);
-		else
-			igt_assert_eq(data[i].data, 0xc0ffee);
+		} else {
+			/* Multi-queue reset affects all queues; data outcome is non-deterministic */
+			if (flags & HANG && flags & MULTI_QUEUE)
+				igt_assert(data[i].data == 0x0 || data[i].data == 0xc0ffee);
+			else
+				igt_assert_eq(data[i].data, 0xc0ffee);
+		}
 	}
 
 	syncobj_destroy(fd, sync[0].handle);
