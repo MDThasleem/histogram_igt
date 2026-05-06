@@ -236,8 +236,6 @@ static void test_bpc_switch_on_output(data_t *data, igt_crtc_t *crtc,
 
 	/* CRC capture is clamped to 8bpc, so capture should match. */
 	igt_assert_crc_equal(&ref_crc, &new_crc);
-
-	test_fini(data);
 }
 
 /* Returns true if an output supports max bpc property. */
@@ -299,6 +297,7 @@ static void test_bpc_switch(data_t *data, uint32_t flags)
 					      test_bpc_switch_on_output(data,
 								       crtc,
 								       output, hdr_test_formats[i], flags);
+				test_fini(data);
 			}
 
 			/* One pipe is enough */
@@ -384,7 +383,7 @@ static void test_static_toggle(data_t *data, igt_crtc_t *crtc,
 	igt_display_commit_atomic(display, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
 	if (flags & TEST_INVALID_HDR) {
 		igt_assert_eq(system("dmesg|tail -n 1000|grep -E \"Unknown EOTF [0-9]+\""), 0);
-		goto cleanup;
+		return;
 	}
 
 	if (flags & TEST_BRIGHTNESS) {
@@ -419,9 +418,6 @@ static void test_static_toggle(data_t *data, igt_crtc_t *crtc,
 		igt_force_dsc_disable(data->fd, data->output->name);
 		igt_assert(igt_is_force_dsc_disabled(data->fd, data->output->name));
 	}
-
-cleanup:
-	test_fini(data);
 }
 
 static void test_static_swap(data_t *data, igt_crtc_t *crtc,
@@ -511,8 +507,6 @@ static void test_static_swap(data_t *data, igt_crtc_t *crtc,
 		igt_force_dsc_disable(data->fd, data->output->name);
 		igt_assert(igt_is_force_dsc_disabled(data->fd, data->output->name));
 	}
-
-	test_fini(data);
 }
 
 static void test_invalid_metadata_sizes(data_t *data)
@@ -526,8 +520,6 @@ static void test_invalid_metadata_sizes(data_t *data)
 	igt_assert_eq(set_invalid_hdr_output_metadata(data, &hdr, metadata_size + 1), -EINVAL);
 	igt_assert_eq(set_invalid_hdr_output_metadata(data, &hdr, metadata_size - 1), -EINVAL);
 	igt_assert_eq(set_invalid_hdr_output_metadata(data, &hdr, metadata_size * 2), -EINVAL);
-
-	test_fini(data);
 }
 
 static void test_hdr(data_t *data, uint32_t flags)
@@ -635,6 +627,8 @@ static void test_hdr(data_t *data, uint32_t flags)
 					if (flags & TEST_INVALID_METADATA_SIZES)
 						test_invalid_metadata_sizes(data);
 				}
+
+				test_fini(data);
 			}
 
 			/* One pipe is enough */
