@@ -439,7 +439,7 @@ static void setup_parms(data_t *data, igt_crtc_t *crtc,
 		if (cursor_width == sprite_width &&
 		    cursor_height == sprite_height) {
 			igt_plane_t *removed_plane = NULL;
-			igt_assert_f(n_planes >= 3, "No planes left to proceed with!");
+			igt_assert_f(n_planes >= 3, "No planes left to proceed with!\n");
 			if (n_overlays > 0) {
 				uint32_t plane_to_remove = hars_petruska_f54_1_random_unsafe_max(n_overlays);
 				removed_plane = &crtc->planes[overlays[plane_to_remove]];
