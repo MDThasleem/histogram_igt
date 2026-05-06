@@ -41,8 +41,25 @@
 #include "xe/xe_query.h"
 
 /**
- * SUBTEST: planar-pixel-format-settings
- * Description: verify planar settings for pixel format are handled correctly
+ * SUBTEST: planar-pixel-format-settings@nv12-odd-width
+ * Description: Verify odd-width (257px) NV12 framebuffer is rejected by the
+ *              kernel on Intel hardware (display ver < 20 expects -EINVAL).
+ * Driver requirement: i915, xe
+ *
+ * SUBTEST: planar-pixel-format-settings@nv12-odd-height
+ * Description: Verify odd-height (257px) NV12 framebuffer is rejected by the
+ *              kernel on Intel hardware (display ver < 20 or >= 35 expects -EINVAL).
+ * Driver requirement: i915, xe
+ *
+ * SUBTEST: planar-pixel-format-settings@nv12-odd-horizontal-pan
+ * Description: Verify odd horizontal pan on NV12 framebuffer is rejected by
+ *              the kernel on Intel hardware (display ver < 35 expects -EINVAL).
+ * Driver requirement: i915, xe
+ *
+ * SUBTEST: planar-pixel-format-settings@p016-odd-vertical-pan
+ * Description: Verify odd vertical pan on P016 framebuffer and check CRC
+ *              matches a reference XRGB8888 blue fill on Intel hardware.
+ * Driver requirement: i915, xe
  *
  * SUBTEST: plane-position-%s
  * Description: Verify plane position using two planes to create a %arg[1]
@@ -1354,165 +1371,197 @@ test_pixel_formats(data_t *data, igt_crtc_t *crtc)
 	igt_remove_fb(data->drm_fd, &primary_fb);
 }
 
+static igt_plane_t *
+planar_test_setup(data_t *data, igt_crtc_t *crtc, igt_output_t *output)
+{
+	igt_display_reset(&data->display);
+	igt_output_set_crtc(output, crtc);
+	igt_display_commit_atomic(&data->display,
+				  DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+	return igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
+}
+
+static void
+test_nv12_odd_width(data_t *data, igt_crtc_t *crtc, igt_output_t *output,
+		    int display_ver)
+{
+	igt_plane_t *primary = planar_test_setup(data, crtc, output);
+	igt_fb_t fb;
+	int expected_rval = display_ver >= 20 ? 0 : -EINVAL;
+	int rval;
+
+	if (!igt_plane_has_format_mod(primary, DRM_FORMAT_NV12,
+				      DRM_FORMAT_MOD_LINEAR)) {
+		igt_debug("Odd width NV12 test skipped - format/mod not supported\n");
+		return;
+	}
+
+	igt_create_fb(data->drm_fd, 257, 256,
+		      DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, &fb);
+	igt_plane_set_fb(primary, &fb);
+	rval = igt_display_try_commit_atomic(&data->display,
+					     DRM_MODE_ATOMIC_ALLOW_MODESET |
+					     DRM_MODE_ATOMIC_TEST_ONLY,
+					     NULL);
+	igt_plane_set_fb(primary, NULL);
+	igt_remove_fb(data->drm_fd, &fb);
+	igt_assert_f(rval == expected_rval,
+		     "Odd width NV12 framebuffer: got %d, expected %d\n",
+		     rval, expected_rval);
+}
+
+static void
+test_nv12_odd_height(data_t *data, igt_crtc_t *crtc, igt_output_t *output,
+		     int display_ver)
+{
+	igt_plane_t *primary = planar_test_setup(data, crtc, output);
+	igt_fb_t fb;
+	int expected_rval = (display_ver >= 20 && display_ver < 35) ? 0 : -EINVAL;
+	int rval;
+
+	if (!igt_plane_has_format_mod(primary, DRM_FORMAT_NV12,
+				      DRM_FORMAT_MOD_LINEAR)) {
+		igt_debug("Odd height NV12 test skipped - format/mod not supported\n");
+		return;
+	}
+
+	igt_create_fb(data->drm_fd, 256, 257,
+		      DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, &fb);
+	igt_plane_set_fb(primary, &fb);
+	rval = igt_display_try_commit_atomic(&data->display,
+					     DRM_MODE_ATOMIC_ALLOW_MODESET |
+					     DRM_MODE_ATOMIC_TEST_ONLY,
+					     NULL);
+	igt_plane_set_fb(primary, NULL);
+	igt_remove_fb(data->drm_fd, &fb);
+	igt_assert_f(rval == expected_rval,
+		     "Odd height NV12 framebuffer: got %d, expected %d\n",
+		     rval, expected_rval);
+}
+
+static void
+test_nv12_odd_horizontal_pan(data_t *data, igt_crtc_t *crtc,
+			     igt_output_t *output, int display_ver)
+{
+	igt_plane_t *primary = planar_test_setup(data, crtc, output);
+	igt_fb_t fb;
+	int expected_rval = display_ver >= 35 ? 0 : -EINVAL;
+	int rval;
+
+	if (!igt_plane_has_format_mod(primary, DRM_FORMAT_NV12,
+				      DRM_FORMAT_MOD_LINEAR)) {
+		igt_debug("Odd h-pan NV12 test skipped - format/mod not supported\n");
+		return;
+	}
+
+	igt_create_fb(data->drm_fd, 810, 590,
+		      DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, &fb);
+	igt_plane_set_fb(primary, &fb);
+	igt_plane_set_size(primary, 810, 590);
+	igt_plane_set_position(primary, -501, 200);
+	rval = igt_display_try_commit_atomic(&data->display,
+					     DRM_MODE_ATOMIC_ALLOW_MODESET |
+					     DRM_MODE_ATOMIC_TEST_ONLY,
+					     NULL);
+	igt_plane_set_fb(primary, NULL);
+	igt_remove_fb(data->drm_fd, &fb);
+	igt_assert_f(rval == expected_rval,
+		     "Odd horizontal pan NV12 framebuffer: got %d, expected %d\n",
+		     rval, expected_rval);
+}
+
+static void
+test_p016_odd_vertical_pan(data_t *data, igt_crtc_t *crtc,
+			   igt_output_t *output, int display_ver)
+{
+	igt_plane_t *primary = planar_test_setup(data, crtc, output);
+	igt_fb_t fb, fb_ref;
+	igt_crc_t crc, crc_ref;
+	int expected_rval = (display_ver >= 20 && display_ver < 35) ? 0 : -EINVAL;
+	int rval;
+
+	if (!igt_plane_has_format_mod(primary, DRM_FORMAT_P016,
+				      DRM_FORMAT_MOD_LINEAR)) {
+		igt_debug("Odd v-pan P016 test skipped - format/mod not supported\n");
+		return;
+	}
+
+	igt_create_color_fb(data->drm_fd, 256, 260,
+			    DRM_FORMAT_P016, DRM_FORMAT_MOD_LINEAR,
+			    0.0, 0.0, 1.0, &fb);
+
+	igt_plane_set_fb(primary, &fb);
+	igt_plane_set_position(primary, 1, 1);
+	igt_plane_set_size(primary, 256, 256);
+	igt_fb_set_position(&fb, primary, 0, 3);
+	igt_fb_set_size(&fb, primary, 256, 256);
+
+	rval = igt_display_try_commit_atomic(&data->display,
+					     DRM_MODE_ATOMIC_ALLOW_MODESET,
+					     NULL);
+	if (rval == 0) {
+		set_legacy_lut(data, crtc, LUT_MASK);
+		igt_wait_for_vblank_count(crtc, 1);
+
+		data->pipe_crc = igt_crtc_crc_new(crtc,
+						  IGT_PIPE_CRC_SOURCE_AUTO);
+		igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
+
+		/* reference: plain blue XRGB8888 of the same visible size */
+		igt_create_color_fb(data->drm_fd, 256, 256,
+				    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
+				    0.0, 0.0, 1.0, &fb_ref);
+		igt_plane_set_fb(primary, &fb_ref);
+		rval = igt_display_try_commit_atomic(&data->display,
+						     DRM_MODE_ATOMIC_ALLOW_MODESET,
+						     NULL);
+
+		igt_pipe_crc_collect_crc(data->pipe_crc, &crc_ref);
+		set_legacy_lut(data, crtc, 0xffff);
+		igt_pipe_crc_free(data->pipe_crc);
+		data->pipe_crc = NULL;
+
+		igt_plane_set_fb(primary, NULL);
+		igt_remove_fb(data->drm_fd, &fb_ref);
+		igt_assert_crc_equal(&crc_ref, &crc);
+	} else {
+		igt_plane_set_fb(primary, NULL);
+	}
+
+	igt_remove_fb(data->drm_fd, &fb);
+	igt_assert_f(rval == expected_rval,
+		     "Odd vertical pan P016 framebuffer: got %d, expected %d\n",
+		     rval, expected_rval);
+}
+
 static void test_planar_settings(data_t *data)
 {
 	igt_display_t *display = &data->display;
 	igt_crtc_t *crtc;
 	igt_output_t *output;
-	igt_fb_t fb, fb_ref;
-	igt_plane_t *primary;
-	igt_crc_t crc, crc_ref;
-	int devid;
-	int display_ver = -1;
-	int rval;
-	bool is_vkms = false;
+	int display_ver;
 
-	/*
-	 * If here is added non-intel tests below require will need to be
-	 * changed to if(..)
-	 */
-	igt_require_f(data->display.is_atomic, "Atomic mode-set not supported\n");
-	if (is_intel_device(data->drm_fd)) {
-		igt_require_intel(data->drm_fd);
-		devid = intel_get_drm_devid(data->drm_fd);
-		igt_require(intel_display_ver(devid) >= 9);
-		display_ver = intel_display_ver(devid);
-		igt_require(display_ver >= 9);
-	} else if (is_vkms_device(data->drm_fd)) {
-		is_vkms = true;
-	}
+	igt_require(display->is_atomic);
+
+	/* All sub-tests below are Intel-specific. */
+	igt_require_intel(data->drm_fd);
+	display_ver = intel_display_ver(intel_get_drm_devid(data->drm_fd));
+	igt_require(display_ver >= 9);
 
 	crtc = igt_first_crtc_with_single_output(display, &output);
+	igt_require_f(crtc, "No suitable output/crtc pair found\n");
 
-	igt_output_set_crtc(output, crtc);
-	primary = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
+	igt_dynamic("nv12-odd-width")
+		test_nv12_odd_width(data, crtc, output, display_ver);
 
-	igt_display_commit_atomic(&data->display,
-				  DRM_MODE_ATOMIC_ALLOW_MODESET,
-				  NULL);
-	/* test against intel_plane_check_src_coordinates() in i915 */
-	if (igt_plane_has_format_mod(primary, DRM_FORMAT_NV12,
-				     DRM_FORMAT_MOD_LINEAR)) {
-		int expected_rval = -EINVAL;
+	igt_dynamic("nv12-odd-height")
+		test_nv12_odd_height(data, crtc, output, display_ver);
 
-		if (display_ver >= 20 || is_vkms)
-			expected_rval = 0;
+	igt_dynamic("nv12-odd-horizontal-pan")
+		test_nv12_odd_horizontal_pan(data, crtc, output, display_ver);
 
-		igt_create_fb(data->drm_fd, 257, 256,
-			      DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, &fb);
-		igt_plane_set_fb(primary, &fb);
-		rval = igt_display_try_commit_atomic(&data->display,
-						     DRM_MODE_ATOMIC_ALLOW_MODESET |
-						     DRM_MODE_ATOMIC_TEST_ONLY,
-						     NULL);
-		igt_remove_fb(data->drm_fd, &fb);
-		igt_assert_f(rval == expected_rval, "Odd width NV12 framebuffer\n");
-	} else {
-		igt_debug("Odd width NV12 framebuffer test skipped\n");
-	}
-
-	/* test against intel_plane_check_src_coordinates() in i915 */
-	if (igt_plane_has_format_mod(primary, DRM_FORMAT_NV12,
-				     DRM_FORMAT_MOD_LINEAR)) {
-		int expected_rval = -EINVAL;
-
-		if ((display_ver >= 20 && display_ver < 35) || is_vkms)
-			expected_rval = 0;
-
-		igt_create_fb(data->drm_fd, 256, 257,
-			      DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, &fb);
-		igt_plane_set_fb(primary, &fb);
-		rval = igt_display_try_commit_atomic(&data->display,
-						     DRM_MODE_ATOMIC_ALLOW_MODESET |
-						     DRM_MODE_ATOMIC_TEST_ONLY,
-						     NULL);
-		igt_remove_fb(data->drm_fd, &fb);
-		igt_assert_f(rval == expected_rval, "Odd height NV12 framebuffer\n");
-	} else {
-		igt_debug("Odd height NV12 framebuffer test skipped\n");
-	}
-
-	/* test against intel_plane_check_src_coordinates() in i915 */
-	if (igt_plane_has_format_mod(primary, DRM_FORMAT_NV12,
-				     DRM_FORMAT_MOD_LINEAR)) {
-		int expected_rval = -EINVAL;
-
-		if (display_ver >= 35 || is_vkms)
-			expected_rval = 0;
-
-		igt_create_fb(data->drm_fd, 810, 590,
-			      DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, &fb);
-		igt_plane_set_fb(primary, &fb);
-		igt_plane_set_size(primary, 810, 590);
-		igt_plane_set_position(primary, -501, 200);
-		rval = igt_display_try_commit_atomic(&data->display, DRM_MODE_ATOMIC_ALLOW_MODESET |
-						     DRM_MODE_ATOMIC_TEST_ONLY, NULL);
-
-		igt_remove_fb(data->drm_fd, &fb);
-		igt_assert_f(rval == expected_rval, "Odd horizontal pan NV12 framebuffer\n");
-	} else {
-		igt_debug("Odd horizontal pan NV12 framebuffer test skipped\n");
-	}
-
-	if (igt_plane_has_format_mod(primary, DRM_FORMAT_P016,
-					    DRM_FORMAT_MOD_LINEAR)) {
-		int expected_rval = -EINVAL;
-
-		if ((display_ver >= 20 && display_ver < 35) || is_vkms)
-			expected_rval = 0;
-
-		igt_create_color_fb(data->drm_fd, 256, 260,
-			      DRM_FORMAT_P016, DRM_FORMAT_MOD_LINEAR,
-			      0.0, 0.0, 1.0,
-			      &fb);
-
-		igt_plane_set_fb(primary, &fb);
-		igt_plane_set_position(primary, 1, 1);
-		igt_plane_set_size(primary, 256, 256);
-
-		/* set odd v pan and check with crc fb didn't break */
-		igt_fb_set_position(&fb, primary, 0, 3);
-		igt_fb_set_size(&fb, primary, 256, 256);
-		rval = igt_display_try_commit_atomic(&data->display,
-						     DRM_MODE_ATOMIC_ALLOW_MODESET,
-						     NULL);
-		if (rval == 0) {
-			set_legacy_lut(data,
-				       crtc,
-				       LUT_MASK);
-			igt_wait_for_vblank_count(crtc,
-						  1);
-			data->pipe_crc = igt_crtc_crc_new(crtc,
-							  IGT_PIPE_CRC_SOURCE_AUTO);
-			igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
-
-			igt_create_color_fb(data->drm_fd, 256, 256,
-				DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
-				0.0, 0.0, 1.0,
-				&fb_ref);
-
-			igt_plane_set_fb(primary, &fb_ref);
-			rval = igt_display_try_commit_atomic(&data->display,
-						     DRM_MODE_ATOMIC_ALLOW_MODESET,
-						     NULL);
-
-			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_ref);
-			set_legacy_lut(data,
-				       crtc,
-				       0xffff);
-
-			igt_pipe_crc_free(data->pipe_crc);
-			data->pipe_crc = NULL;
-
-			igt_remove_fb(data->drm_fd, &fb_ref);
-			igt_assert_crc_equal(&crc_ref, &crc);
-		}
-
-		igt_remove_fb(data->drm_fd, &fb);
-		igt_assert_f(rval == expected_rval, "Odd vertical pan P016 framebuffer\n");
-	} else {
-		igt_debug("Odd vertical pan P016 framebuffer test skipped\n");
-	}
+	igt_dynamic("p016-odd-vertical-pan")
+		test_p016_odd_vertical_pan(data, crtc, output, display_ver);
 }
 
 static bool is_pipe_limit_reached(int count)
@@ -1621,8 +1670,9 @@ run_tests_for_pipe_plane(data_t *data)
 		run_test(data, dynamic_test_handler);
 	}
 
-	igt_describe("verify planar settings for pixel format are accepted or rejected correctly");
-	igt_subtest_f("planar-pixel-format-settings")
+	igt_describe("verify planar pixel format settings are accepted or rejected correctly"
+		     " on Intel hardware");
+	igt_subtest_with_dynamic_f("planar-pixel-format-settings")
 		test_planar_settings(data);
 }
 
