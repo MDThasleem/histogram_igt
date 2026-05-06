@@ -68,6 +68,38 @@ typedef struct {
 	igt_pipe_crc_t *pipe_crc;
 } data_t;
 
+/*
+ * State tracked across the lifetime of an in-flight atomic commit that has
+ * IN_FENCEs attached. The exit handler uses this to unblock any pending
+ * commit if an assert hits between the commit and the point where
+ * the test would otherwise signal the unsignaled fence(s).
+ */
+static struct {
+	int timelines[NUM_PLANES];
+	bool needs_signal[NUM_PLANES];
+} pending_fence_state = {
+	.timelines = { -1, -1, -1 },
+};
+
+static void signal_pending_fences(int sig)
+{
+	for (int i = 0; i < NUM_PLANES; i++) {
+		if (pending_fence_state.timelines[i] < 0)
+			continue;
+
+		if (pending_fence_state.needs_signal[i]) {
+			/*
+			 * Best-effort: advance the timeline so the kernel
+			 * stops waiting on this IN_FENCE.
+			 */
+			sw_sync_timeline_inc(pending_fence_state.timelines[i], 1);
+			pending_fence_state.needs_signal[i] = false;
+		}
+
+		pending_fence_state.timelines[i] = -1;
+	}
+}
+
 static void setup_output(data_t *data)
 {
 	igt_display_t *display = &data->display;
@@ -242,6 +274,9 @@ static void multiplane_atomic_fence_wait(data_t *data)
 
 		/* Attach IN_FENCE_FD to plane */
 		igt_plane_set_fence_fd(planes[i], fences[i]);
+
+		pending_fence_state.timelines[i] = timelines[i];
+		pending_fence_state.needs_signal[i] = !should_signal[i];
 	}
 
 	/* Swap overlay colors to detect scanout changes via CRC */
@@ -299,6 +334,7 @@ static void multiplane_atomic_fence_wait(data_t *data)
 	igt_assert_crc_equal(&crc_before, &crc_after);
 
 	/* Now signal the blocking fence (overlay2) */
+	pending_fence_state.needs_signal[PLANE_OVERLAY2_IDX] = false;
 	sw_sync_timeline_inc(timelines[PLANE_OVERLAY2_IDX], 1);
 
 	/* Wait for overlay2 fence to be signaled */
@@ -353,6 +389,13 @@ int igt_main()
 
 		data.pipe_crc = igt_pipe_crc_new(data.drm_fd, data.crtc->crtc_index,
 						 IGT_PIPE_CRC_SOURCE_AUTO);
+
+		/*
+		 * Make sure that on a failure mid-test, any unsignalled
+		 * IN_FENCE that the kernel is still waiting on gets
+		 * signaled so cleanup can complete instead of hanging.
+		 */
+		igt_install_exit_handler(signal_pending_fences);
 	}
 
 	igt_describe("Test atomic commit with 3 planes (1 primary, 2 overlay) "
@@ -363,6 +406,7 @@ int igt_main()
 		multiplane_atomic_fence_wait(&data);
 
 	igt_fixture() {
+		signal_pending_fences(0);
 		reset_display_state(&data);
 		igt_pipe_crc_free(data.pipe_crc);
 		cleanup_crtc(&data);
