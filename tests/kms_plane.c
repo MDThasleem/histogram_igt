@@ -61,6 +61,12 @@
  *              matches a reference XRGB8888 blue fill on Intel hardware.
  * Driver requirement: i915, xe
  *
+ * SUBTEST: planar-pixel-format-settings@nv12-tile4-src-y
+ * Description: Verify that an NV12 Tile4 framebuffer with src_y=1 renders
+ *              correctly on Intel hardware. CRC comparison detects
+ *              corruption.
+ * Driver requirement: xe
+ *
  * SUBTEST: plane-position-%s
  * Description: Verify plane position using two planes to create a %arg[1]
  *
@@ -1534,6 +1540,88 @@ test_p016_odd_vertical_pan(data_t *data, igt_crtc_t *crtc,
 		     rval, expected_rval);
 }
 
+/*
+ * test_nv12_tile4_src_y - NV12 Tile4 with src_y=1 CRC correctness check.
+ *
+ * If kernel program wrong UV DPT va, hardware read chroma from
+ * an unmapped page, producing incorrect picture and crc mismatch
+ */
+static void
+test_nv12_tile4_src_y(data_t *data, igt_crtc_t *crtc, igt_output_t *output)
+{
+	igt_plane_t *primary;
+	struct igt_fb nv12_fb, ref_fb;
+	igt_crc_t crc, crc_ref;
+	drmModeModeInfo *mode;
+
+	/* required size for this test, do not change! */
+	const int fb_w = 1280, fb_h = 768;
+	int ret;
+
+	igt_require_xe(data->drm_fd);
+	igt_display_reset(&data->display);
+	igt_output_set_crtc(output, crtc);
+
+	primary = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
+	mode    = igt_output_get_mode(output);
+
+	igt_require_f(igt_plane_has_format_mod(primary, DRM_FORMAT_NV12,
+					       I915_FORMAT_MOD_4_TILED),
+		      "Primary plane does not support NV12 + Tile4\n");
+
+	igt_require_f(fb_w <= mode->hdisplay && fb_h <= mode->vdisplay,
+		      "Mode %dx%d too small for %dx%d NV12 test FB\n",
+		      mode->hdisplay, mode->vdisplay, fb_w, fb_h);
+
+	igt_create_color_fb(data->drm_fd, fb_w, fb_h,
+			    DRM_FORMAT_NV12, I915_FORMAT_MOD_4_TILED,
+			    0.0, 0.0, 1.0, &nv12_fb);
+
+	/*
+	 * src_y = 1 - this is the trigger for dpt uv offset bug
+	 */
+	igt_plane_set_fb(primary, &nv12_fb);
+	igt_fb_set_position(&nv12_fb, primary, 0, 1);
+	igt_fb_set_size(&nv12_fb, primary, fb_w, fb_h - 1);
+	igt_plane_set_position(primary, 0, 0);
+	igt_plane_set_size(primary, fb_w, fb_h - 1);
+
+	ret = igt_display_try_commit_atomic(&data->display,
+					    DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+	if (ret != 0) {
+		igt_plane_set_fb(primary, NULL);
+		igt_remove_fb(data->drm_fd, &nv12_fb);
+		igt_skip("NV12 Tile4 src_y=1 rejected by kernel (ret=%d)\n", ret);
+	}
+
+	data->pipe_crc = igt_crtc_crc_new(crtc, IGT_PIPE_CRC_SOURCE_AUTO);
+	set_legacy_lut(data, crtc, LUT_MASK);
+	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
+
+	/*
+	 * Get reference crc to check if above went ok
+	 */
+	igt_create_color_fb(data->drm_fd, fb_w, fb_h - 1,
+			    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
+			    0.0, 0.0, 1.0, &ref_fb);
+	igt_plane_set_fb(primary, &ref_fb);
+	igt_display_commit_atomic(&data->display,
+				  DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+
+	igt_pipe_crc_collect_crc(data->pipe_crc, &crc_ref);
+	set_legacy_lut(data, crtc, 0xffff);
+	igt_pipe_crc_free(data->pipe_crc);
+	data->pipe_crc = NULL;
+
+	igt_plane_set_fb(primary, NULL);
+	igt_display_commit_atomic(&data->display,
+				  DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+	igt_remove_fb(data->drm_fd, &nv12_fb);
+	igt_remove_fb(data->drm_fd, &ref_fb);
+
+	igt_assert_crc_equal(&crc_ref, &crc);
+}
+
 static void test_planar_settings(data_t *data)
 {
 	igt_display_t *display = &data->display;
@@ -1562,6 +1650,9 @@ static void test_planar_settings(data_t *data)
 
 	igt_dynamic("p016-odd-vertical-pan")
 		test_p016_odd_vertical_pan(data, crtc, output, display_ver);
+
+	igt_dynamic("nv12-tile4-src-y")
+		test_nv12_tile4_src_y(data, crtc, output);
 }
 
 static bool is_pipe_limit_reached(int count)
