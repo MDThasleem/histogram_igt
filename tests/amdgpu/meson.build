@@ -74,7 +74,7 @@ if libdrm_amdgpu.found()
 	else
 		warning('libdrm <= 2.4.104 found, amd_queue_reset test not applicable')
 	endif
-        if config.has('HAVE_KFD_IOCTL_H')
+        if config.has('HAVE_KFD_IOCTL_H') and host_machine.cpu_family() in ['x86', 'x86_64']
                 amdgpu_progs +=[ 'amd_kfd_dmabuf_unload',
 			  'amd_fuzzing_kfd', ]
         else
