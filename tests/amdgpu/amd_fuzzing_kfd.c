@@ -263,12 +263,12 @@ int igt_main()
 			igt_warn("Cannot open /dev/kfd: %s\n", strerror(errno));
 			igt_warn("KFD compute driver may not be loaded or hardware not supported\n");
 		}
+
+		/* Require KFD device for all tests */
+		igt_require_f(kfd_available, "KFD device not available\n");
 	}
 
-	if (!kfd_available) {
-		igt_info("KFD device not available - skipping all KFD IOCTL fuzzing tests\n");
-		return;
-	}
+
 
 	/* Test each KFD IOCTL */
 	for (test = kfd_ioctls; test->name != NULL; test++) {
