@@ -14,7 +14,10 @@
 #include <unistd.h>
 
 #include "igt.h"
+#include <amdgpu_drm.h>
+#ifdef HAVE_KFD_IOCTL_H
 #include <linux/kfd_ioctl.h>
+#endif /* HAVE_KFD_IOCTL_H */
 
 #ifndef KFD_IOCTL_MAJOR_VERSION
 #warning "KFD IOCTLs not available (missing KFD_IOCTL_MAJOR_VERSION) - skipping KFD fuzzing test"

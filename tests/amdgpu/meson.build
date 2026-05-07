@@ -21,7 +21,6 @@ if libdrm_amdgpu.found()
 			  'amd_fuzzing',
 			  'amd_fuzzing_sysfs',
 			  'amd_fuzzing_debugfs',
-			  'amd_fuzzing_kfd',
 			  'amd_hotplug',
 			  'amd_gang_cs' ,
 			  'amd_ilr',
@@ -76,7 +75,8 @@ if libdrm_amdgpu.found()
 		warning('libdrm <= 2.4.104 found, amd_queue_reset test not applicable')
 	endif
         if config.has('HAVE_KFD_IOCTL_H')
-                amdgpu_progs +=[ 'amd_kfd_dmabuf_unload', ]
+                amdgpu_progs +=[ 'amd_kfd_dmabuf_unload',
+			  'amd_fuzzing_kfd', ]
         else
                 warning('linux/kfd_ioctl.h not found, amd_kfd_dmabuf_unload test not applicable')
         endif
