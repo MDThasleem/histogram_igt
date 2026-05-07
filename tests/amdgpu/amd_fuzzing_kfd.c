@@ -19,17 +19,8 @@
 #include <linux/kfd_ioctl.h>
 #endif /* HAVE_KFD_IOCTL_H */
 
-#ifndef KFD_IOCTL_MAJOR_VERSION
-#warning "KFD IOCTLs not available (missing KFD_IOCTL_MAJOR_VERSION) - skipping KFD fuzzing test"
 
-int main(void)
-{
-	igt_info("SKIP: KFD IOCTLs not available (KFD_IOCTL_MAJOR_VERSION undefined) - test skipped\n");
-	igt_info("SKIP: KFD IOCTLs not available (KFD_IOCTL_MAJOR_VERSION undefined) - test skipped\n");
-	return 77; /* SKIP - KFD not available */
-}
-
-#else
+#ifdef HAVE_KFD_IOCTL_H
 
 
 /* KFD IOCTLs to test */
@@ -301,4 +292,12 @@ int igt_main()
 	}
 }
 
-#endif /* KFD_IOCTL_MAJOR_VERSION */
+
+#else /* !HAVE_KFD_IOCTL_H */
+
+int igt_main()
+{
+	igt_skip("KFD headers not available at build time\n");
+}
+
+#endif /* HAVE_KFD_IOCTL_H */
