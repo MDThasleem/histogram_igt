@@ -29,7 +29,7 @@
 #include "igt.h"
 #include "igt_sysfs.h"
 #include <amdgpu.h>
-#include <drm/amdgpu_drm.h>
+#include "amdgpu_drm.h"
 #include "amd_sysfs_spec.h"
 
 #define AMDGPU_SYSFS_BASE "/sys/class/drm"
