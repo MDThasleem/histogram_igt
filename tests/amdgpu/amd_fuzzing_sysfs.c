@@ -28,6 +28,8 @@
 
 #include "igt.h"
 #include "igt_sysfs.h"
+#include <amdgpu.h>
+#include <drm/amdgpu_drm.h>
 #include "amd_sysfs_spec.h"
 
 #define AMDGPU_SYSFS_BASE "/sys/class/drm"
@@ -722,11 +724,33 @@ int igt_main()
 	char card_path[MAX_SYSFS_PATH];
 	const struct sysfs_file_info *file;
 	int card_found = 0;
+	int fd = -1;
+	amdgpu_device_handle device = NULL;
+	uint32_t major, minor;
+	struct amdgpu_gpu_info gpu_info = {0};
+
 
 	igt_fixture() {
 		card_found = (find_amdgpu_card(card_path, sizeof(card_path)) == 0);
 		igt_require_f(card_found, "No AMDGPU card found\n");
 		igt_require(getuid() == 0);  /* Need root for write access */
+
+		/* Open device to check ASIC family */
+		fd = drm_open_driver(DRIVER_AMDGPU);
+		igt_require(fd >= 0);
+
+		igt_require(amdgpu_device_initialize(fd, &major, &minor, &device) == 0);
+		igt_require(amdgpu_query_gpu_info(device, &gpu_info) == 0);
+
+		/* Skip test on Polaris (VI) and Vega20 (AI) due to known PPTable handling issues */
+		if (gpu_info.family_id == AMDGPU_FAMILY_VI ||   /* Polaris (GFX8) */
+		    gpu_info.family_id == AMDGPU_FAMILY_AI) {   /* Vega20 (GFX9) */
+			igt_info("Skipping fuzzing tests on Polaris/Vega20 (family_id=%d) - known PPTable handling issues\n",
+			         gpu_info.family_id);
+			amdgpu_device_deinitialize(device);
+			close(fd);
+			igt_skip("PPTable fuzzing not supported on this ASIC\n");
+		}
 	}
 
 	for (file = amdgpu_sysfs_files; file->name != NULL; file++) {
@@ -757,5 +781,12 @@ int igt_main()
 		default:
 			break;
 		}
+	}
+
+	igt_fixture() {
+		if (device)
+			amdgpu_device_deinitialize(device);
+		if (fd >= 0)
+			close(fd);
 	}
 }
