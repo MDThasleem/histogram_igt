@@ -24,6 +24,7 @@
 #include "igt_device.h"
 #include "igt_syncobj.h"
 #include "igt_sysfs.h"
+#include "intel_wa.h"
 #include "xe/xe_ioctl.h"
 #include "xe/xe_query.h"
 #include "xe/xe_oa.h"
@@ -2670,6 +2671,17 @@ test_non_zero_reason(const struct drm_xe_oa_unit *oau, size_t oa_buffer_size)
 	const uint32_t *last_report;
 	int len, check_idx;
 	u32 oa_status;
+
+	/*
+	 * Wa_14026633728: For MERTOA in CRI, oa buffer can be in device memory.
+	 * Because of slower device mem access, OA exponent values lower than 8
+	 * can result in buffer overflows.
+	 */
+	if (oau->oa_unit_type == DRM_XE_OA_UNIT_TYPE_MERT &&
+		igt_has_intel_wa(drm_fd, "14026633728")) {
+		oa_exponent = max(oa_exponent, 8);
+		properties[9] = oa_exponent;
+	}
 
 	igt_assert(buf);
 
