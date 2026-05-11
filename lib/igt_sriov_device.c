@@ -174,10 +174,22 @@ unsigned int igt_sriov_get_enabled_vfs(int pf)
  */
 void igt_sriov_enable_vfs(int pf, unsigned int num_vfs)
 {
+	int sysfs;
+	int ret;
+
+	igt_assert(igt_sriov_is_pf(pf));
 	igt_assert(num_vfs > 0);
 
+	sysfs = igt_sysfs_open(pf);
+	igt_assert_fd(sysfs);
+
 	igt_debug("Enabling %u VFs\n", num_vfs);
-	pf_attr_set_u32(pf, "device/sriov_numvfs", num_vfs);
+	ret = igt_sysfs_printf(sysfs, "device/sriov_numvfs", "%u", num_vfs);
+	close(sysfs);
+
+	igt_require_f(ret != -ENOENT, "SR-IOV not supported\n");
+	igt_assert_f(ret > 0, "Failed to write %u to device/sriov_numvfs (%s)\n",
+		     num_vfs, strerror(-ret));
 }
 
 /**
