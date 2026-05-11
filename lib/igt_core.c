@@ -3226,10 +3226,15 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 		formatted_line = strdup(line);
 		if (!formatted_line)
 			goto out;
-	} else if (asprintf(&formatted_line, "(%s:%d) %s%s%s%s: %s", program_name,
-		     getpid(), thread_id, (domain) ? domain : "", (domain) ? "-" : "",
-		     igt_log_level_str[level], line) == -1) {
-		goto out;
+	} else {
+		struct timespec ts;
+
+		igt_gettime(&ts);
+		if (asprintf(&formatted_line, "[%ld.%06ld] (%s:%d) %s%s%s%s: %s", (long)ts.tv_sec,
+			     ts.tv_nsec / 1000, program_name, getpid(), thread_id,
+			     (domain) ? domain : "", (domain) ? "-" : "", igt_log_level_str[level],
+			     line) == -1)
+			goto out;
 	}
 
 	if (line[strlen(line) - 1] == '\n')
