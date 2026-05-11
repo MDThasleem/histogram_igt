@@ -878,6 +878,89 @@ static void test_atomic_device(int fd, struct drm_xe_engine_class_instance *eci)
 	xe_vm_destroy(fd, vm);
 }
 
+/**
+ * SUBTEST: atomic-global
+ * Description: madvise atomic global supports both CPU and GPU atomic operations,
+ *		test does CPU atomic increments on SMEM then GPU MI_ATOMIC_INC
+ *		which triggers fault-driven migration to VRAM
+ * Test category: functionality test
+ */
+static void test_atomic_global(int fd, struct drm_xe_engine_class_instance *eci)
+{
+	struct drm_xe_sync sync[1] = {
+		{ .type = DRM_XE_SYNC_TYPE_USER_FENCE,
+		  .flags = DRM_XE_SYNC_FLAG_SIGNAL,
+		  .timeline_value = USER_FENCE_VALUE },
+	};
+	struct drm_xe_exec exec = {
+		.num_batch_buffer = 1,
+		.num_syncs = 1,
+		.syncs = to_user_pointer(sync),
+	};
+	struct atomic_data *data;
+	uint32_t vm, exec_queue;
+	uint64_t addr;
+	size_t bo_size;
+	int va_bits, i;
+	int n_cpu_ops = 100;
+	int pf_count_before, pf_count_after;
+
+	va_bits = xe_va_bits(fd);
+	vm = xe_vm_create(fd, DRM_XE_VM_CREATE_FLAG_LR_MODE |
+			  DRM_XE_VM_CREATE_FLAG_FAULT_MODE, 0);
+
+	bo_size = xe_bb_size(fd, sizeof(*data));
+	data = aligned_alloc(bo_size, bo_size);
+	igt_assert(data);
+	memset(data, 0, bo_size);
+
+	addr = to_user_pointer(data);
+
+	sync[0].addr = to_user_pointer(&data->vm_sync);
+	__xe_vm_bind_assert(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
+			    DRM_XE_VM_BIND_OP_MAP,
+			    DRM_XE_VM_BIND_FLAG_CPU_ADDR_MIRROR,
+			    sync, 1, 0, 0);
+	xe_wait_ufence(fd, &data->vm_sync, USER_FENCE_VALUE, 0, FIVE_SEC);
+	data->vm_sync = 0;
+
+	xe_vm_madvise(fd, vm, addr, bo_size, 0,
+		      DRM_XE_MEM_RANGE_ATTR_ATOMIC, DRM_XE_ATOMIC_GLOBAL, 0, 0);
+
+	for (i = 0; i < n_cpu_ops; i++)
+		__atomic_fetch_add(&data->data, 1, __ATOMIC_SEQ_CST);
+
+	igt_assert_eq(data->data, n_cpu_ops);
+
+	atomic_build_batch(data, addr);
+
+	exec_queue = xe_exec_queue_create(fd, vm, eci, 0);
+	exec.exec_queue_id = exec_queue;
+	exec.address = addr + ((char *)&data->batch - (char *)data);
+
+	pf_count_before = xe_gt_stats_get_count(fd, eci->gt_id,
+						"svm_pagefault_count");
+
+	sync[0].addr = to_user_pointer(&data->exec_sync);
+	xe_exec(fd, &exec);
+	xe_wait_ufence(fd, &data->exec_sync, USER_FENCE_VALUE,
+		       exec_queue, FIVE_SEC);
+
+	pf_count_after = xe_gt_stats_get_count(fd, eci->gt_id,
+					       "svm_pagefault_count");
+	if (pf_count_before != pf_count_after)
+		igt_info("Pagefault count: before=%d, after=%d\n",
+			 pf_count_before, pf_count_after);
+
+	igt_assert_eq(data->data, n_cpu_ops + 1);
+
+	xe_exec_queue_destroy(fd, exec_queue);
+	__xe_vm_bind_assert(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
+			    DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0);
+	free(data);
+	xe_vm_destroy(fd, vm);
+}
+
 int igt_main()
 {
 	struct drm_xe_engine_class_instance *hwe;
@@ -945,6 +1028,10 @@ int igt_main()
 		igt_subtest("atomic-device")
 			xe_for_each_engine(fd, hwe)
 				test_atomic_device(fd, hwe);
+
+		igt_subtest("atomic-global")
+			xe_for_each_engine(fd, hwe)
+				test_atomic_global(fd, hwe);
 	}
 
 	igt_fixture() {
