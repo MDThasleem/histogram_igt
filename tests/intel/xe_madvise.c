@@ -14,9 +14,12 @@
 #include "igt.h"
 #include "xe_drm.h"
 
+#include "intel_gpu_commands.h"
+#include "lib/igt_syncobj.h"
+#include "lib/intel_reg.h"
+#include "xe/xe_gt.h"
 #include "xe/xe_ioctl.h"
 #include "xe/xe_query.h"
-#include "lib/igt_syncobj.h"
 
 /* Purgeable test constants */
 #define PURGEABLE_ADDR		0x1a0000
@@ -26,6 +29,11 @@
 #define PURGEABLE_FENCE_VAL	0xbeef
 #define PURGEABLE_TEST_PATTERN	0xc0ffee
 #define PURGEABLE_DEAD_PATTERN	0xdead
+
+/* Atomic test constants */
+#define USER_FENCE_VALUE	0xdeadbeefdeadbeefull
+#define FIVE_SEC		(5LL * NSEC_PER_SEC)
+#define QUARTER_SEC		(NSEC_PER_SEC / 4)
 
 static bool xe_has_purgeable_support(int fd)
 {
@@ -768,6 +776,108 @@ out:
 		igt_skip("Unable to induce purge on this platform/config");
 }
 
+/*
+ * Atomic madvise subtests — validate DRM_XE_MEM_RANGE_ATTR_ATOMIC
+ * modes (DEVICE, GLOBAL, CPU) on fault-mode SVM VMAs.
+ */
+
+struct atomic_data {
+	uint32_t batch[32];
+	uint64_t vm_sync;
+	uint64_t exec_sync;
+	uint32_t data;
+};
+
+static void atomic_build_batch(struct atomic_data *d, uint64_t gpu_addr)
+{
+	uint64_t data_offset = (char *)&d->data - (char *)d;
+	uint64_t sdi_addr = gpu_addr + data_offset;
+	int b = 0;
+
+	d->batch[b++] = MI_ATOMIC | MI_ATOMIC_INC;
+	d->batch[b++] = sdi_addr;
+	d->batch[b++] = sdi_addr >> 32;
+	d->batch[b++] = MI_BATCH_BUFFER_END;
+	igt_assert(b <= ARRAY_SIZE(d->batch));
+}
+
+/**
+ * SUBTEST: atomic-device
+ * Description: madvise atomic device supports only GPU atomic operations,
+ *		test executes GPU MI_ATOMIC_INC on SVM memory via fault handler
+ * Test category: functionality test
+ */
+static void test_atomic_device(int fd, struct drm_xe_engine_class_instance *eci)
+{
+	struct drm_xe_sync sync[1] = {
+		{ .type = DRM_XE_SYNC_TYPE_USER_FENCE,
+		  .flags = DRM_XE_SYNC_FLAG_SIGNAL,
+		  .timeline_value = USER_FENCE_VALUE },
+	};
+	struct drm_xe_exec exec = {
+		.num_batch_buffer = 1,
+		.num_syncs = 1,
+		.syncs = to_user_pointer(sync),
+	};
+	struct atomic_data *data;
+	uint32_t vm, exec_queue;
+	uint64_t addr;
+	size_t bo_size;
+	int va_bits;
+	int pf_count_before, pf_count_after;
+
+	va_bits = xe_va_bits(fd);
+	vm = xe_vm_create(fd, DRM_XE_VM_CREATE_FLAG_LR_MODE |
+			  DRM_XE_VM_CREATE_FLAG_FAULT_MODE, 0);
+
+	bo_size = xe_bb_size(fd, sizeof(*data));
+	data = aligned_alloc(bo_size, bo_size);
+	igt_assert(data);
+	memset(data, 0, bo_size);
+
+	addr = to_user_pointer(data);
+
+	/* Bind entire VA space as CPU_ADDR_MIRROR */
+	sync[0].addr = to_user_pointer(&data->vm_sync);
+	__xe_vm_bind_assert(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
+			    DRM_XE_VM_BIND_OP_MAP,
+			    DRM_XE_VM_BIND_FLAG_CPU_ADDR_MIRROR,
+			    sync, 1, 0, 0);
+	xe_wait_ufence(fd, &data->vm_sync, USER_FENCE_VALUE, 0, FIVE_SEC);
+	data->vm_sync = 0;
+
+	xe_vm_madvise(fd, vm, addr, bo_size, 0,
+		      DRM_XE_MEM_RANGE_ATTR_ATOMIC, DRM_XE_ATOMIC_DEVICE, 0, 0);
+
+	atomic_build_batch(data, addr);
+
+	exec_queue = xe_exec_queue_create(fd, vm, eci, 0);
+	exec.exec_queue_id = exec_queue;
+	exec.address = addr + ((char *)&data->batch - (char *)data);
+
+	pf_count_before = xe_gt_stats_get_count(fd, eci->gt_id,
+						"svm_pagefault_count");
+
+	sync[0].addr = to_user_pointer(&data->exec_sync);
+	xe_exec(fd, &exec);
+	xe_wait_ufence(fd, &data->exec_sync, USER_FENCE_VALUE,
+		       exec_queue, FIVE_SEC);
+
+	pf_count_after = xe_gt_stats_get_count(fd, eci->gt_id,
+					       "svm_pagefault_count");
+	if (pf_count_before != pf_count_after)
+		igt_info("Pagefault count: before=%d, after=%d\n",
+			 pf_count_before, pf_count_after);
+
+	igt_assert_eq(data->data, 1);
+
+	xe_exec_queue_destroy(fd, exec_queue);
+	__xe_vm_bind_assert(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
+			    DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0);
+	free(data);
+	xe_vm_destroy(fd, vm);
+}
+
 int igt_main()
 {
 	struct drm_xe_engine_class_instance *hwe;
@@ -824,6 +934,17 @@ int igt_main()
 				test_per_vma_protection(fd, hwe);
 				break;
 			}
+	}
+
+	igt_subtest_group() {
+		igt_fixture() {
+			igt_require(xe_has_vram(fd));
+			igt_require(!xe_supports_faults(fd));
+		}
+
+		igt_subtest("atomic-device")
+			xe_for_each_engine(fd, hwe)
+				test_atomic_device(fd, hwe);
 	}
 
 	igt_fixture() {
