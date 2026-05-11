@@ -13,9 +13,15 @@
  */
 
 #include <fcntl.h>
+#include <inttypes.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdatomic.h>
+#include <sys/wait.h>
 
 #include "igt.h"
 #include "lib/igt_syncobj.h"
+#include "lib/igt_thread.h"
 #include "lib/intel_reg.h"
 #include "xe_drm.h"
 
@@ -42,8 +48,125 @@
 #define BIND_EXEC_QUEUE	(0x1 << 13)
 #define MANY_QUEUES	(0x1 << 14)
 #define MULTI_QUEUE		(0x1 << 15)
+#define WQ_STRESS		(0x1 << 16)
+
+/*
+ * Maximum fence wait time when WQ_STRESS is active. If any bind/unbind
+ * fence takes longer than this to signal, the workqueue is considered stuck
+ * and the test fails — this is the direct symptom of the
+ * Xe hang caused by the kernel workqueue pool_workqueue pending_pwqs bug.
+ */
+#define WQ_FENCE_TIMEOUT_NS	(1LL * NSEC_PER_SEC)
+
+/* Duration of the child's VM bind/unbind stress loop in seconds. */
+#define WQ_STRESS_DURATION_SEC	5
+
+/*
+ * Maximum time the parent waits for the child to write its result byte.
+ * The child's stress loop runs for up to WQ_STRESS_DURATION_SEC seconds,
+ * plus cleanup overhead (GT reset, drop_caches, cpumask restore, sleep(1)).
+ * 8s gives ample headroom on a healthy kernel.
+ */
+#define WQ_CHILD_TIMEOUT_MS	(8 * 1000)
+
+/*
+ * Time to wait after starting the cpumask stressor before checking whether
+ * the interface is functional. One full stressor iteration writes 4 masks
+ * with 100ms sleep between each, so 400ms covers exactly one pass + 100ms.
+ */
+#define WQ_STRESSOR_WARMUP_US	(5 * 100000)
+
+/* Sysfs node that controls the unbound workqueue CPU affinity mask. */
+#define WQ_CPUMASK_PATH		"/sys/devices/virtual/workqueue/cpumask"
+
+/* Procfs node for dropping the kernel's page, dentry, and inode caches. */
+#define DROP_CACHES_PATH	"/proc/sys/vm/drop_caches"
 
 pthread_barrier_t barrier;
+
+/*
+ * Set to true by the first thread that detects a fence stall under WQ_STRESS.
+ * All other threads and the igt_until_timeout loop check this to bail out
+ * immediately rather than hammering a hung kernel for the full timeout.
+ */
+static _Atomic bool wq_stress_hang_detected;
+
+/*
+ * stress_fence_deadline - compute an absolute CLOCK_MONOTONIC deadline
+ * 5 seconds from now, used as the syncobj_wait timeout under WQ_STRESS.
+ */
+static int64_t stress_fence_deadline(void)
+{
+	struct timespec ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (int64_t)ts.tv_sec * NSEC_PER_SEC + (int64_t)ts.tv_nsec +
+		WQ_FENCE_TIMEOUT_NS;
+}
+
+/*
+ * cpumask_stressor_loop
+ *
+ * Rapidly cycles the kernel unbound workqueue cpumask through progressively
+ * wider CPU sets (mirroring the original shell reproduction script). This
+ * forces workqueue work items to be migrated between CPU pools, exercising
+ * the wq_node_nr_active / pool_workqueue plug-unplug path that hides the
+ * pending_pwqs scheduling bug.
+ *
+ * The original reproduction commands were:
+ *   for i in {1..1000}; do
+ *       echo f  > /sys/devices/virtual/workqueue/cpumask
+ *       echo ff > /sys/devices/virtual/workqueue/cpumask
+ *       ...
+ *       sleep .1
+ *   done
+ *
+ * @cpumask_broken is a shared-memory atomic flag (mmap MAP_SHARED). When all
+ * writes in a single iteration fail (excluding EINVAL), the interface is
+ * considered non-functional and the flag is set so the parent can skip the
+ * test before launching GPU work. After setting the flag the helper loops
+ * in pause() — it never exits on its own so that igt_stop_helper() can
+ * always kill it cleanly with SIGKILL (the assert inside igt_stop_helper
+ * requires the helper to have been killed by signal, not exited itself).
+ */
+static void cpumask_stressor_loop(_Atomic bool *cpumask_broken)
+{
+	static const char * const masks[] = { "f", "ff", "fff", "ffff" };
+	int wq_fd;
+
+	wq_fd = open(WQ_CPUMASK_PATH, O_WRONLY);
+	if (wq_fd < 0) {
+		atomic_store(cpumask_broken, true);
+		/*
+		 * Do not return: igt_stop_helper() asserts that the helper was
+		 * killed by SIGKILL, not that it exited on its own. Spin with
+		 * pause() so we stay alive until the parent sends SIGKILL.
+		 */
+		for (;;)
+			pause();
+	}
+
+	for (;;) {
+		int fail_count = 0;
+
+		for (int i = 0; i < ARRAY_SIZE(masks); i++) {
+			if (write(wq_fd, masks[i], strlen(masks[i])) < 0 &&
+			    errno != EINVAL)
+				fail_count++;
+			usleep(100000); /* 100ms */
+		}
+
+		/* All writes in this iteration failed — interface is broken */
+		if (fail_count == ARRAY_SIZE(masks)) {
+			atomic_store(cpumask_broken, true);
+			close(wq_fd);
+			/* Same as above: stay alive for igt_stop_helper(). */
+			for (;;)
+				pause();
+		}
+	}
+	close(wq_fd);
+}
 
 static void
 test_balancer(int fd, int gt, uint32_t vm, uint64_t addr, uint64_t userptr,
@@ -600,6 +723,10 @@ test_legacy_mode(int fd, uint32_t vm, uint64_t addr, uint64_t userptr,
 		uint64_t exec_addr;
 		int e = i % n_exec_queues;
 
+		/* Bail early if another thread already detected a hang */
+		if ((flags & WQ_STRESS) && atomic_load(&wq_stress_hang_detected))
+			goto wq_stress_cleanup;
+
 		if (flags & MANY_QUEUES) {
 			if (exec_queues[e]) {
 				igt_assert(syncobj_wait(fd, &syncobjs[e], 1,
@@ -693,15 +820,64 @@ test_legacy_mode(int fd, uint32_t vm, uint64_t addr, uint64_t userptr,
 		}
 	}
 
-	for (i = 0; i < n_exec_queues; i++)
-		igt_assert(syncobj_wait(fd, &syncobjs[i], 1, INT64_MAX, 0,
-					NULL));
-	igt_assert(syncobj_wait(fd, &sync[0].handle, 1, INT64_MAX, 0, NULL));
+	for (i = 0; i < n_exec_queues; i++) {
+		if (flags & WQ_STRESS) {
+			/* Drain all exec-queue fences under a 5 sec deadline */
+			/* A timeout means the workqueue is hung so bail immediately */
+			if (atomic_load(&wq_stress_hang_detected) ||
+			    !syncobj_wait(fd, &syncobjs[i], 1,
+					  stress_fence_deadline(), 0, NULL)) {
+				igt_critical("exec-queue[%d] fence stalled "
+					 "under WQ_STRESS, workqueue "
+					 "scheduling hang suspected\n", i);
+				atomic_store(&wq_stress_hang_detected, true);
+				igt_thread_fail();
+				goto wq_stress_cleanup;
+			}
+		} else {
+			igt_assert(syncobj_wait(fd, &syncobjs[i], 1,
+						INT64_MAX, 0, NULL));
+		}
+	}
+
+	if (flags & WQ_STRESS) {
+		if (atomic_load(&wq_stress_hang_detected) ||
+		    !syncobj_wait(fd, &sync[0].handle, 1,
+				  stress_fence_deadline(), 0, NULL)) {
+			igt_critical("bind-chain fence stalled under WQ_STRESS\n");
+			atomic_store(&wq_stress_hang_detected, true);
+			igt_thread_fail();
+			goto wq_stress_cleanup;
+		}
+	} else {
+		igt_assert(syncobj_wait(fd, &sync[0].handle, 1,
+					INT64_MAX, 0, NULL));
+	}
 
 	sync[0].flags |= DRM_XE_SYNC_FLAG_SIGNAL;
 	xe_vm_unbind_async(fd, vm, bind_exec_queues[0], 0, addr,
 			   bo_size, sync, 1);
-	igt_assert(syncobj_wait(fd, &sync[0].handle, 1, INT64_MAX, 0, NULL));
+	if (flags & WQ_STRESS) {
+		/*
+		 * This is the most critical fence under WQ_STRESS: it covers the
+		 * TLB-invalidation completion triggered by xe_vm_unbind_async().
+		 * If ttm_bo_delayed_delete() workers are stuck in the workqueue
+		 * the TLB flush fence will never signal and we will timeout here.
+		 */
+		if (atomic_load(&wq_stress_hang_detected) ||
+		    !syncobj_wait(fd, &sync[0].handle, 1,
+				  stress_fence_deadline(), 0, NULL)) {
+			igt_critical("unbind/TLB-invalidation fence stalled "
+				 "under WQ_STRESS, "
+				 "ttm_bo_delayed_delete work item likely stuck\n");
+			atomic_store(&wq_stress_hang_detected, true);
+			igt_thread_fail();
+			goto wq_stress_cleanup;
+		}
+	} else {
+		igt_assert(syncobj_wait(fd, &sync[0].handle, 1,
+					INT64_MAX, 0, NULL));
+	}
 
 	for (i = flags & INVALIDATE ? n_execs - 1 : 0;
 	     i < n_execs; i++) {
@@ -718,9 +894,21 @@ test_legacy_mode(int fd, uint32_t vm, uint64_t addr, uint64_t userptr,
 		}
 	}
 
+wq_stress_cleanup:
 	syncobj_destroy(fd, sync[0].handle);
 	for (i = 0; i < n_exec_queues; i++) {
 		syncobj_destroy(fd, syncobjs[i]);
+		if (flags & WQ_STRESS && atomic_load(&wq_stress_hang_detected)) {
+			/*
+			 * Under WQ_STRESS, if a hang was detected skip all GPU resource
+			 * teardown calls (xe_exec_queue_destroy, xe_vm_destroy, gem_close).
+			 * Those ioctls wait for pending GPU work to drain and will hang
+			 * indefinitely if the workqueue is stuck. The kernel reclaims all
+			 * GPU resources automatically on process exit.
+			 */
+			continue;
+		}
+
 		xe_exec_queue_destroy(fd, exec_queues[i]);
 		if (bind_exec_queues[i])
 			xe_exec_queue_destroy(fd, bind_exec_queues[i]);
@@ -728,11 +916,14 @@ test_legacy_mode(int fd, uint32_t vm, uint64_t addr, uint64_t userptr,
 
 	if (bo) {
 		munmap(data, bo_size);
-		gem_close(fd, bo);
+		if (!(flags & WQ_STRESS) || !atomic_load(&wq_stress_hang_detected))
+			gem_close(fd, bo);
 	} else if (!(flags & INVALIDATE)) {
 		free(data);
 	}
-	if (owns_vm)
+
+	if (owns_vm &&
+	    (!(flags & WQ_STRESS) || !atomic_load(&wq_stress_hang_detected)))
 		xe_vm_destroy(fd, vm);
 	if (owns_fd)
 		drm_close_driver(fd);
@@ -1538,6 +1729,204 @@ int igt_main()
 
 			threads(fd, s->flags);
 		}
+	}
+
+	/**
+	 * SUBTEST: threads-wq-stress-rebind-bindexecqueue
+	 * Description: Concurrently hammers VM bind/unbind cycles using per-slot
+	 *              bind exec queues across all engines while a background
+	 *              process rapidly cycles the unbound workqueue cpumask,
+	 *              forcing work items to migrate between CPU pools.
+	 *
+	 *              Each bind and unbind fence is waited on with a 5-second
+	 *              deadline. The test passes if all fences signal within that
+	 *              window across repeated iterations for up to 30 seconds.
+	 *              It fails if any fence stalls beyond the deadline, indicating
+	 *              that GPU work items are no longer being scheduled.
+	 */
+	igt_subtest("threads-wq-stress-rebind-bindexecqueue") {
+		char orig_cpumask[64] = {};
+		int cfd, result_pipe[2];
+		pid_t child;
+		uint8_t result_byte;
+
+		struct igt_helper_process cpumask_proc = {};
+		_Atomic bool *cpumask_broken;
+		int child_fd;
+		bool hang;
+		uint8_t r;
+
+		/* Needs write access to workqueue cpumask sysfs node (root) */
+		igt_require(access(WQ_CPUMASK_PATH, W_OK) == 0);
+
+		/* Save current cpumask so we can restore it after the test */
+		cfd = open(WQ_CPUMASK_PATH, O_RDONLY);
+		igt_assert_neq(cfd, -1);
+		read(cfd, orig_cpumask, sizeof(orig_cpumask) - 1);
+		close(cfd);
+		orig_cpumask[strcspn(orig_cpumask, "\n")] = '\0';
+
+		/*
+		 * Shared-memory flag: the stressor child sets this if the cpumask
+		 * interface is non-functional (all writes fail in one iteration).
+		 * mmap MAP_SHARED so the flag is visible across the fork boundary.
+		 */
+		cpumask_broken = mmap(NULL, sizeof(*cpumask_broken),
+				      PROT_READ | PROT_WRITE,
+				      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+		igt_assert(cpumask_broken != MAP_FAILED);
+		atomic_store(cpumask_broken, false);
+
+		/*
+		 * Start the cpumask stressor. It signals cpumask_broken and
+		 * returns (never calls exit) if writes become non-functional,
+		 * so igt_stop_helper() can always deliver SIGKILL cleanly.
+		 */
+		cpumask_proc.use_SIGKILL = true;
+		igt_fork_helper(&cpumask_proc)
+			cpumask_stressor_loop(cpumask_broken);
+
+		/*
+		 * Wait one full stressor iteration (4 masks × 100ms = 400ms)
+		 * before checking the flag. If all writes failed in that first
+		 * pass the cpumask interface is broken on this platform and
+		 * there is no point launching GPU work — the test would be
+		 * silently meaningless without active cpumask cycling.
+		 */
+		usleep(WQ_STRESSOR_WARMUP_US);
+		if (atomic_load(cpumask_broken)) {
+			igt_stop_helper(&cpumask_proc);
+			cfd = open(WQ_CPUMASK_PATH, O_WRONLY);
+			if (cfd >= 0) {
+				write(cfd, orig_cpumask, strlen(orig_cpumask));
+				close(cfd);
+			}
+			munmap(cpumask_broken, sizeof(*cpumask_broken));
+			igt_skip("cpumask writes not functional on this platform"
+				 " - skipping WQ stress test\n");
+		}
+
+		/* IPC channel: child writes a 1-byte result; parent reads via poll() */
+		igt_assert_eq(pipe(result_pipe), 0);
+
+		/*
+		 * All GPU work is submitted through child_fd (opened inside the
+		 * child). The fixture fd held by the parent has no pending GPU
+		 * work, so drm_close_driver(fd) in the end fixture will never
+		 * block — even if the child's _exit() gets stuck in
+		 * dma_resv_wait_timeout() (intr=false, TASK_UNINTERRUPTIBLE).
+		 */
+		child = fork();
+		igt_assert_neq(child, -1);
+
+		if (child == 0) {
+			/* ---- child: owns all GPU resources ---- */
+			close(result_pipe[0]);
+
+			child_fd = drm_open_driver(DRIVER_XE);
+
+			atomic_store(&wq_stress_hang_detected, false);
+			igt_until_timeout(WQ_STRESS_DURATION_SEC) {
+				threads(child_fd,
+					REBIND | BIND_EXEC_QUEUE | WQ_STRESS);
+				if (atomic_load(&wq_stress_hang_detected))
+					break;
+			}
+
+			/* Restore cpumask from child */
+			cfd = open(WQ_CPUMASK_PATH, O_WRONLY);
+			if (cfd >= 0) {
+				write(cfd, orig_cpumask, strlen(orig_cpumask));
+				close(cfd);
+			}
+
+			hang = atomic_load(&wq_stress_hang_detected);
+			if (hang) {
+				int dc_fd;
+
+				igt_critical("WorkQueue hang detected; dropping "
+					     "VM page cache and forcing GT "
+					     "reset\n");
+
+				dc_fd = open(DROP_CACHES_PATH,
+					     O_WRONLY);
+				if (dc_fd >= 0) {
+					write(dc_fd, "3", 1);
+					close(dc_fd);
+				}
+
+				xe_force_gt_reset_all(child_fd);
+				sleep(1);
+			}
+
+			/*
+			 * Write result BEFORE _exit().  When hang == true the
+			 * subsequent _exit() triggers do_exit() -> exit_files()
+			 * -> fput(child_fd) -> dma_resv_wait_timeout(intr=false)
+			 * and blocks in TASK_UNINTERRUPTIBLE.  The parent already
+			 * has the answer at this point and does not need to wait
+			 * for the child to actually exit.
+			 */
+			r = hang ? 1 : 0;
+			write(result_pipe[1], &r, 1);
+			close(result_pipe[1]);
+
+			if (!hang)
+				drm_close_driver(child_fd);
+			_exit(hang ? IGT_EXIT_FAILURE : IGT_EXIT_SUCCESS);
+		}
+
+		/* ---- parent ---- */
+		close(result_pipe[1]);
+
+		/*
+		 * Wait up to 8s for the child to write its result byte.
+		 * The child's stress loop runs for up to 5s, plus cleanup
+		 * (GT reset, drop_caches, cpumask restore) — 8s total gives
+		 * enough headroom on a healthy kernel while still catching a
+		 * child that has silently deadlocked before ever writing.
+		 *
+		 * poll() timeout -> treat as hang (result_byte = 0xFF).
+		 * read() returning 0 (EOF, no byte written) -> same.
+		 */
+		{
+			struct pollfd pfd = {
+				.fd     = result_pipe[0],
+				.events = POLLIN,
+			};
+			int poll_ret = poll(&pfd, 1, WQ_CHILD_TIMEOUT_MS);
+
+			if (poll_ret <= 0) {
+				/* timeout (0) or poll error (-1) */
+				igt_warn("Timed out waiting for child result "
+					 "after %dms - treating as hang\n",
+					 WQ_CHILD_TIMEOUT_MS);
+				result_byte = 0xFF;
+			} else if (read(result_pipe[0], &result_byte, 1) != 1) {
+				result_byte = 0xFF; /* EOF: child crashed before writing */
+			}
+		}
+		close(result_pipe[0]);
+
+		/* Restore cpumask from parent too. */
+		igt_stop_helper(&cpumask_proc);
+		cfd = open(WQ_CPUMASK_PATH, O_WRONLY);
+		if (cfd >= 0) {
+			write(cfd, orig_cpumask, strlen(orig_cpumask));
+			close(cfd);
+		}
+
+		/* Abort if hang detected, as moving forward without doing
+		 * so could lead to undefined behavior and further issues in
+		 * other tests
+		 */
+		igt_assert_f(result_byte == 0,
+			     "WQ stress worker detected fence stall "
+			     "- workqueue scheduling hang confirmed\n");
+
+		/* Clean path: no hang, reap child normally and continue */
+		munmap(cpumask_broken, sizeof(*cpumask_broken));
+		waitpid(child, NULL, 0);
 	}
 
 	igt_fixture()
