@@ -1515,7 +1515,7 @@ static void subtest_pat_index_modes_with_regions(int fd,
 							  r1_entry.force_cpu_wc, p.r1_compressed);
 						igt_debug("[r2]: r: %u, idx: %u (%s), coh: %u, wc: %d, comp: %d, w: %u, h: %u, a: %u\n",
 							  p.r2, p.r2_pat_index, r2_entry.name, r2_entry.coh_mode,
-							  r1_entry.force_cpu_wc, p.r2_compressed,
+							  r2_entry.force_cpu_wc, p.r2_compressed,
 							  p.size->width, p.size->height,
 							  p.size->alignment);
 
