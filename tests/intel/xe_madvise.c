@@ -4,11 +4,11 @@
  */
 
 /**
- * TEST: Validate purgeable BO madvise functionality
+ * TEST: Validate madvise functionality
  * Category: Core
  * Mega feature: General Core features
  * Sub-category: Memory management tests
- * Functionality: madvise, purgeable
+ * Functionality: madvise, purgeable, atomic
  */
 
 #include "igt.h"
@@ -776,51 +776,55 @@ int igt_main()
 	igt_fixture() {
 		fd = drm_open_driver(DRIVER_XE);
 		xe_device_get(fd);
-		igt_require_f(xe_has_purgeable_support(fd),
-			      "Kernel does not support purgeable buffer objects\n");
 	}
 
-	igt_subtest("dontneed-before-mmap")
-		xe_for_each_engine(fd, hwe) {
-			test_dontneed_before_mmap(fd);
-			break;
-		}
+	igt_subtest_group() {
+		igt_fixture()
+			igt_require_f(xe_has_purgeable_support(fd),
+				      "Kernel does not support purgeable buffer objects\n");
 
-	igt_subtest("purged-mmap-blocked")
-		xe_for_each_engine(fd, hwe) {
-			test_purged_mmap_blocked(fd);
-			break;
-		}
+		igt_subtest("dontneed-before-mmap")
+			xe_for_each_engine(fd, hwe) {
+				test_dontneed_before_mmap(fd);
+				break;
+			}
 
-	igt_subtest("dontneed-after-mmap")
-		xe_for_each_engine(fd, hwe) {
-			test_dontneed_after_mmap(fd);
-			break;
-		}
+		igt_subtest("purged-mmap-blocked")
+			xe_for_each_engine(fd, hwe) {
+				test_purged_mmap_blocked(fd);
+				break;
+			}
 
-	igt_subtest("dontneed-before-exec")
-		xe_for_each_engine(fd, hwe) {
-			test_dontneed_before_exec(fd, hwe);
-			break;
-		}
+		igt_subtest("dontneed-after-mmap")
+			xe_for_each_engine(fd, hwe) {
+				test_dontneed_after_mmap(fd);
+				break;
+			}
 
-	igt_subtest("dontneed-after-exec")
-		xe_for_each_engine(fd, hwe) {
-			test_dontneed_after_exec(fd, hwe);
-			break;
-		}
+		igt_subtest("dontneed-before-exec")
+			xe_for_each_engine(fd, hwe) {
+				test_dontneed_before_exec(fd, hwe);
+				break;
+			}
 
-	igt_subtest("per-vma-tracking")
-		xe_for_each_engine(fd, hwe) {
-			test_per_vma_tracking(fd);
-			break;
-		}
+		igt_subtest("dontneed-after-exec")
+			xe_for_each_engine(fd, hwe) {
+				test_dontneed_after_exec(fd, hwe);
+				break;
+			}
 
-	igt_subtest("per-vma-protection")
-		xe_for_each_engine(fd, hwe) {
-			test_per_vma_protection(fd, hwe);
-			break;
-		}
+		igt_subtest("per-vma-tracking")
+			xe_for_each_engine(fd, hwe) {
+				test_per_vma_tracking(fd);
+				break;
+			}
+
+		igt_subtest("per-vma-protection")
+			xe_for_each_engine(fd, hwe) {
+				test_per_vma_protection(fd, hwe);
+				break;
+			}
+	}
 
 	igt_fixture() {
 		xe_device_put(fd);
