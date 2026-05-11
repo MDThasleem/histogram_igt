@@ -318,10 +318,10 @@ static void multiplane_atomic_fence_wait(data_t *data)
 		     "driver did not wait for all IN_FENCEs!");
 
 	/*
-	 * Wait briefly and verify display hasn't updated via CRC check.
-	 * In a buggy implementation, the display might update prematurely.
+	 * Wait 2 vblanks to catch premature latch bugs while
+	 * avoiding long idle windows that trigger PSR/DC power states.
 	 */
-	usleep(100000); /* 100ms */
+	igt_wait_for_vblank_count(data->crtc, 2);
 
 	/* Check if out fence signaled prematurely */
 	ret = sync_fence_status(out_fence);
