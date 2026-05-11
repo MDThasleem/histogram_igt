@@ -719,7 +719,6 @@ double igt_time_elapsed(struct timespec *then,
 int igt_gettime(struct timespec *ts)
 {
 	memset(ts, 0, sizeof(*ts));
-	errno = 0;
 
 	/* Stay on the same clock for consistency. */
 	if (igt_clock != (clockid_t)-1) {
