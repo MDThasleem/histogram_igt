@@ -6189,6 +6189,20 @@ static int igt_count_plane_format_mod(const struct drm_format_modifier_blob *blo
 	return count;
 }
 
+static void format_mods_alloc(struct igt_format_mods *format_mods, int count)
+{
+	format_mods->count = count;
+
+	if (count == 0)
+		return;
+
+	format_mods->formats = calloc(count, sizeof(format_mods->formats[0]));
+	igt_assert(format_mods->formats);
+
+	format_mods->modifiers = calloc(count, sizeof(format_mods->modifiers[0]));
+	igt_assert(format_mods->modifiers);
+}
+
 static void igt_parse_format_mod_blob(const struct drm_format_modifier_blob *blob_data,
 				      struct igt_format_mods *format_mods)
 {
@@ -6196,16 +6210,7 @@ static void igt_parse_format_mod_blob(const struct drm_format_modifier_blob *blo
 	const uint32_t *f = formats_ptr(blob_data);
 	int idx = 0;
 
-	format_mods->count = igt_count_plane_format_mod(blob_data);
-	if (format_mods->count == 0)
-		return;
-
-	format_mods->formats = calloc(format_mods->count,
-				       sizeof((format_mods->formats)[0]));
-	igt_assert(format_mods->formats);
-	format_mods->modifiers = calloc(format_mods->count,
-					 sizeof((format_mods->modifiers)[0]));
-	igt_assert(format_mods->modifiers);
+	format_mods_alloc(format_mods, igt_count_plane_format_mod(blob_data));
 
 	for (int i = 0; i < blob_data->count_modifiers; i++) {
 		for (int j = 0; j < 64; j++) {
@@ -6234,11 +6239,7 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 
 		count = p->count_formats;
 
-		plane->format_mods.count = count;
-		plane->format_mods.formats = calloc(count, sizeof(plane->format_mods.formats[0]));
-		igt_assert(plane->format_mods.formats);
-		plane->format_mods.modifiers = calloc(count, sizeof(plane->format_mods.modifiers[0]));
-		igt_assert(plane->format_mods.modifiers);
+		format_mods_alloc(&plane->format_mods, count);
 
 		/*
 		 * We don't know which modifiers are
@@ -6339,10 +6340,14 @@ static void igt_fill_display_format_mod(igt_display_t *display)
 	if (!count)
 		return;
 
-	display->format_mods.formats = calloc(count, sizeof(display->format_mods.formats[0]));
-	igt_assert(display->format_mods.formats);
-	display->format_mods.modifiers = calloc(count, sizeof(display->format_mods.modifiers[0]));
-	igt_assert(display->format_mods.modifiers);
+	format_mods_alloc(&display->format_mods, count);
+
+	/*
+	 * Initial count was an upper bound and may include
+	 * duplicates. The final count, without duplicates,
+	 * is determined while filling the arrays.
+	 */
+	display->format_mods.count = 0;
 
 	for_each_crtc(display, crtc) {
 		igt_plane_t *plane;
