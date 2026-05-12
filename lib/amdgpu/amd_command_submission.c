@@ -139,7 +139,7 @@ int amdgpu_test_exec_cs_helper(amdgpu_device_handle device, unsigned int ip_type
 						 0, &expired);
 		ring_context->err_codes.err_code_wait_for_fence = r;
 		if (expect_failure) {
-			igt_info("EXPECT FAILURE amdgpu_cs_query_fence_status%d"
+			igt_info("EXPECT FAILURE amdgpu_cs_query_fence_status %d\n"
 				 "expired %d PID %d\n", r, expired, getpid());
 		} else {
 			/* we allow ECANCELED or ENODATA for good jobs temporally */

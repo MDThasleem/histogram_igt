@@ -53,6 +53,7 @@ if libdrm_amdgpu.found()
 			  'amd_vpe',
 			  'amd_mem',
 			  'amd_remote_mem',
+                          'amd_userptr_invalidation',
 			]
 	if libdrm_amdgpu.version().version_compare('> 2.4.97')
 		amdgpu_progs +=[ 'amd_syncobj', ]
