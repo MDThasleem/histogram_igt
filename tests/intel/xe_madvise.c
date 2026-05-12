@@ -20,6 +20,7 @@
 #include "xe/xe_gt.h"
 #include "xe/xe_ioctl.h"
 #include "xe/xe_query.h"
+#include "intel_pat.h"
 
 /* Purgeable test constants */
 #define PURGEABLE_ADDR		0x1a0000
@@ -1034,6 +1035,64 @@ static void test_atomic_cpu(int fd, struct drm_xe_engine_class_instance *eci)
 	xe_vm_destroy(fd, vm);
 }
 
+/**
+ * SUBTEST: partial-unbind-dontneed
+ * Description: Partial unbind on a DONTNEED BO must succeed; a fresh bind
+ *              on the same DONTNEED BO must be rejected with -EBUSY.
+ * Test category: functionality test
+ */
+static void test_partial_unbind_dontneed(int fd)
+{
+	uint32_t vm, bo;
+	uint64_t addr = PURGEABLE_ADDR;
+	uint64_t addr2 = PURGEABLE_ADDR2;
+	size_t page_size = PURGEABLE_BO_SIZE;
+	size_t bo_size = 2 * PURGEABLE_BO_SIZE;
+	struct drm_xe_sync sync = {
+		.type = DRM_XE_SYNC_TYPE_USER_FENCE,
+		.flags = DRM_XE_SYNC_FLAG_SIGNAL,
+		.timeline_value = PURGEABLE_FENCE_VAL,
+	};
+	uint64_t sync_val = 0;
+	uint32_t retained;
+	int ret;
+
+	vm = xe_vm_create(fd, 0, 0);
+	bo = xe_bo_create(fd, vm, bo_size, vram_if_possible(fd, 0),
+			  DRM_XE_GEM_CREATE_FLAG_NEEDS_VISIBLE_VRAM);
+
+	sync.addr = to_user_pointer(&sync_val);
+	xe_vm_bind_async(fd, vm, 0, bo, 0, addr, bo_size, &sync, 1);
+	xe_wait_ufence(fd, &sync_val, PURGEABLE_FENCE_VAL, 0, NSEC_PER_SEC);
+
+	/* Mark BO as DONTNEED. */
+	retained = xe_vm_madvise_purgeable(fd, vm, addr, bo_size,
+					   DRM_XE_VMA_PURGEABLE_STATE_DONTNEED);
+	igt_assert_eq(retained, 1);
+
+	/*
+	 * Partial unbind of the first page must succeed. The remap split
+	 * inherits the parent VMA's DONTNEED attr and must not be rejected.
+	 */
+	sync_val = 0;
+	xe_vm_unbind_async(fd, vm, 0, 0, addr, page_size, &sync, 1);
+	xe_wait_ufence(fd, &sync_val, PURGEABLE_FENCE_VAL, 0, NSEC_PER_SEC);
+
+	/*
+	 * A fresh bind on the same DONTNEED BO must be rejected with -EBUSY.
+	 * The kernel must not silently promote a DONTNEED BO back to WILLNEED
+	 * through a new bind.
+	 */
+	sync_val = 0;
+	ret = __xe_vm_bind(fd, vm, 0, bo, 0, addr2, bo_size,
+			   DRM_XE_VM_BIND_OP_MAP, 0, &sync, 1, 0,
+			   DEFAULT_PAT_INDEX, 0);
+	igt_assert_eq(ret, -EBUSY);
+
+	gem_close(fd, bo);
+	xe_vm_destroy(fd, vm);
+}
+
 int igt_main()
 {
 	struct drm_xe_engine_class_instance *hwe;
@@ -1088,6 +1147,12 @@ int igt_main()
 		igt_subtest("per-vma-protection")
 			xe_for_each_engine(fd, hwe) {
 				test_per_vma_protection(fd, hwe);
+				break;
+			}
+
+		igt_subtest("partial-unbind-dontneed")
+			xe_for_each_engine(fd, hwe) {
+				test_partial_unbind_dontneed(fd);
 				break;
 			}
 	}
