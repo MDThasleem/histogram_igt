@@ -6324,21 +6324,21 @@ static int igt_count_display_format_mod(igt_display_t *display)
 }
 
 static void
-igt_add_display_format_mod(igt_display_t *display, uint32_t format,
-			   uint64_t modifier)
+format_mods_append(struct igt_format_mods *format_mods,
+		   uint32_t format, uint64_t modifier)
 {
 	int i;
 
-	if (igt_format_mods_has_format_and_modifier(&display->format_mods,
+	if (igt_format_mods_has_format_and_modifier(format_mods,
 						    format, modifier))
 		return;
 
-	i = display->format_mods.count;
+	i = format_mods->count;
 
-	display->format_mods.formats[i] = format;
-	display->format_mods.modifiers[i] = modifier;
+	format_mods->formats[i] = format;
+	format_mods->modifiers[i] = modifier;
 
-	display->format_mods.count++;
+	format_mods->count++;
 }
 
 static void igt_fill_display_format_mod(igt_display_t *display)
@@ -6364,9 +6364,9 @@ static void igt_fill_display_format_mod(igt_display_t *display)
 		for_each_plane_on_crtc(crtc,
 				       plane) {
 			for (int i = 0; i < plane->format_mods.count; i++) {
-				igt_add_display_format_mod(display,
-							   plane->format_mods.formats[i],
-							   plane->format_mods.modifiers[i]);
+				format_mods_append(&display->format_mods,
+						   plane->format_mods.formats[i],
+						   plane->format_mods.modifiers[i]);
 				igt_assert_lte(display->format_mods.count, count);
 			}
 		}
