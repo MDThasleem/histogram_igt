@@ -6190,34 +6190,36 @@ static int igt_count_plane_format_mod(const struct drm_format_modifier_blob *blo
 }
 
 static void igt_parse_format_mod_blob(const struct drm_format_modifier_blob *blob_data,
-				      uint32_t **formats, uint64_t **modifiers, int *count)
+				      struct igt_format_mods *format_mods)
 {
 	const struct drm_format_modifier *m = modifiers_ptr(blob_data);
 	const uint32_t *f = formats_ptr(blob_data);
 	int idx = 0;
 
-	*count = igt_count_plane_format_mod(blob_data);
-	if (*count == 0)
+	format_mods->count = igt_count_plane_format_mod(blob_data);
+	if (format_mods->count == 0)
 		return;
 
-	*formats = calloc(*count, sizeof((*formats)[0]));
-	igt_assert(*formats);
-	*modifiers = calloc(*count, sizeof((*modifiers)[0]));
-	igt_assert(*modifiers);
+	format_mods->formats = calloc(format_mods->count,
+				       sizeof((format_mods->formats)[0]));
+	igt_assert(format_mods->formats);
+	format_mods->modifiers = calloc(format_mods->count,
+					 sizeof((format_mods->modifiers)[0]));
+	igt_assert(format_mods->modifiers);
 
 	for (int i = 0; i < blob_data->count_modifiers; i++) {
 		for (int j = 0; j < 64; j++) {
 			if (!(m[i].formats & (1ULL << j)))
 				continue;
 
-			(*formats)[idx] = f[m[i].offset + j];
-			(*modifiers)[idx] = m[i].modifier;
+			format_mods->formats[idx] = f[m[i].offset + j];
+			format_mods->modifiers[idx] = m[i].modifier;
 			idx++;
-			igt_assert_lte(idx, *count);
+			igt_assert_lte(idx, format_mods->count);
 		}
 	}
 
-	igt_assert_eq(idx, *count);
+	igt_assert_eq(idx, format_mods->count);
 }
 
 static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane)
@@ -6256,7 +6258,7 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 		return;
 
 	blob_data = (const struct drm_format_modifier_blob *)blob->data;
-	igt_parse_format_mod_blob(blob_data, &plane->format_mods.formats, &plane->format_mods.modifiers, &plane->format_mods.count);
+	igt_parse_format_mod_blob(blob_data, &plane->format_mods);
 	drmModeFreePropertyBlob(blob);
 
 	if (igt_plane_has_prop(plane, IGT_PLANE_IN_FORMATS_ASYNC)) {
@@ -6266,7 +6268,7 @@ static void igt_fill_plane_format_mod(igt_display_t *display, igt_plane_t *plane
 			return;
 
 		blob_data = (const struct drm_format_modifier_blob *)blob->data;
-		igt_parse_format_mod_blob(blob_data, &plane->format_mods_async.formats, &plane->format_mods_async.modifiers, &plane->format_mods_async.count);
+		igt_parse_format_mod_blob(blob_data, &plane->format_mods_async);
 		drmModeFreePropertyBlob(blob);
 	}
 }
