@@ -873,8 +873,8 @@ static void test_atomic_device(int fd, struct drm_xe_engine_class_instance *eci)
 	igt_assert_eq(data->data, 1);
 
 	xe_exec_queue_destroy(fd, exec_queue);
-	__xe_vm_bind_assert(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
-			    DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0);
+	__xe_vm_bind(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
+		     DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0, 0);
 	free(data);
 	xe_vm_destroy(fd, vm);
 }
@@ -956,8 +956,8 @@ static void test_atomic_global(int fd, struct drm_xe_engine_class_instance *eci)
 	igt_assert_eq(data->data, n_cpu_ops + 1);
 
 	xe_exec_queue_destroy(fd, exec_queue);
-	__xe_vm_bind_assert(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
-			    DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0);
+	__xe_vm_bind(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
+		     DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0, 0);
 	free(data);
 	xe_vm_destroy(fd, vm);
 }
@@ -1029,8 +1029,8 @@ static void test_atomic_cpu(int fd, struct drm_xe_engine_class_instance *eci)
 	igt_assert_eq(data->data, 0);
 
 	xe_exec_queue_destroy(fd, exec_queue);
-	__xe_vm_bind_assert(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
-			    DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0);
+	__xe_vm_bind(fd, vm, 0, 0, 0, 0, 0x1ull << va_bits,
+		     DRM_XE_VM_BIND_OP_UNMAP, 0, NULL, 0, 0, 0, 0);
 	free(data);
 	xe_vm_destroy(fd, vm);
 }
