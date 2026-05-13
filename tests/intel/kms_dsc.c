@@ -170,7 +170,12 @@ static void update_display(data_t *data, uint32_t test_type)
 	igt_skip_on(!igt_plane_has_format_mod(primary, data->plane_format,
 		    DRM_FORMAT_MOD_LINEAR));
 
-	mode = igt_output_get_highres_mode(output);
+	/* Sort modes by clock descending to pick the highest bandwidth mode,
+	 * which is most likely to trigger DSC. This handles cases where
+	 * multiple modes share the same resolution but differ in refresh rate.
+	 */
+	igt_sort_connector_modes(output->config.connector, sort_drm_modes_by_clk_dsc);
+	mode = &output->config.connector->modes[0];
 
 	do {
 		if (data->output_format != DSC_FORMAT_RGB && index > 0)
