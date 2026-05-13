@@ -59,6 +59,11 @@
  * Description: Negative check for content adaptive sharpness filter
  *              when scaling mode is already enabled and attempt is made to enable
  *              sharpness filter.
+ *
+ * SUBTEST: invalid-filter-with-nearest-neighbor
+ * Description: Negative check for content adaptive sharpness filter when
+ *              the pipe scaling filter is set to Nearest Neighbor and an
+ *              attempt is made to enable the sharpness filter.
 */
 
 IGT_TEST_DESCRIPTION("Test to validate content adaptive sharpness filter");
@@ -94,6 +99,7 @@ enum test_type {
 	TEST_INVALID_FILTER_WITH_PLANE,
 	TEST_INVALID_PLANE_WITH_FILTER,
 	TEST_INVALID_FILTER_WITH_SCALING_MODE,
+	TEST_INVALID_FILTER_WITH_NEAREST_NEIGHBOR,
 };
 
 const int filter_strength_list[] = {
@@ -211,6 +217,14 @@ static const struct subtest_entry {
 		.type     = TEST_INVALID_FILTER_WITH_SCALING_MODE,
 		.filter_strength = DEFAULT_FILTER_STRENGTH,
 		.iter     = ITER_SCALING_MODE,
+	},
+	{
+		.name     = "invalid-filter-with-nearest-neighbor",
+		.describe = "Negative check for content adaptive sharpness filter "
+			    "when the pipe scaling filter is set to Nearest Neighbor "
+			    "and an attempt is made to enable the sharpness filter.",
+		.type     = TEST_INVALID_FILTER_WITH_NEAREST_NEIGHBOR,
+		.filter_strength = DEFAULT_FILTER_STRENGTH,
 	},
 };
 
@@ -394,6 +408,7 @@ static bool is_invalid_test(enum test_type type)
 	case TEST_INVALID_FILTER_WITH_PLANE:
 	case TEST_INVALID_PLANE_WITH_FILTER:
 	case TEST_INVALID_FILTER_WITH_SCALING_MODE:
+	case TEST_INVALID_FILTER_WITH_NEAREST_NEIGHBOR:
 		return true;
 	default:
 		return false;
@@ -435,6 +450,11 @@ static void test_sharpness_filter(data_t *data, enum test_type type)
 	if (type == TEST_INVALID_FILTER_WITH_SCALING_MODE)
 		igt_require_f(has_scaling_mode(output), "No connecter scaling mode found on %s\n", output->name);
 
+	if (type == TEST_INVALID_FILTER_WITH_NEAREST_NEIGHBOR)
+		igt_require_f(igt_crtc_has_prop(data->crtc, IGT_CRTC_SCALING_FILTER),
+			      "No CRTC SCALING_FILTER property on pipe %s\n",
+			      igt_crtc_name(data->crtc));
+
 	if (needs_extra_planes(type))
 		set_planes(data, type);
 
@@ -451,6 +471,10 @@ static void test_sharpness_filter(data_t *data, enum test_type type)
 	}
 
 	set_filter_strength_on_pipe(data);
+
+	if (type == TEST_INVALID_FILTER_WITH_NEAREST_NEIGHBOR)
+		igt_crtc_set_prop_enum(data->crtc, IGT_CRTC_SCALING_FILTER,
+				       "Nearest Neighbor");
 
 	if (type == TEST_INVALID_FILTER_WITH_SCALING_MODE)
 		ret = igt_display_try_commit_atomic(&data->display, 0, NULL);
@@ -528,6 +552,7 @@ static const char * const test_type_names[] = {
 	[TEST_INVALID_FILTER_WITH_PLANE]        = "invalid-filter-with-plane",
 	[TEST_INVALID_PLANE_WITH_FILTER]        = "invalid-plane-with-filter",
 	[TEST_INVALID_FILTER_WITH_SCALING_MODE] = NULL,
+	[TEST_INVALID_FILTER_WITH_NEAREST_NEIGHBOR] = "invalid-filter-with-nearest-neighbor",
 };
 
 static void build_test_suffix(data_t *data, enum test_type type,
