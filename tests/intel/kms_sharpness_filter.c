@@ -418,7 +418,7 @@ static void test_sharpness_filter(data_t *data, enum test_type type)
 {
 	igt_output_t *output = data->output;
 	drmModeModeInfo *mode = data->mode;
-	igt_crc_t ref_crc, crc;
+	igt_crc_t crc, no_sharp_crc, sharp_crc;
 	igt_pipe_crc_t *pipe_crc = NULL;
 	int ret;
 
@@ -437,6 +437,18 @@ static void test_sharpness_filter(data_t *data, enum test_type type)
 
 	if (needs_extra_planes(type))
 		set_planes(data, type);
+
+	/*
+	 * For positive tests, capture a reference CRC with the sharpness
+	 * filter still disabled before applying the filter. After the filter
+	 * is enabled and committed, the resulting CRC must differ.
+	 */
+	if (!is_invalid_test(type)) {
+		igt_display_commit2(&data->display, COMMIT_ATOMIC);
+		pipe_crc = igt_crtc_crc_new(data->crtc,
+					    IGT_PIPE_CRC_SOURCE_AUTO);
+		igt_pipe_crc_collect_crc(pipe_crc, &no_sharp_crc);
+	}
 
 	set_filter_strength_on_pipe(data);
 
@@ -460,11 +472,11 @@ static void test_sharpness_filter(data_t *data, enum test_type type)
 		ret = igt_display_try_commit2(&data->display, COMMIT_ATOMIC);
 	}
 
-	if (type == TEST_FILTER_DPMS || type == TEST_FILTER_SUSPEND) {
-		pipe_crc = igt_crtc_crc_new(data->crtc,
-					    IGT_PIPE_CRC_SOURCE_AUTO);
-		igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
+	if (!is_invalid_test(type)) {
+		igt_pipe_crc_collect_crc(pipe_crc, &sharp_crc);
+	}
 
+	if (type == TEST_FILTER_DPMS || type == TEST_FILTER_SUSPEND) {
 		if (type == TEST_FILTER_DPMS) {
 			kmstest_set_connector_dpms(data->drm_fd,
 						   output->config.connector,
@@ -478,9 +490,17 @@ static void test_sharpness_filter(data_t *data, enum test_type type)
 		}
 
 		igt_pipe_crc_collect_crc(pipe_crc, &crc);
-		igt_assert_crc_equal(&crc, &ref_crc);
-		igt_pipe_crc_free(pipe_crc);
+		igt_assert_crc_equal(&crc, &sharp_crc);
 	}
+
+	if (!is_invalid_test(type)) {
+		igt_assert_f(!igt_check_crc_equal(&sharp_crc, &no_sharp_crc),
+			     "Sharpness CRC matches reference CRC; filter had no effect on pipe %s\n",
+			     igt_crtc_name(data->crtc));
+	}
+
+	if (pipe_crc)
+		igt_pipe_crc_free(pipe_crc);
 
 	if (is_invalid_test(type))
 		igt_assert_eq(ret, -EINVAL);
