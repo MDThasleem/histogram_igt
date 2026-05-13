@@ -137,6 +137,7 @@ static bool test_pipe_degamma(data_t *data,
 	ret = chamelium_frame_match_or_dump(data->chamelium, port,
 					    frame_fullcolors, &fbref,
 					    CHAMELIUM_CHECK_ANALOG);
+	chamelium_destroy_frame_dump(frame_fullcolors);
 
 	disable_degamma(primary->crtc);
 	igt_plane_set_fb(primary, NULL);
@@ -226,6 +227,7 @@ static bool test_pipe_gamma(data_t *data,
 	ret = chamelium_frame_match_or_dump(data->chamelium, port,
 					    frame_fullcolors, &fbref,
 					    CHAMELIUM_CHECK_ANALOG);
+	chamelium_destroy_frame_dump(frame_fullcolors);
 
 	disable_gamma(primary->crtc);
 	igt_plane_set_fb(primary, NULL);
@@ -320,6 +322,7 @@ static bool test_pipe_ctm(data_t *data,
 					     frame_hardware,
 					     &fbref,
 					     CHAMELIUM_CHECK_ANALOG);
+	chamelium_destroy_frame_dump(frame_hardware);
 
 	igt_plane_set_fb(primary, NULL);
 	disable_degamma(primary->crtc);
@@ -421,6 +424,8 @@ static bool test_pipe_limited_range_ctm(data_t *data,
 	ret = chamelium_frame_match_or_dump_frame_pair(data->chamelium, port,
 						       frame_full, frame_limited,
 						       CHAMELIUM_CHECK_ANALOG);
+	chamelium_destroy_frame_dump(frame_full);
+	chamelium_destroy_frame_dump(frame_limited);
 
 	free_lut(gamma_linear);
 	free_lut(degamma_linear);
