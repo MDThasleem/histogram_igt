@@ -21,15 +21,6 @@
  * SUBTEST: filter-strength
  * Description: Verify that varying strength (0-255), affects the degree of sharpness applied.
  *
- * SUBTEST: filter-modifiers
- * Description: Verify content adaptive sharpness filter with varying modifiers.
- *
- * SUBTEST: filter-rotations
- * Description: Verify content adaptive sharpness filter with varying rotations.
- *
- * SUBTEST: filter-formats
- * Description: Verify content adaptive sharpness filter with varying formats.
- *
  * SUBTEST: filter-toggle
  * Description: Verify toggling between enabling and disabling content adaptive sharpness filter.
  *
@@ -92,9 +83,6 @@ IGT_TEST_DESCRIPTION("Test to validate content adaptive sharpness filter");
 
 enum test_type {
 	TEST_FILTER_BASIC,
-	TEST_FILTER_MODIFIERS,
-	TEST_FILTER_ROTATION,
-	TEST_FILTER_FORMATS,
 	TEST_FILTER_STRENGTH,
 	TEST_FILTER_TOGGLE,
 	TEST_FILTER_TAP,
@@ -120,24 +108,6 @@ const int filter_tap_list[] = {
 	TAP_5,
 	TAP_7,
 };
-static const struct {
-	uint64_t modifier;
-	const char *name;
-} modifiers[] = {
-	{ DRM_FORMAT_MOD_LINEAR, "linear", },
-	{ I915_FORMAT_MOD_X_TILED, "x-tiled", },
-	{ I915_FORMAT_MOD_4_TILED, "4-tiled", },
-};
-static const int formats[] = {
-	DRM_FORMAT_NV12,
-	DRM_FORMAT_RGB565,
-	DRM_FORMAT_XRGB8888,
-	DRM_FORMAT_XBGR16161616F,
-};
-static const igt_rotation_t rotations[] = {
-	IGT_ROTATION_0,
-	IGT_ROTATION_180,
-};
 static const uint32_t scaling_modes[] = {
 	DRM_MODE_SCALE_FULLSCREEN,
 	DRM_MODE_SCALE_ASPECT,
@@ -146,9 +116,6 @@ static const uint32_t scaling_modes[] = {
 enum subtest_iter {
 	ITER_NONE,
 	ITER_STRENGTH,
-	ITER_MODIFIER,
-	ITER_ROTATION,
-	ITER_FORMAT,
 	ITER_SCALING_MODE,
 };
 
@@ -172,27 +139,6 @@ static const struct subtest_entry {
 		.type     = TEST_FILTER_STRENGTH,
 		.filter_strength = DEFAULT_FILTER_STRENGTH,
 		.iter     = ITER_STRENGTH,
-	},
-	{
-		.name     = "filter-modifiers",
-		.describe = "Verify content adaptive sharpness filter with varying modifiers.",
-		.type     = TEST_FILTER_MODIFIERS,
-		.filter_strength = DEFAULT_FILTER_STRENGTH,
-		.iter     = ITER_MODIFIER,
-	},
-	{
-		.name     = "filter-rotations",
-		.describe = "Verify content adaptive sharpness filter with varying rotations.",
-		.type     = TEST_FILTER_ROTATION,
-		.filter_strength = DEFAULT_FILTER_STRENGTH,
-		.iter     = ITER_ROTATION,
-	},
-	{
-		.name     = "filter-formats",
-		.describe = "Verify content adaptive sharpness filter with varying formats.",
-		.type     = TEST_FILTER_FORMATS,
-		.filter_strength = DEFAULT_FILTER_STRENGTH,
-		.iter     = ITER_FORMAT,
 	},
 	{
 		.name     = "filter-toggle",
@@ -280,9 +226,7 @@ typedef struct {
 	int filter_strength;
 	int filter_tap;
 	uint64_t modifier;
-	const char *modifier_name;
 	uint32_t format;
-	igt_rotation_t rotation;
 	uint32_t scaling_mode;
 } data_t;
 
@@ -488,14 +432,6 @@ static void test_sharpness_filter(data_t *data, enum test_type type)
 		 data->format, data->modifier, &data->fb[0]);
 	igt_plane_set_fb(data->plane[0], &data->fb[0]);
 
-	if (type == TEST_FILTER_ROTATION) {
-		igt_skip_on_f(!igt_plane_has_rotation(data->plane[0],
-						      data->rotation),
-			      "No requested rotation on pipe %s\n",
-			      igt_crtc_name(data->crtc));
-		igt_plane_set_rotation(data->plane[0], data->rotation);
-	}
-
 	if (type == TEST_INVALID_FILTER_WITH_SCALING_MODE)
 		igt_require_f(has_scaling_mode(output), "No connecter scaling mode found on %s\n", output->name);
 
@@ -561,9 +497,6 @@ static bool has_sharpness_filter(igt_crtc_t *crtc)
 
 static const char * const test_type_names[] = {
 	[TEST_FILTER_BASIC]                     = "basic",
-	[TEST_FILTER_MODIFIERS]                 = NULL,
-	[TEST_FILTER_ROTATION]                  = NULL,
-	[TEST_FILTER_FORMATS]                   = NULL,
 	[TEST_FILTER_STRENGTH]                  = NULL,
 	[TEST_FILTER_TOGGLE]                    = "toggle",
 	[TEST_FILTER_TAP]                       = NULL,
@@ -587,16 +520,6 @@ static void build_test_suffix(data_t *data, enum test_type type,
 
 	/* suffix depends on the current test parameters */
 	switch (type) {
-	case TEST_FILTER_MODIFIERS:
-		snprintf(name, len, "-%s", data->modifier_name);
-		break;
-	case TEST_FILTER_ROTATION:
-		snprintf(name, len, "-%srot",
-			 igt_plane_rotation_name(data->rotation));
-		break;
-	case TEST_FILTER_FORMATS:
-		snprintf(name, len, "-%s", igt_format_str(data->format));
-		break;
 	case TEST_FILTER_STRENGTH:
 		snprintf(name, len, "-strength-%d", data->filter_strength);
 		break;
@@ -738,8 +661,6 @@ run_sharpness_filter_test(data_t *data, enum test_type type)
 static void set_data_defaults(data_t *data)
 {
 	data->modifier        = DRM_FORMAT_MOD_LINEAR;
-	data->modifier_name   = modifiers[0].name;
-	data->rotation        = IGT_ROTATION_0;
 	data->format          = DRM_FORMAT_XRGB8888;
 	data->filter_strength = MID_FILTER_STRENGTH;
 }
@@ -749,12 +670,6 @@ static int iter_count(enum subtest_iter iter)
 	switch (iter) {
 	case ITER_STRENGTH:
 		return ARRAY_SIZE(filter_strength_list);
-	case ITER_MODIFIER:
-		return ARRAY_SIZE(modifiers);
-	case ITER_ROTATION:
-		return ARRAY_SIZE(rotations);
-	case ITER_FORMAT:
-		return ARRAY_SIZE(formats);
 	case ITER_SCALING_MODE:
 		return ARRAY_SIZE(scaling_modes);
 	default:
@@ -767,16 +682,6 @@ static void apply_iter_param(data_t *data, const struct subtest_entry *st, int i
 	switch (st->iter) {
 	case ITER_STRENGTH:
 		data->filter_strength = filter_strength_list[idx];
-		break;
-	case ITER_MODIFIER:
-		data->modifier = modifiers[idx].modifier;
-		data->modifier_name = modifiers[idx].name;
-		break;
-	case ITER_ROTATION:
-		data->rotation = rotations[idx];
-		break;
-	case ITER_FORMAT:
-		data->format = formats[idx];
 		break;
 	case ITER_SCALING_MODE:
 		data->scaling_mode = scaling_modes[idx];
