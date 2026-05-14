@@ -37,8 +37,18 @@ int igt_main()
 	igt_subtest("create-perfmon-invalid-counters") {
 		struct drm_v3d_perfmon_create create = {
 			.ncounters = 1,
-			.counters = { V3D_PERFCNT_NUM },
 		};
+		uint32_t total_perfcnt_num;
+
+		total_perfcnt_num = igt_v3d_get_param(fd, DRM_V3D_PARAM_MAX_PERF_COUNTERS);
+		igt_assert(total_perfcnt_num || errno != EINVAL);
+
+		/* Fallback if kernel < v6.11 */
+		if (!total_perfcnt_num)
+			total_perfcnt_num = V3D_PERFCNT_NUM;
+
+		create.counters[0] = total_perfcnt_num;
+
 		do_ioctl_err(fd, DRM_IOCTL_V3D_PERFMON_CREATE, &create, EINVAL);
 	}
 
