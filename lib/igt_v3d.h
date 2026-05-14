@@ -72,6 +72,7 @@ void igt_v3d_free_bo(int fd, struct v3d_bo *bo);
 /* IOCTL wrappers */
 uint32_t igt_v3d_get_bo_offset(int fd, uint32_t handle);
 uint32_t igt_v3d_get_param(int fd, enum drm_v3d_param param);
+uint32_t igt_v3d_get_version(int fd);
 void *igt_v3d_mmap_bo(int fd, uint32_t handle, uint32_t size, unsigned prot);
 
 void igt_v3d_bo_mmap(int fd, struct v3d_bo *bo);

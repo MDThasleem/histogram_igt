@@ -114,6 +114,18 @@ igt_v3d_get_param(int fd, enum drm_v3d_param param)
 	return get.value;
 }
 
+uint32_t
+igt_v3d_get_version(int fd)
+{
+	uint32_t ident0 = igt_v3d_get_param(fd, DRM_V3D_PARAM_V3D_CORE0_IDENT0);
+	uint32_t ident1 = igt_v3d_get_param(fd, DRM_V3D_PARAM_V3D_CORE0_IDENT1);
+
+	uint32_t major = (ident0 >> 24) & 0xff;
+	uint32_t minor = (ident1 >> 0) & 0xf;
+
+	return major * 10 + minor;
+}
+
 void *
 igt_v3d_mmap_bo(int fd, uint32_t handle, uint32_t size, unsigned prot)
 {
