@@ -551,6 +551,7 @@ amdgpu_write_linear(amdgpu_device_handle device, amdgpu_context_handle context_h
 	const int pm4_dw = 256;
 	struct amdgpu_ring_context *ring_context;
 	int write_length, expect_failure;
+	int oversize_dw;
 	int r;
 
 	ring_context = calloc(1, sizeof(*ring_context));
@@ -570,7 +571,9 @@ amdgpu_write_linear(amdgpu_device_handle device, amdgpu_context_handle context_h
 	}
 	/* setup parameters */
 	ring_context->write_length =  write_length;
-	ring_context->pm4 = calloc(pm4_dw, sizeof(*ring_context->pm4));
+	/* Allocate enough for OVERSIZE case: write_length*2 data + header DWORDs */
+	oversize_dw = ring_context->write_length * 2 + 16;
+	ring_context->pm4 = calloc(oversize_dw > pm4_dw ? oversize_dw : pm4_dw, sizeof(*ring_context->pm4));
 	ring_context->pm4_size = pm4_dw;
 	ring_context->res_cnt = 1;
 	ring_context->ring_id = job->ring_id;
