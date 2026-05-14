@@ -7,18 +7,18 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "igt_core.h"
 #include "igt_debugfs.h"
 #include "igt_sysfs.h"
 #include "intel_wa.h"
 #include "xe/xe_query.h"
 
-static int debugfs_file_has_wa(int drm_fd, int debugfs_fd,
+static bool debugfs_file_has_wa(int drm_fd, int debugfs_fd,
 			       const char *debugfs_name, const char *wa)
 {
 	char *debugfs_dump;
 
-	if (!igt_debugfs_exists(drm_fd, debugfs_name, O_RDONLY))
-		return -1;
+	igt_assert(igt_debugfs_exists(drm_fd, debugfs_name, O_RDONLY));
 
 	debugfs_dump = igt_sysfs_get(debugfs_fd, debugfs_name);
 	if (debugfs_dump) {
@@ -27,10 +27,10 @@ static int debugfs_file_has_wa(int drm_fd, int debugfs_fd,
 		free(debugfs_dump);
 
 		if (has_wa)
-			return 1;
+			return true;
 	}
 
-	return 0;
+	return false;
 }
 
 /**
@@ -38,18 +38,17 @@ static int debugfs_file_has_wa(int drm_fd, int debugfs_fd,
  * @drm_fd:	A drm file descriptor
  * @check_wa:	Workaround to be checked
  *
- * Returns:	0 if no WA, 1 if WA present, -1 on error
+ * Returns:	true if WA present, false otherwise
  */
-int igt_has_intel_wa(int drm_fd, const char *check_wa)
+bool igt_has_intel_wa(int drm_fd, const char *check_wa)
 {
-	int ret = 0;
+	bool ret = false;
 	int debugfs_fd;
 	unsigned int xe;
 	char name[256];
 
 	debugfs_fd = igt_debugfs_dir(drm_fd);
-	if (debugfs_fd == -1)
-		return -1;
+	igt_assert(debugfs_fd >= 0);
 
 	xe_for_each_gt(drm_fd, xe) {
 		sprintf(name, "gt%d/workarounds", xe);
