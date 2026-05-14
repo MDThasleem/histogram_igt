@@ -668,7 +668,7 @@ run_monitor_thread(amdgpu_device_handle device, struct shmbuf *sh_mem,
 						set_reset_state(sh_mem, true, QUEUE_RESET_SET_BIT);
 						break;
 					} else {
-						if (error_code != -ECANCELED && error_code == -ETIME) {
+						if (error_code != -ECANCELED && error_code != -ETIME) {
 							set_reset_state(sh_mem, true, GPU_RESET_END_FAILURE_SET_BIT);
 							break;
 						} else {

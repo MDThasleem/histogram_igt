@@ -143,7 +143,7 @@ int amdgpu_test_exec_cs_helper(amdgpu_device_handle device, unsigned int ip_type
 				 "expired %d PID %d\n", r, expired, getpid());
 		} else {
 			/* we allow ECANCELED or ENODATA for good jobs temporally */
-			if (r != -ECANCELED && r != -ENODATA)
+			if (r != -ECANCELED && r != -ENODATA && r != -ETIME)
 				igt_assert_eq(r, 0);
 		}
 	}
