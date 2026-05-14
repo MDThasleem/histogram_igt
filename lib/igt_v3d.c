@@ -163,17 +163,19 @@ uint32_t igt_v3d_perfmon_create(int fd, uint32_t ncounters, uint8_t *counters)
 	return create.id;
 }
 
-void igt_v3d_perfmon_get_values(int fd, uint32_t id)
+void igt_v3d_perfmon_get_values(int fd, uint32_t id, uint64_t *values)
 {
-	uint64_t *values = calloc(DRM_V3D_MAX_PERF_COUNTERS, sizeof(*values));
+	uint64_t *allocated_values = values ?:
+				     calloc(DRM_V3D_MAX_PERF_COUNTERS, sizeof(*allocated_values));
 	struct drm_v3d_perfmon_get_values get = {
 		.id = id,
-		.values_ptr = to_user_pointer(values)
+		.values_ptr = to_user_pointer(allocated_values),
 	};
 
 	do_ioctl(fd, DRM_IOCTL_V3D_PERFMON_GET_VALUES, &get);
 
-	free(values);
+	if (!values)
+		free(allocated_values);
 }
 
 void igt_v3d_perfmon_destroy(int fd, uint32_t id)

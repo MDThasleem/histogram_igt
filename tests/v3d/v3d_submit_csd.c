@@ -351,11 +351,11 @@ int igt_main()
 		do_ioctl(fd, DRM_IOCTL_V3D_SUBMIT_CSD, job->submit);
 		igt_assert(syncobj_wait(fd, &job->submit->out_sync, 1,
 					INT64_MAX, 0, NULL));
-		igt_v3d_perfmon_get_values(fd, job->submit->perfmon_id);
+		igt_v3d_perfmon_get_values(fd, job->submit->perfmon_id, NULL);
 
 		igt_v3d_free_csd_job(fd, job);
 
-		igt_v3d_perfmon_get_values(fd, id);
+		igt_v3d_perfmon_get_values(fd, id, NULL);
 		igt_v3d_perfmon_destroy(fd, id);
 	}
 

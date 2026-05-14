@@ -75,7 +75,7 @@ int igt_main()
 		igt_v3d_perfmon_destroy(fd, id1);
 
 		/* Make sure that the second perfmon it is still acessible */
-		igt_v3d_perfmon_get_values(fd, id2);
+		igt_v3d_perfmon_get_values(fd, id2, NULL);
 
 		igt_v3d_perfmon_destroy(fd, id2);
 	}
@@ -120,7 +120,7 @@ int igt_main()
 				       V3D_PERFCNT_CLE_ACTIVE };
 		uint32_t id = igt_v3d_perfmon_create(fd, 3, counters);
 
-		igt_v3d_perfmon_get_values(fd, id);
+		igt_v3d_perfmon_get_values(fd, id, NULL);
 		igt_v3d_perfmon_destroy(fd, id);
 	}
 
@@ -143,7 +143,7 @@ int igt_main()
 			.id = id,
 		};
 
-		igt_v3d_perfmon_get_values(fd, id);
+		igt_v3d_perfmon_get_values(fd, id, NULL);
 
 		igt_v3d_perfmon_destroy(fd, id);
 
