@@ -345,9 +345,9 @@ static void do_single_test(data_t *data, int x, int y, bool hw_test,
 		igt_display_commit(display);
 
 		/* Wait for two more vblanks since cursor updates may not
-		 * synchronized to the same frame on AMD HW
+		 * be synchronized to the same frame on AMD and MediaTek HW
 		 */
-		if (is_amdgpu_device(data->drm_fd))
+		if (is_amdgpu_device(data->drm_fd) || is_mtk_device(data->drm_fd))
 			igt_wait_for_vblank_count(data->crtc,
 						  data->vblank_wait_count);
 
@@ -1300,10 +1300,12 @@ int igt_main_args("e", NULL, help_str, opt_handler, NULL)
 		igt_require_pipe_crc(data.drm_fd);
 
 		/* Wait for two more vblanks since cursor updates may not
-		 * synchronized to the same frame on AMD HW
+		 * be synchronized to the same frame on AMD and MediaTek HW
 		 */
 		data.vblank_wait_count =
-			(is_msm_device(data.drm_fd) || is_amdgpu_device(data.drm_fd)) ? 2 : 1;
+			(is_msm_device(data.drm_fd) ||
+			 is_amdgpu_device(data.drm_fd) ||
+			 is_mtk_device(data.drm_fd)) ? 2 : 1;
 	}
 
 	data.cursor_max_w = cursor_width;
