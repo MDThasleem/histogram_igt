@@ -85,6 +85,15 @@ struct subm_set {
 	pthread_barrier_t barrier;
 };
 
+static uint64_t current_timestamp_ns(void)
+{
+	struct timespec tv;
+
+	igt_gettime(&tv);
+
+	return tv.tv_sec * (uint64_t)NSEC_PER_SEC + (uint64_t)tv.tv_nsec;
+}
+
 static void subm_init(struct subm *s, int fd, int vf_num, uint64_t addr,
 		      struct drm_xe_engine_class_instance hwe,
 		      unsigned int inflight)
@@ -164,8 +173,6 @@ static void subm_wait_slot(struct subm *s, unsigned int slot, uint64_t abs_timeo
 
 static void subm_exec_slot(struct subm *s, unsigned int slot)
 {
-	struct timespec tv;
-
 	syncobj_reset(s->fd, &s->done_fence[slot], 1);
 	memset(&s->sync[0], 0, sizeof(s->sync));
 	s->sync[0].type = DRM_XE_SYNC_TYPE_SYNCOBJ;
@@ -174,8 +181,7 @@ static void subm_exec_slot(struct subm *s, unsigned int slot)
 	s->exec.num_syncs = 1;
 	s->exec.syncs = to_user_pointer(&s->sync[0]);
 	s->exec.address = s->addr[slot];
-	igt_gettime(&tv);
-	s->submit_ts[slot] = (uint64_t)tv.tv_sec * (uint64_t)NSEC_PER_SEC + (uint64_t)tv.tv_nsec;
+	s->submit_ts[slot] = current_timestamp_ns();
 	xe_exec(s->fd, &s->exec);
 }
 
@@ -200,12 +206,9 @@ static void subm_exec_loop(struct subm *s, struct subm_stats *stats,
 {
 	const unsigned int inflight = s->slots;
 	unsigned int submitted = 0;
-	struct timespec tv;
 	unsigned int i;
 
-	igt_gettime(&tv);
-	stats->start_timestamp =
-		tv.tv_sec * (uint64_t)NSEC_PER_SEC + tv.tv_nsec;
+	stats->start_timestamp = current_timestamp_ns();
 	igt_debug("[%s] start_timestamp: %f\n", s->id, stats->start_timestamp * 1e-9);
 
 	/* Prefill */
@@ -222,9 +225,7 @@ static void subm_exec_loop(struct subm *s, struct subm_stats *stats,
 		unsigned int slot = i % inflight;
 
 		subm_wait_slot(s, slot, INT64_MAX);
-		igt_gettime(&tv);
-		stats->complete_ts[i] = (uint64_t)tv.tv_sec * (uint64_t)NSEC_PER_SEC +
-					(uint64_t)tv.tv_nsec;
+		stats->complete_ts[i] = current_timestamp_ns();
 		igt_stats_push(&stats->samples, stats->complete_ts[i] - s->submit_ts[slot]);
 
 		if (!subm_is_work_complete(s, slot)) {
@@ -246,8 +247,7 @@ static void subm_exec_loop(struct subm *s, struct subm_stats *stats,
 		}
 	}
 
-	igt_gettime(&tv);
-	stats->end_timestamp = tv.tv_sec * (uint64_t)NSEC_PER_SEC + tv.tv_nsec;
+	stats->end_timestamp = current_timestamp_ns();
 	igt_debug("[%s] end_timestamp: %f\n", s->id, stats->end_timestamp * 1e-9);
 }
 
