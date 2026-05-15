@@ -107,15 +107,10 @@
 
 IGT_TEST_DESCRIPTION("Test content protection (HDCP)");
 
-struct hdcp_test_fbs {
-	struct igt_fb red;
-	struct igt_fb green;
-};
-
 struct data {
 	int drm_fd;
 	igt_display_t display;
-	struct hdcp_test_fbs fbs[IGT_MAX_PIPES];
+	struct igt_fb red, green;
 	unsigned int cp_tests;
 	struct udev_monitor *uevent_monitor;
 	bool is_force_hdcp14;
@@ -996,49 +991,31 @@ static void test_content_protection_cleanup(void)
 		igt_info("CP Prop being UNDESIRED on %s\n", output->name);
 		test_cp_disable(output, display->is_atomic ? COMMIT_ATOMIC : COMMIT_LEGACY);
 	}
+
+	igt_remove_fb(data.drm_fd, &data.red);
+	igt_remove_fb(data.drm_fd, &data.green);
 }
 
 static void create_fbs(void)
 {
+	uint16_t width = 0, height = 0;
 	drmModeModeInfo *mode;
 	igt_output_t *output;
-	igt_crtc_t *crtc;
 
-	/* Create framebuffers for each connected output's pipe */
 	for_each_connected_output(&data.display, output) {
 		mode = igt_output_get_mode(output);
 		igt_assert(mode);
 
-		/* Find a valid crtc for this output */
-		for_each_crtc(&data.display, crtc) {
-			if (!igt_crtc_connector_valid(crtc, output))
-				continue;
-
-			/* Skip if already created for this crtc */
-			if (data.fbs[crtc->crtc_index].red.fb_id)
-				continue;
-
-			igt_create_color_fb(data.drm_fd, mode->hdisplay, mode->vdisplay,
-					    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
-					    1.f, 0.f, 0.f, &data.fbs[crtc->crtc_index].red);
-			igt_create_color_fb(data.drm_fd, mode->hdisplay, mode->vdisplay,
-					    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
-					    0.f, 1.f, 0.f, &data.fbs[crtc->crtc_index].green);
-			break;
-		}
+		width = max(width, mode->hdisplay);
+		height = max(height, mode->vdisplay);
 	}
-}
 
-static void remove_fbs(void)
-{
-	igt_crtc_t *crtc;
-
-	for_each_crtc(&data.display, crtc) {
-		if (data.fbs[crtc->crtc_index].red.fb_id)
-			igt_remove_fb(data.drm_fd, &data.fbs[crtc->crtc_index].red);
-		if (data.fbs[crtc->crtc_index].green.fb_id)
-			igt_remove_fb(data.drm_fd, &data.fbs[crtc->crtc_index].green);
-	}
+	igt_create_color_fb(data.drm_fd, width, height,
+			    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
+			    1.f, 0.f, 0.f, &data.red);
+	igt_create_color_fb(data.drm_fd, width, height,
+			    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
+			    0.f, 1.f, 0.f, &data.green);
 }
 
 static const struct {
@@ -1264,7 +1241,6 @@ int igt_main()
 
 	igt_fixture() {
 		test_content_protection_cleanup();
-		remove_fbs();
 		igt_display_fini(&data.display);
 		drm_close_driver(data.drm_fd);
 	}
