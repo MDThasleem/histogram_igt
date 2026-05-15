@@ -322,9 +322,15 @@ static void do_single_test(data_t *data, int x, int y, bool hw_test,
 							DRM_MODE_DPMS_ON);
 			}
 
-			if (data->flags & TEST_SUSPEND)
-				igt_system_suspend_autoresume(SUSPEND_STATE_MEM,
-							      SUSPEND_TEST_NONE);
+			if (data->flags & TEST_SUSPEND) {
+				enum igt_suspend_test test = SUSPEND_TEST_NONE;
+
+				/* rtcwake cmd is not supported on MTK devices */
+				if (is_mtk_device(data->drm_fd))
+					test = SUSPEND_TEST_DEVICES;
+
+				igt_system_suspend_autoresume(SUSPEND_STATE_MEM, test);
+			}
 
 			igt_pipe_crc_start(pipe_crc);
 			igt_pipe_crc_get_current(data->drm_fd, pipe_crc, &crc_after);
