@@ -945,33 +945,9 @@ test_content_protection_mst(int content_type)
 		bool found = igt_override_all_active_output_modes_to_fit_bw(display);
 		igt_require_f(found, "No valid mode combo found for MST modeset\n");
 
-		/* Detach planes before removing framebuffers */
-		for (count = 0; count < valid_outputs; count++) {
-			crtc = igt_output_get_driving_crtc(hdcp_mst_output[count]);
-			prepare_modeset_on_mst_output(hdcp_mst_output[count], crtc, false);
-		}
-		igt_display_commit2(display, COMMIT_ATOMIC);
+		for (count = 0; count < valid_outputs; count++)
+			prepare_modeset_on_mst_output(hdcp_mst_output[count], false);
 
-		/* Need to re-prepare after mode override */
-		for (count = 0; count < valid_outputs; count++) {
-			drmModeModeInfo *mode;
-
-			crtc = igt_output_get_driving_crtc(hdcp_mst_output[count]);
-
-			igt_remove_fb(data.drm_fd, &data.fbs[crtc->crtc_index].red);
-			igt_remove_fb(data.drm_fd, &data.fbs[crtc->crtc_index].green);
-
-			mode = igt_output_get_mode(hdcp_mst_output[count]);
-
-			igt_create_color_fb(data.drm_fd, mode->hdisplay, mode->vdisplay,
-					    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
-					    1.f, 0.f, 0.f, &data.fbs[crtc->crtc_index].red);
-			igt_create_color_fb(data.drm_fd, mode->hdisplay, mode->vdisplay,
-					    DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR,
-					    0.f, 1.f, 0.f, &data.fbs[crtc->crtc_index].green);
-
-			prepare_modeset_on_mst_output(hdcp_mst_output[count], crtc, false);
-		}
 		ret = igt_display_try_commit2(display, COMMIT_ATOMIC);
 		igt_require_f(ret == 0, "Commit failure during MST modeset\n");
 	}
@@ -997,9 +973,8 @@ test_content_protection_mst(int content_type)
 	/*
 	 * Verify if CP is still enabled on other outputs by disabling CP on the first output.
 	 */
-	crtc = igt_output_get_driving_crtc(hdcp_mst_output[0]);
 	igt_debug("CP Prop being UNDESIRED on %s\n", hdcp_mst_output[0]->name);
-	test_cp_disable(hdcp_mst_output[0], crtc, COMMIT_ATOMIC);
+	test_cp_disable(hdcp_mst_output[0], COMMIT_ATOMIC);
 
 	/* CP is expected to be still enabled on other outputs*/
 	for (i = 1; i < valid_outputs; i++) {
@@ -1010,19 +985,6 @@ test_content_protection_mst(int content_type)
 
 	if (data.cp_tests & CP_LIC)
 		test_cp_lic_on_mst(hdcp_mst_output, valid_outputs, 1);
-
-	/* Detach planes before removing framebuffers */
-	for (count = 0; count < valid_outputs; count++) {
-		crtc = igt_output_get_driving_crtc(hdcp_mst_output[count]);
-		prepare_modeset_on_mst_output(hdcp_mst_output[count], crtc, false);
-	}
-	igt_display_commit2(display, COMMIT_ATOMIC);
-
-	for (count = 0; count < valid_outputs; count++) {
-		crtc = igt_output_get_driving_crtc(hdcp_mst_output[count]);
-		igt_remove_fb(data.drm_fd, &data.fbs[crtc->crtc_index].red);
-		igt_remove_fb(data.drm_fd, &data.fbs[crtc->crtc_index].green);
-	}
 }
 
 
