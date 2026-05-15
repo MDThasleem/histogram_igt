@@ -370,6 +370,7 @@ static void init_vf_ids(uint8_t *array, size_t n,
 struct vf_sched_params {
 	uint32_t exec_quantum_ms;
 	uint32_t preempt_timeout_us;
+	enum xe_sriov_sched_priority priority;
 };
 
 static int __set_vfs_scheduling_params(int pf_fd, int num_vfs,
@@ -387,6 +388,12 @@ static int __set_vfs_scheduling_params(int pf_fd, int num_vfs,
 	if (igt_warn_on_f(ret,
 			  "Failed to bulk set preempt timeout=%u: %d\n",
 			  p->preempt_timeout_us, ret))
+		return ret;
+
+	ret = __xe_sriov_admin_bulk_set_sched_priority(pf_fd, p->priority);
+	if (igt_warn_on_f(ret,
+			  "Failed to bulk set sched priority=%d: %d\n",
+			  p->priority, ret))
 		return ret;
 
 	return ret;
@@ -607,10 +614,12 @@ static unsigned int select_inflight_k(unsigned int duration_ms,
 static struct vf_sched_params prepare_vf_sched_params(int num_threads,
 						      int min_num_repeats,
 						      int job_timeout_ms,
-						      const struct subm_opts *opts)
+						      const struct subm_opts *opts,
+						      enum xe_sriov_sched_priority priority)
 {
 	struct vf_sched_params params = { MIN_EXEC_QUANTUM_MS,
-					  derive_preempt_timeout_us(MIN_EXEC_QUANTUM_MS) };
+					  derive_preempt_timeout_us(MIN_EXEC_QUANTUM_MS),
+						  priority };
 
 	if (opts->exec_quantum_ms || opts->preempt_timeout_us) {
 		if (opts->exec_quantum_ms)
@@ -638,12 +647,13 @@ static struct vf_sched_params prepare_vf_sched_params(int num_threads,
 }
 
 static struct job_sched_params
-prepare_job_sched_params(int num_threads, int job_timeout_ms, const struct subm_opts *opts)
+prepare_job_sched_params(int num_threads, int job_timeout_ms, const struct subm_opts *opts,
+			 enum xe_sriov_sched_priority priority)
 {
 	struct job_sched_params params = { };
 
 	params.sched_params = prepare_vf_sched_params(num_threads, MIN_NUM_REPEATS,
-						      job_timeout_ms, opts);
+						      job_timeout_ms, opts, priority);
 	params.duration_ms = calculate_job_duration_ms(params.sched_params.exec_quantum_ms);
 	params.num_repeats = adjust_num_repeats(params.duration_ms, num_threads);
 
@@ -663,13 +673,15 @@ static void throughput_ratio(int pf_fd, int num_vfs, const struct subm_opts *opt
 	uint32_t job_timeout_ms = sysfs_get_job_timeout_ms(pf_fd, &xe_engine(pf_fd, 0)->instance);
 	struct job_sched_params job_sched_params = prepare_job_sched_params(num_vfs + 1,
 									    job_timeout_ms,
-									    opts);
+									    opts,
+								    XE_SRIOV_SCHED_PRIORITY_LOW);
 	const unsigned int k = select_inflight_k(job_sched_params.duration_ms,
 						 opts->inflight, false);
 
-	igt_info("eq=%ums pt=%uus duration=%ums repeats=%d inflight=%u num_vfs=%d job_timeout=%ums\n",
+	igt_info("eq=%ums pt=%uus prio=%s duration=%ums repeats=%d inflight=%u num_vfs=%d job_timeout=%ums\n",
 		 job_sched_params.sched_params.exec_quantum_ms,
 		 job_sched_params.sched_params.preempt_timeout_us,
+		 xe_sriov_sched_priority_to_string(job_sched_params.sched_params.priority),
 		 job_sched_params.duration_ms, job_sched_params.num_repeats,
 		 k, num_vfs + 1, job_timeout_ms);
 
@@ -759,16 +771,19 @@ static void nonpreempt_engine_resets(int pf_fd, int num_vfs,
 {
 	struct subm_set set_ = {}, *set = &set_;
 	uint32_t job_timeout_ms = sysfs_get_job_timeout_ms(pf_fd, &xe_engine(pf_fd, 0)->instance);
+	enum xe_sriov_sched_priority priority = XE_SRIOV_SCHED_PRIORITY_LOW;
 	struct vf_sched_params vf_sched_params = prepare_vf_sched_params(num_vfs, 1,
-									 job_timeout_ms, opts);
+									 job_timeout_ms, opts,
+									 priority);
 	uint64_t duration_ms = 2 * vf_sched_params.exec_quantum_ms +
 			       vf_sched_params.preempt_timeout_us / USEC_PER_MSEC;
 	int preemptible_end = 1;
 	uint8_t vf_ids[num_vfs + 1 /*PF*/];
 	const unsigned int k = select_inflight_k(duration_ms, opts->inflight, true);
 
-	igt_info("eq=%ums pt=%uus duration=%" PRIu64 "ms inflight=%u num_vfs=%d job_timeout=%ums\n",
+	igt_info("eq=%ums pt=%uus prio=%s duration=%" PRIu64 "ms inflight=%u num_vfs=%d job_timeout=%ums\n",
 		 vf_sched_params.exec_quantum_ms, vf_sched_params.preempt_timeout_us,
+		 xe_sriov_sched_priority_to_string(vf_sched_params.priority),
 		 duration_ms, k, num_vfs, job_timeout_ms);
 
 	init_vf_ids(vf_ids, ARRAY_SIZE(vf_ids),
