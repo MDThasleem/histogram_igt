@@ -99,8 +99,7 @@ static int blt_src_copy(int fd,
 		clock_gettime(CLOCK_MONOTONIC, &start);
 		do {
 			if (blt->driver == INTEL_DRIVER_XE)
-				intel_ctx_xe_exec(ctx, ahnd,
-						  CANONICAL(bb_offset));
+				intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 			count++;
 			clock_gettime(CLOCK_MONOTONIC, &end);
 			if (elapsed(&start, &end) > (100 / 1000.))
@@ -109,13 +108,12 @@ static int blt_src_copy(int fd,
 	} else if (loop_count) {
 		for (int loop = 0; loop < count; loop++) {
 			if (blt->driver == INTEL_DRIVER_XE)
-				intel_ctx_xe_exec(ctx, ahnd,
-						  CANONICAL(bb_offset));
+				intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 		}
 
 	} else {
 		if (blt->driver == INTEL_DRIVER_XE)
-			intel_ctx_xe_exec(ctx, ahnd, CANONICAL(bb_offset));
+			intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 	}
 	return ret;
 }

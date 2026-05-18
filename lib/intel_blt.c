@@ -768,6 +768,9 @@ static void fill_data(struct gen12_block_copy_data *data,
 	data->dw03.dst_x2 = blt->dst.x2;
 	data->dw03.dst_y2 = blt->dst.y2;
 
+	if (blt->driver == INTEL_DRIVER_XE)
+		dst_offset = xe_canonical_va(blt->fd, dst_offset);
+
 	data->dw04.dst_address_lo = dst_offset;
 	data->dw05.dst_address_hi = dst_offset >> 32;
 
@@ -792,6 +795,9 @@ static void fill_data(struct gen12_block_copy_data *data,
 		if (blt->src.compression)
 			data->dw08.src_ctrl_surface_type = blt->src.compression_type;
 	}
+
+	if (blt->driver == INTEL_DRIVER_XE)
+		src_offset =  xe_canonical_va(blt->fd, src_offset);
 
 	data->dw09.src_address_lo = src_offset;
 	data->dw10.src_address_hi = src_offset >> 32;
@@ -1091,7 +1097,7 @@ int blt_block_copy(int fd,
 	emit_blt_block_copy(fd, ahnd, blt, ext, 0, true);
 
 	if (blt->driver == INTEL_DRIVER_XE) {
-		intel_ctx_xe_exec(ctx, ahnd, CANONICAL(bb_offset));
+		intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 	} else {
 		obj[0].offset = CANONICAL(dst_offset);
 		obj[1].offset = CANONICAL(src_offset);
@@ -1456,7 +1462,7 @@ int blt_ctrl_surf_copy(int fd,
 	emit_blt_ctrl_surf_copy(fd, ahnd, surf, 0, true);
 
 	if (surf->driver == INTEL_DRIVER_XE) {
-		intel_ctx_xe_exec(ctx, ahnd, CANONICAL(bb_offset));
+		intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 	} else {
 		obj[0].offset = CANONICAL(dst_offset);
 		obj[1].offset = CANONICAL(src_offset);
@@ -1827,7 +1833,7 @@ int blt_fast_copy(int fd,
 	emit_blt_fast_copy(fd, ahnd, blt, 0, true);
 
 	if (blt->driver == INTEL_DRIVER_XE) {
-		intel_ctx_xe_exec(ctx, ahnd, CANONICAL(bb_offset));
+		intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 	} else {
 		obj[0].offset = CANONICAL(dst_offset);
 		obj[1].offset = CANONICAL(src_offset);
@@ -2180,7 +2186,7 @@ int blt_mem_copy(int fd, const intel_ctx_t *ctx,
 	emit_blt_mem_copy(fd, ahnd, mem, 0, true);
 
 	if (mem->driver == INTEL_DRIVER_XE) {
-		intel_ctx_xe_exec(ctx, ahnd, CANONICAL(bb_offset));
+		intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 	} else {
 		obj[0].offset = CANONICAL(dst_offset);
 		obj[1].offset = CANONICAL(src_offset);
@@ -2287,7 +2293,7 @@ int blt_mem_set(int fd, const intel_ctx_t *ctx,
 	emit_blt_mem_set(fd, ahnd, mem, fill_data);
 
 	if (mem->driver == INTEL_DRIVER_XE) {
-		intel_ctx_xe_exec(ctx, ahnd, CANONICAL(bb_offset));
+		intel_ctx_xe_exec(ctx, ahnd, bb_offset);
 	} else {
 		obj[0].offset = CANONICAL(dst_offset);
 		obj[1].offset = CANONICAL(bb_offset);

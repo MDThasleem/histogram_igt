@@ -11,6 +11,7 @@
 #include "intel_ctx.h"
 #include "ioctl_wrappers.h"
 #include "xe/xe_ioctl.h"
+#include "xe/xe_util.h"
 
 /**
  * SECTION:intel_ctx
@@ -430,7 +431,7 @@ int __intel_ctx_xe_exec(const intel_ctx_t *ctx, uint64_t ahnd, uint64_t bb_offse
 		.exec_queue_id = ctx->exec_queue,
 		.syncs = (uintptr_t)syncs,
 		.num_syncs = 2,
-		.address = bb_offset,
+		.address = xe_canonical_va(ctx->fd, bb_offset),
 		.num_batch_buffer = 1,
 	};
 	uint32_t sync_in = ctx->sync_in;
