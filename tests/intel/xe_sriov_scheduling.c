@@ -531,7 +531,7 @@ struct job_sched_params {
 	struct vf_sched_params sched_params;
 };
 
-static uint32_t sysfs_get_job_timeout_ms(int fd, struct drm_xe_engine_class_instance *eci)
+static uint32_t sysfs_get_job_timeout_ms(int fd, const struct drm_xe_engine_class_instance *eci)
 {
 	int engine_dir;
 	uint32_t ret;
