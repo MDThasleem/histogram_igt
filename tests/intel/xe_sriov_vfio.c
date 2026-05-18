@@ -30,7 +30,7 @@
  * Description: Bind VF to xe-vfio-pci and perform minimal VFIO group open and status ioctl.
  *
  * SUBTEST: region-info
- * Description: Bind VF to xe-vfio-pci, open VFIO device and query VFIO region info (BAR sizes).
+ * Description: Bind VF to xe-vfio-pci, open VFIO device and query BAR regions info.
  */
 
 IGT_TEST_DESCRIPTION("Xe SR-IOV VFIO tests (xe-vfio-pci)");
@@ -254,7 +254,10 @@ static void vfio_dump_region_info(int device_fd)
 	igt_info("VFIO device: flags=0x%x num_regions=%u num_irqs=%u\n",
 		 dinfo.flags, dinfo.num_regions, dinfo.num_irqs);
 
-	for (uint32_t i = 0; i < dinfo.num_regions; i++) {
+	igt_assert(dinfo.num_regions >= VFIO_PCI_NUM_REGIONS);
+
+	/* Query BAR regions only */
+	for (uint32_t i = 0; i <= VFIO_PCI_BAR5_REGION_INDEX; i++) {
 		struct vfio_region_info rinfo = {
 			.argsz = sizeof(rinfo),
 			.index = i,
