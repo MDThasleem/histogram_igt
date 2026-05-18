@@ -341,6 +341,9 @@ static void restore_xe_vfio_module(void)
 
 int igt_main()
 {
+	struct vfio_dev_fds fds = { .container_fd = -1, .group_fd = -1, .device_fd = -1,
+				    .group_id = NULL };
+
 	igt_fixture() {
 		xe_vfio_loaded_initially = igt_kmod_is_loaded(XE_VFIO_PCI_MOD);
 	}
@@ -404,7 +407,6 @@ int igt_main()
 	igt_describe("Bind VF to xe-vfio-pci and query VFIO region info (BAR sizes). ");
 	igt_subtest("region-info") {
 		unsigned int vf_num = 1;
-		struct vfio_dev_fds fds;
 		char *slot = NULL;
 
 		igt_skip_on_f(igt_kmod_load(XE_VFIO_PCI_MOD, NULL),
@@ -432,6 +434,7 @@ int igt_main()
 	}
 
 	igt_fixture() {
+		vfio_close_device(&fds);
 		cleanup_pf();
 		restore_xe_vfio_module();
 	}
