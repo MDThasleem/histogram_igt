@@ -454,6 +454,8 @@ static void test_static_swap(data_t *data, igt_crtc_t *crtc,
 	igt_display_commit_atomic(display, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
 	igt_assert_output_bpc_equal(crtc,
 				    data->output, 10);
+	igt_debug_interactive_mode_check("smpte2084",
+					 "HDR pattern displayed with SMPTE ST 2084 metadata");
 
 	igt_pipe_crc_collect_crc(data->pipe_crc, &ref_crc);
 
@@ -483,6 +485,8 @@ static void test_static_swap(data_t *data, igt_crtc_t *crtc,
 		igt_display_commit_atomic(display, 0, NULL);
 	else
 		igt_display_commit_atomic(display, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+	igt_debug_interactive_mode_check("traditional-sdr",
+					 "SDR pattern displayed with traditional SDR metadata");
 
 	igt_pipe_crc_collect_crc(data->pipe_crc, &new_crc);
 
