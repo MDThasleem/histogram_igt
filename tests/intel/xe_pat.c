@@ -270,7 +270,7 @@ static void pat_sw_hw_compare(int fd, enum pat_test_opts opts)
 		if (opts == PAT_RESET_GT)
 			xe_force_gt_reset_sync(fd, gt);
 		else if (opts == PAT_SUSPEND)
-			igt_system_suspend_autoresume(SUSPEND_STATE_STANDBY, SUSPEND_TEST_NONE);
+			igt_system_suspend_autoresume(SUSPEND_STATE_MEM, SUSPEND_TEST_NONE);
 
 		hw_entries = xe_get_pat_hw_config(fd, &pat_hw_config, gt);
 		sw_entries = xe_get_pat_sw_config(fd, &pat_sw_config, gt);
