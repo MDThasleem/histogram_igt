@@ -571,15 +571,32 @@ static void test_hdr(data_t *data, uint32_t flags)
 							      "non-internal panel.\n",
 							      igt_output_name(output));
 
-					/* Signal HDR requirement via metadata */
+					/* Signal HDR requirement via metadata.
+					 * A framebuffer must be present for the driver to accept
+					 * a metadata commit. Use TEST_ONLY so hardware state is
+					 * unchanged.
+					 */
+					igt_create_fb(data->fd,
+						      data->w, data->h,
+						      hdr_test_formats[i],
+						      DRM_FORMAT_MOD_LINEAR,
+						      &data->afb);
+					igt_plane_set_fb(data->primary, &data->afb);
+					igt_plane_set_size(data->primary, data->w, data->h);
+					igt_output_set_prop_value(data->output, IGT_CONNECTOR_MAX_BPC, 10);
 					igt_hdr_fill_st2084(&hdr);
 					igt_hdr_set_metadata(data->output, &hdr);
-					igt_require_f(!igt_display_try_commit2(display,
-									       display->is_atomic ?
-									       COMMIT_ATOMIC :
-									       COMMIT_LEGACY),
+					igt_require_f(!igt_display_try_commit_atomic(display,
+										     DRM_MODE_ATOMIC_TEST_ONLY |
+										     DRM_MODE_ATOMIC_ALLOW_MODESET,
+										     NULL),
 						      "%s: Couldn't set HDR metadata\n",
 						      igt_output_name(output));
+
+					/* Reset IGT display state; hardware was not changed. */
+					igt_hdr_set_metadata(data->output, NULL);
+					igt_plane_set_fb(data->primary, NULL);
+					igt_remove_fb(data->fd, &data->afb);
 
 					igt_require_f(!is_intel_device(data->fd) ||
 						      igt_max_bpc_constraint(display, crtc, output, 10),
@@ -590,10 +607,6 @@ static void test_hdr(data_t *data, uint32_t flags)
 						flags |= TEST_NEEDS_DSC;
 					else
 						flags &= ~TEST_NEEDS_DSC;
-
-					igt_hdr_set_metadata(data->output, NULL);
-					igt_display_commit2(display, display->is_atomic ?
-							    COMMIT_ATOMIC : COMMIT_LEGACY);
 
 					if (flags & (TEST_NONE | TEST_DPMS | TEST_SUSPEND |
 						     TEST_INVALID_HDR | TEST_BRIGHTNESS))
