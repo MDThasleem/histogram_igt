@@ -178,7 +178,7 @@ static void update_display(data_t *data, uint32_t test_type)
 	mode = &output->config.connector->modes[0];
 
 	do {
-		if (data->output_format != DSC_FORMAT_RGB && index > 0)
+		if (data->output_format != DSC_FORMAT_RGB)
 			mode = get_next_mode(output, index++);
 
 		if (mode == NULL)
