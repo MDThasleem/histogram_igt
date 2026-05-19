@@ -264,16 +264,22 @@ static void modeset_with_fb(igt_output_t *output,
 	igt_display_t *display = &data.display;
 	drmModeModeInfo *mode;
 	igt_plane_t *primary;
+	int width, height;
 
 	mode = igt_output_get_mode(output);
+	width = mode->hdisplay;
+	height = mode->vdisplay;
 
 	primary = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
 	igt_plane_set_fb(primary, &data.red);
-	igt_fb_set_size(&data.red, primary, mode->hdisplay, mode->vdisplay);
+	igt_fb_set_size(&data.red, primary, width, height);
+	igt_plane_set_size(primary, width, height);
 
 	igt_display_commit2(display, commit_style);
 
 	igt_plane_set_fb(primary, &data.green);
+	igt_fb_set_size(&data.green, primary, width, height);
+	igt_plane_set_size(primary, width, height);
 
 	/* Wait for Flip completion before starting the HDCP authentication */
 	commit_display_and_wait_for_flip(commit_style);
@@ -284,6 +290,8 @@ static bool test_cp_enable(igt_output_t *output, enum igt_commit_style commit_st
 {
 	igt_display_t *display = &data.display;
 	igt_plane_t *primary;
+	drmModeModeInfo *mode;
+	int width, height;
 	bool ret;
 
 	primary = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
@@ -302,7 +310,12 @@ static bool test_cp_enable(igt_output_t *output, enum igt_commit_style commit_st
 	ret = wait_for_prop_value(output, CP_ENABLED,
 				  KERNEL_AUTH_TIME_ALLOWED_MSEC);
 	if (ret) {
+		mode = igt_output_get_mode(output);
+		width = mode->hdisplay;
+		height = mode->vdisplay;
 		igt_plane_set_fb(primary, &data.green);
+		igt_plane_set_size(primary, width, height);
+		igt_fb_set_size(&data.green, primary, width, height);
 		igt_display_commit2(display, commit_style);
 	}
 
@@ -315,13 +328,20 @@ static void test_mst_cp_disable(igt_output_t *hdcp_mst_output[],
 {
 	igt_display_t *display = &data.display;
 	igt_plane_t *primary;
+	drmModeModeInfo *mode;
+	int width, height;
 	bool ret;
 	int count;
 	u64 val;
 
 	for (count = 0; count < valid_outputs; count++) {
 		primary = igt_output_get_plane_type(hdcp_mst_output[count], DRM_PLANE_TYPE_PRIMARY);
+		mode = igt_output_get_mode(hdcp_mst_output[count]);
+		width = mode->hdisplay;
+		height = mode->vdisplay;
 		igt_plane_set_fb(primary, &data.red);
+		igt_fb_set_size(&data.red, primary, width, height);
+		igt_plane_set_size(primary, width, height);
 		igt_output_set_prop_value(hdcp_mst_output[count], IGT_CONNECTOR_CONTENT_PROTECTION,
 					  CP_UNDESIRED);
 	}
@@ -343,10 +363,15 @@ static void test_cp_disable(igt_output_t *output, enum igt_commit_style commit_s
 {
 	igt_display_t *display = &data.display;
 	igt_plane_t *primary;
+	drmModeModeInfo *mode;
+	int width, height;
 	bool ret;
 
 	primary = igt_output_get_plane_type(output, DRM_PLANE_TYPE_PRIMARY);
 
+	mode = igt_output_get_mode(output);
+	width = mode->hdisplay;
+	height = mode->vdisplay;
 	/*
 	 * Even on HDCP enable failed scenario, IGT should exit leaving the
 	 * "content protection" at "UNDESIRED".
@@ -354,6 +379,8 @@ static void test_cp_disable(igt_output_t *output, enum igt_commit_style commit_s
 	igt_output_set_prop_value(output, IGT_CONNECTOR_CONTENT_PROTECTION,
 				  CP_UNDESIRED);
 	igt_plane_set_fb(primary, &data.red);
+	igt_plane_set_size(primary, width, height);
+	igt_fb_set_size(&data.red, primary, width, height);
 	igt_display_commit2(display, commit_style);
 
 	/* Wait for HDCP to be disabled, before crtc off */
