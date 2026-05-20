@@ -76,18 +76,7 @@ static uint32_t fill_sip(struct intel_bb *ibb,
 			 const uint32_t sip[][4],
 			 const size_t size)
 {
-	uint32_t *sip_dst;
-	uint32_t offset;
-
-	intel_bb_ptr_align(ibb, 16);
-	sip_dst = intel_bb_ptr(ibb);
-	offset = intel_bb_offset(ibb);
-
-	memcpy(sip_dst, sip, size);
-
-	intel_bb_ptr_add(ibb, size);
-
-	return offset;
+	return intel_bb_copy_data(ibb, sip, size, 16);
 }
 
 static void emit_sip(struct intel_bb *ibb, const uint64_t offset)
