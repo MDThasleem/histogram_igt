@@ -70,18 +70,7 @@ gen7_fill_kernel(struct intel_bb *ibb,
 		const uint32_t kernel[][4],
 		size_t size)
 {
-	uint32_t *kernel_dst;
-	uint32_t offset;
-
-	intel_bb_ptr_align(ibb, 64);
-	kernel_dst = intel_bb_ptr(ibb);
-	offset = intel_bb_offset(ibb);
-
-	memcpy(kernel_dst, kernel, size);
-
-	intel_bb_ptr_add(ibb, size);
-
-	return offset;
+	return intel_bb_copy_data(ibb, kernel, size, 64);
 }
 
 static uint32_t
