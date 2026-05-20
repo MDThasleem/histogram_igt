@@ -2931,7 +2931,7 @@ uint32_t intel_bb_copy_data(struct intel_bb *ibb,
 
 	intel_bb_ptr_align(ibb, align);
 	offset = intel_bb_offset(ibb);
-	igt_assert(offset + bytes < ibb->size);
+	igt_assert_lt(offset + bytes, ibb->size);
 
 	subdata = intel_bb_ptr(ibb);
 	memcpy(subdata, data, bytes);
