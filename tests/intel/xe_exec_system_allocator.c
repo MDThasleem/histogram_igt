@@ -2250,6 +2250,9 @@ struct xe_gt_stats_snapshot {
 	int svm_4K_pagefault_us;
 	int svm_64K_pagefault_us;
 	int svm_2M_pagefault_us;
+	int svm_4K_cpu_copy_kb;
+	int svm_64K_cpu_copy_kb;
+	int svm_2M_cpu_copy_kb;
 };
 
 static void read_gt_stats_snapshot(int fd,
@@ -2262,11 +2265,18 @@ static void read_gt_stats_snapshot(int fd,
 		xe_gt_stats_get_count(fd, eci->gt_id, "svm_64K_pagefault_us");
 	snapshot->svm_2M_pagefault_us =
 		xe_gt_stats_get_count(fd, eci->gt_id, "svm_2M_pagefault_us");
+	snapshot->svm_4K_cpu_copy_kb =
+		xe_gt_stats_get_count(fd, eci->gt_id, "svm_4K_cpu_copy_kb");
+	snapshot->svm_64K_cpu_copy_kb =
+		xe_gt_stats_get_count(fd, eci->gt_id, "svm_64K_cpu_copy_kb");
+	snapshot->svm_2M_cpu_copy_kb =
+		xe_gt_stats_get_count(fd, eci->gt_id, "svm_2M_cpu_copy_kb");
 }
 
 /* compute flags */
 #define TOUCH_ONCE		(0x1 << 0)
 #define ACCESS_DEVICE_HOST	(0x1 << 1)
+#define USE_MADV_DONTNEED	(0x1 << 2)
 
 /**
  * SUBTEST: compute
@@ -2283,6 +2293,18 @@ static void read_gt_stats_snapshot(int fd,
  *
  * SUBTEST: eu-fault-2m-%s
  * Description: Run a simple compute kernel %arg[1] on a 2MB malloc'ed buffer
+ * Test category: performance test
+ *
+ * SUBTEST: eu-fault-4k-range-device-host-madvise-dontneed
+ * Description: Run a simple compute kernel %arg[1] on a 4KB malloc'ed buffer for which madvise(MADV_DONTNEED) is used
+ * Test category: performance test
+ *
+ * SUBTEST: eu-fault-64k-range-device-host-madvise-dontneed
+ * Description: Run a simple compute kernel %arg[1] on a 64KB malloc'ed buffer for which madvise(MADV_DONTNEED) is used
+ * Test category: performance test
+ *
+ * SUBTEST: eu-fault-2m-range-device-host-madvise-dontneed
+ * Description: Run a simple compute kernel %arg[1] on a 2MB malloc'ed buffer for which madvise(MADV_DONTNEED) is used
  * Test category: performance test
  *
  * arg[1]:
@@ -2321,7 +2343,7 @@ test_compute(int fd, struct drm_xe_engine_class_instance *eci, size_t size,
 	xe_wait_ufence(fd, &bo_sync->sync, USER_FENCE_VALUE, 0, FIVE_SEC);
 
 	env.loop_count = (flags & TOUCH_ONCE) ? 1 : env.array_size;
-	env.skip_results_check = !(flags & ACCESS_DEVICE_HOST);
+	env.skip_results_check = !(flags & ACCESS_DEVICE_HOST) || (flags & MADV_DONTNEED);
 	env.vm = vm;
 
 	read_gt_stats_snapshot(fd, eci, &stats_before);
@@ -2344,6 +2366,22 @@ test_compute(int fd, struct drm_xe_engine_class_instance *eci, size_t size,
 
 		xe_run_intel_compute_kernel_on_engine(fd, eci, &env, EXECENV_PREF_SYSTEM);
 
+		if (flags & ACCESS_DEVICE_HOST) {
+			float total = 0;
+
+			if (flags & USE_MADV_DONTNEED)
+				igt_assert_eq(madvise(compute_input, size, MADV_DONTNEED), 0);
+
+			/*
+			 * No functional purpose, just force a read on host
+			 */
+			for (int j = 0; j < env.array_size; j++)
+				total += compute_input[j];
+
+			if (!total)
+				igt_debug("compute_input is zeros\n");
+		}
+
 		free(compute_input);
 	}
 
@@ -2363,6 +2401,18 @@ test_compute(int fd, struct drm_xe_engine_class_instance *eci, size_t size,
 				 (stats_after.svm_2M_pagefault_us -
 				  stats_before.svm_2M_pagefault_us) / loops);
 		}
+	}
+
+	if ((flags & ACCESS_DEVICE_HOST) && (flags & USE_MADV_DONTNEED)) {
+		if (size == SZ_4K)
+			igt_assert_eq(stats_before.svm_4K_cpu_copy_kb,
+				      stats_after.svm_4K_cpu_copy_kb);
+		else if (size == SZ_64K)
+			igt_assert_eq(stats_before.svm_64K_cpu_copy_kb,
+				      stats_after.svm_64K_cpu_copy_kb);
+		else if (size == SZ_2M)
+			igt_assert_eq(stats_before.svm_2M_cpu_copy_kb,
+				      stats_after.svm_2M_cpu_copy_kb);
 	}
 
 	unbind_system_allocator();
@@ -2525,6 +2575,7 @@ int igt_main()
 		{ "once-device-host", TOUCH_ONCE | ACCESS_DEVICE_HOST },
 		{ "range-device", 0 },
 		{ "range-device-host", ACCESS_DEVICE_HOST },
+		{ "range-device-host-madvise-dontneed", ACCESS_DEVICE_HOST | USE_MADV_DONTNEED },
 		{ NULL },
 	};
 
