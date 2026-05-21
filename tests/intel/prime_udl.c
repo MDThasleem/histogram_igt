@@ -13,6 +13,23 @@
 
 #include "i915/gem_create.h"
 
+/**
+ * TEST: prime udl
+ * Category: Display
+ * Description: Basic set of prime tests between Intel and DisplayLink.
+ * Driver requirement: i915
+ * Mega feature: General Display Features
+ * Sub-category: Memory management tests
+ * Functionality: prime import/export
+ * Test category: GEM_Legacy
+ * Feature: prime
+ *
+ * SUBTEST: share-import
+ *
+ * SUBTEST: share-import-addfb
+ *
+ */
+
 IGT_TEST_DESCRIPTION("Basic set of prime tests between Intel and DisplayLink");
 
 int intel_fd = -1, udl_fd = -1;
