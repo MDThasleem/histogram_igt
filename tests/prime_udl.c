@@ -47,11 +47,11 @@ static int find_and_open_devices(void)
 		sprintf(path, "/dev/dri/card%d", i);
 		if (venid == 0x8086 && intel_fd == -1) {
 			intel_fd = open(path, O_RDWR);
-			if (!intel_fd)
+			if (intel_fd == -1)
 				return -1;
 		} else if (venid == 0x17e9 && udl_fd == -1) {
 			udl_fd = open(path, O_RDWR);
-			if (!udl_fd)
+			if (udl_fd == -1)
 				return -1;
 		}
 	}
