@@ -255,6 +255,7 @@ struct intel_bb {
 	bool enforce_relocs;
 	uint32_t devid;
 	uint32_t handle;
+	uint32_t usable_size;
 	uint32_t size;
 	uint32_t *batch;
 	uint32_t *ptr;
@@ -363,7 +364,7 @@ static inline uint32_t intel_bb_offset(struct intel_bb *ibb)
 
 static inline void *intel_bb_ptr_get(struct intel_bb *ibb, uint32_t offset)
 {
-	igt_assert(offset < ibb->size);
+	igt_assert_lte(offset, ibb->usable_size);
 
 	return ((uint8_t *) ibb->batch + offset);
 }
@@ -372,7 +373,7 @@ static inline void intel_bb_ptr_set(struct intel_bb *ibb, uint32_t offset)
 {
 	ibb->ptr = (void *) ((uint8_t *) ibb->batch + offset);
 
-	igt_assert(intel_bb_offset(ibb) <= ibb->size);
+	igt_assert_lte(intel_bb_offset(ibb), ibb->usable_size);
 }
 
 static inline void intel_bb_ptr_add(struct intel_bb *ibb, uint32_t offset)
@@ -407,7 +408,7 @@ static inline void intel_bb_out(struct intel_bb *ibb, uint32_t dword)
 	*ibb->ptr = dword;
 	ibb->ptr++;
 
-	igt_assert(intel_bb_offset(ibb) <= ibb->size);
+	igt_assert_lte(intel_bb_offset(ibb), ibb->usable_size);
 }
 
 void intel_bb_set_pxp(struct intel_bb *ibb, bool new_state,

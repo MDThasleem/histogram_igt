@@ -917,6 +917,7 @@ __intel_bb_create(int fd, uint32_t ctx, uint32_t vm, const intel_ctx_cfg_t *cfg,
 	ibb->devid = intel_get_drm_devid(fd);
 	ibb->gen = intel_gen(ibb->devid);
 	ibb->ctx = ctx;
+	ibb->usable_size = size;
 
 	ibb->fd = fd;
 	ibb->driver = is_i915_device(fd) ? INTEL_DRIVER_I915 :
@@ -2931,7 +2932,7 @@ uint32_t intel_bb_copy_data(struct intel_bb *ibb,
 
 	intel_bb_ptr_align(ibb, align);
 	offset = intel_bb_offset(ibb);
-	igt_assert_lt(offset + bytes, ibb->size);
+	igt_assert_lte(offset + bytes, ibb->usable_size);
 
 	subdata = intel_bb_ptr(ibb);
 	memcpy(subdata, data, bytes);
