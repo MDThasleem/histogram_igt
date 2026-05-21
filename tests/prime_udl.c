@@ -121,18 +121,23 @@ static void test2(void)
 	gem_close(intel_fd, intel_handle);
 }
 
-int igt_simple_main()
+int igt_main()
 {
-	igt_assert(find_and_open_devices() >= 0);
-
-	igt_skip_on(udl_fd == -1);
-	igt_skip_on(intel_fd == -1);
+	igt_fixture() {
+		igt_assert(find_and_open_devices() >= 0);
+		igt_skip_on(udl_fd == -1);
+		igt_skip_on(intel_fd == -1);
+	}
 
 	/* create an object on the i915 */
-	test1();
+	igt_subtest("share-import")
+		test1();
 
-	test2();
+	igt_subtest("share-import-addfb")
+		test2();
 
-	close(intel_fd);
-	close(udl_fd);
+	igt_fixture() {
+		close(intel_fd);
+		close(udl_fd);
+	}
 }
