@@ -272,13 +272,8 @@ int igt_main()
 	int fd;
 
 	igt_fixture() {
-		bool supports_faults;
-		int ret = 0;
-
 		fd = drm_open_driver(DRIVER_XE);
-		ret = xe_supports_faults(fd);
-		supports_faults = !ret;
-		igt_require(supports_faults);
+		igt_require(!xe_supports_faults(fd));
 	}
 
 	for (const struct section *s = sections; s->name; s++) {
