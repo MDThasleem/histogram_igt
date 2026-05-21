@@ -1,5 +1,5 @@
 {
-    "version": "1.2",
+    "version": "1.3",
     "PFResources": {
         "Default": "MinimumPFResources",
         "Profile": {
@@ -17,8 +17,8 @@
         "Profile": {
             "Bmg_12": {
                 "VFCount": 1,
-                "LocalMemoryEccOff": 12717129728,
-                "LocalMemoryEccOn": 12717129728,
+                "LocalMemoryEccOff": 12616466432,
+                "LocalMemoryEccOn": 12616466432,
                 "Contexts": 1024,
                 "Doorbells": 240,
                 "GGTTSize": 4026531840
