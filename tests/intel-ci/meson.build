@@ -25,6 +25,7 @@ intelci_files = [
   'xe.multigpu.blocklist.txt',
   'xe.nvl.core.blocklist.txt',
   'xe.nvl.display.blocklist.txt',
+  'xe.pm.d3cold.testlist',
   'xe.ptl.core.blocklist.txt',
   'xe.ptl.display.blocklist.txt',
   'xe.sriov-vf.blocklist.txt',
