@@ -79,6 +79,9 @@
 /* restricted pipe count */
 #define CRTC_RESTRICT_CNT 2
 
+/* Clock limit for HDMI 2.0 */
+#define HDMI_2_0_MAX_CLOCK_KHZ 600000
+
 static int drm_fd;
 static drmModeRes *drm_resources;
 static int filter_test_id;
@@ -163,6 +166,32 @@ static bool connector_supports_mode(drmModeConnector *connector,
 			return true;
 
 	return false;
+}
+
+static bool hdmi_connector_mode_exceeds_hdmi20_limit(drmModeConnector *connector,
+						     drmModeModeInfo *mode)
+{
+	if (connector->connector_type != DRM_MODE_CONNECTOR_HDMIA &&
+	    connector->connector_type != DRM_MODE_CONNECTOR_HDMIB)
+		return false;
+
+	return mode->clock > HDMI_2_0_MAX_CLOCK_KHZ;
+}
+
+static bool mode_compatible_with_connectors(struct crtc_config *crtc,
+					    drmModeModeInfo *mode)
+{
+	int i;
+
+	for (i = 0; i < crtc->connector_count; i++) {
+		drmModeConnector *conn = crtc->cconfs[i].connector;
+
+		/* Check HDMI 2.0 clock + per-connector compatibility */
+		if (hdmi_connector_mode_exceeds_hdmi20_limit(conn, mode))
+			return false;
+	}
+
+	return true;
 }
 
 static bool crtc_supports_mode(struct crtc_config *crtc, drmModeModeInfo *mode)
@@ -270,8 +299,11 @@ static void get_mode_for_crtc(struct crtc_config *crtc,
 				if (conn->modes[j].clock < mode->clock)
 					mode = &conn->modes[j];
 			}
-			*mode_ret = *mode;
-			return;
+
+			if (mode_compatible_with_connectors(crtc, mode)) {
+				*mode_ret = *mode;
+				return;
+			}
 		}
 	}
 
