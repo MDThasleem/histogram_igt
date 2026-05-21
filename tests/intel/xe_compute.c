@@ -688,14 +688,19 @@ int igt_main()
 	igt_subtest("compute-square-userenv-large-buffer")
 		test_compute_square_userenv(xe, LARGE_BUFFER);
 
-	igt_subtest("compute-square-userenv-isvm")
-		test_compute_square_userenv(xe, INPUT_IN_SVM);
+	igt_subtest_group() {
+		igt_fixture() {
+			igt_require(!xe_supports_faults(xe));
+		}
+		igt_subtest("compute-square-userenv-isvm")
+			test_compute_square_userenv(xe, INPUT_IN_SVM);
 
-	igt_subtest("compute-square-userenv-osvm")
-		test_compute_square_userenv(xe, OUTPUT_IN_SVM);
+		igt_subtest("compute-square-userenv-osvm")
+			test_compute_square_userenv(xe, OUTPUT_IN_SVM);
 
-	igt_subtest("compute-square-userenv-iosvm")
-		test_compute_square_userenv(xe, INPUT_IN_SVM | OUTPUT_IN_SVM);
+		igt_subtest("compute-square-userenv-iosvm")
+			test_compute_square_userenv(xe, INPUT_IN_SVM | OUTPUT_IN_SVM);
+	}
 
 	igt_fixture()
 		drm_close_driver(xe);
