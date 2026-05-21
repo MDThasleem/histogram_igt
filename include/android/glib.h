@@ -51,6 +51,8 @@ static inline int g_key_file_get_integer(GKeyFile *key_file,
 	const char *group_name, const char *key, GError **error) { return 0; }
 static inline char *g_key_file_get_string(GKeyFile *key_file,
 	const char *group_name, const char *key, GError **error) { return NULL; }
+static inline double g_key_file_get_double(GKeyFile *key_file,
+	const char *group_name, const char *key, GError **error) { return 0.0; }
 static inline bool g_key_file_load_from_file(GKeyFile *key_file,
 	const char *file, int flags, GError **error) { return false; }
 
