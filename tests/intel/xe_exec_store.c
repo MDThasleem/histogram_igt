@@ -352,7 +352,7 @@ static void long_shader(int fd, struct drm_xe_engine_class_instance *hwe,
 {
 	const uint64_t target_offset = 0x1a000000;
 	const uint64_t bb_offset = 0x1b000000;
-	const size_t bb_size = 32768;
+	const size_t bb_size = 65536;
 	uint32_t vm_id;
 	uint32_t exec_queue;
 	const unsigned int instruction_count = 128;
