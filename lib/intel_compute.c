@@ -61,6 +61,7 @@
 #define THREADS_PER_GROUP		32
 #define THREAD_GROUP_Y			1
 #define THREAD_GROUP_Z			1
+#define PREXE_ENQUEUED_LOCAL_SIZE_X	512
 #define ENQUEUED_LOCAL_SIZE_X		1024
 #define ENQUEUED_LOCAL_SIZE_Y		1
 #define ENQUEUED_LOCAL_SIZE_Z		1
@@ -513,6 +514,13 @@ static uint32_t size_thread_group_x(uint32_t work_size)
 				   ENQUEUED_LOCAL_SIZE_Z));
 }
 
+static uint32_t prexe_size_thread_group_x(uint32_t work_size)
+{
+	return MAX(1, work_size / (PREXE_ENQUEUED_LOCAL_SIZE_X *
+				   ENQUEUED_LOCAL_SIZE_Y *
+				   ENQUEUED_LOCAL_SIZE_Z));
+}
+
 static size_t size_input(uint32_t work_size)
 {
 	return MAX(sizeof(float) * work_size, 0x10000);
@@ -538,7 +546,6 @@ static size_t size_output(uint32_t work_size)
 static void create_indirect_data(uint32_t *addr_bo_buffer_batch,
 				 uint64_t addr_input,
 				 uint64_t addr_output,
-				 uint32_t end_value,
 				 unsigned int loop_count)
 {
 	uint32_t val = 0;
@@ -547,11 +554,15 @@ static void create_indirect_data(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
-	addr_bo_buffer_batch[b++] = 0x00000200;
-
-	addr_bo_buffer_batch[b++] = 0x00000001;
-	addr_bo_buffer_batch[b++] = 0x00000001;
+	addr_bo_buffer_batch[b++] = PREXE_ENQUEUED_LOCAL_SIZE_X;
+	addr_bo_buffer_batch[b++] = ENQUEUED_LOCAL_SIZE_Y;
+	addr_bo_buffer_batch[b++] = ENQUEUED_LOCAL_SIZE_Z;
 	addr_bo_buffer_batch[b++] = 0x00000000;
+	addr_bo_buffer_batch[b++] = 0x00000000;
+
+	addr_bo_buffer_batch[b++] = PREXE_ENQUEUED_LOCAL_SIZE_X;
+	addr_bo_buffer_batch[b++] = ENQUEUED_LOCAL_SIZE_Y;
+	addr_bo_buffer_batch[b++] = ENQUEUED_LOCAL_SIZE_Z;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 
 	addr_bo_buffer_batch[b++] = addr_input & 0xffffffff;
@@ -564,11 +575,6 @@ static void create_indirect_data(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 
-	addr_bo_buffer_batch[b++] = 0x00000200;
-	addr_bo_buffer_batch[b++] = 0x00000001;
-	addr_bo_buffer_batch[b++] = 0x00000001;
-	addr_bo_buffer_batch[b++] = 0x00000000;
-
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
@@ -579,7 +585,8 @@ static void create_indirect_data(uint32_t *addr_bo_buffer_batch,
 	 * Then it lefts 32 dword gap filled with zeroes. Pattern looks the
 	 * same for tgl and dg1 (apart of number of values).
 	 */
-	while (val < end_value) {
+
+	while (val < PREXE_ENQUEUED_LOCAL_SIZE_X) {
 		addr_bo_buffer_batch[b++] = val | ((val + 1) << 16);
 		val += 2;
 		if (++curr % 16 == 0)
@@ -597,8 +604,11 @@ static void create_indirect_data(uint32_t *addr_bo_buffer_batch,
  */
 static void create_surface_state(uint32_t *addr_bo_buffer_batch,
 				 uint64_t addr_input,
-				 uint64_t addr_output)
+				 uint64_t addr_output,
+				 uint32_t surf_size)
 {
+	uint32_t w = 0x80;
+	uint32_t h = surf_size / w;
 	int b = 0;
 
 	addr_bo_buffer_batch[b++] = 0x00000000;
@@ -617,10 +627,11 @@ static void create_surface_state(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
+
 	addr_bo_buffer_batch[b++] = 0x87FD4000;
 	addr_bo_buffer_batch[b++] = 0x04000000;
-	addr_bo_buffer_batch[b++] = 0x001F007F;
-	addr_bo_buffer_batch[b++] = 0x00000000;
+	addr_bo_buffer_batch[b++] = (h - 1) << 16 | (w - 1);
+	addr_bo_buffer_batch[b++] = 0x00e00000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00004000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
@@ -633,10 +644,11 @@ static void create_surface_state(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
+
 	addr_bo_buffer_batch[b++] = 0x87FD4000;
 	addr_bo_buffer_batch[b++] = 0x04000000;
-	addr_bo_buffer_batch[b++] = 0x001F007F;
-	addr_bo_buffer_batch[b++] = 0x00000000;
+	addr_bo_buffer_batch[b++] = (h - 1) << 16 | (w - 1);
+	addr_bo_buffer_batch[b++] = 0x00e00000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00004000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
@@ -649,6 +661,7 @@ static void create_surface_state(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
+
 	addr_bo_buffer_batch[b++] = 0x00000040;
 	addr_bo_buffer_batch[b++] = 0x00000080;
 	addr_bo_buffer_batch[b++] = 0x00000000;
@@ -706,7 +719,8 @@ static void tgllp_compute_exec_compute(uint32_t *addr_bo_buffer_batch,
 				       uint64_t addr_surface_state_base,
 				       uint64_t addr_dynamic_state_base,
 				       uint64_t addr_indirect_object_base,
-				       uint64_t offset_indirect_data_start)
+				       uint64_t offset_indirect_data_start,
+				       uint32_t work_size)
 {
 	int b = 0;
 
@@ -714,6 +728,8 @@ static void tgllp_compute_exec_compute(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x00002580;
 	addr_bo_buffer_batch[b++] = 0x00060002;
 	addr_bo_buffer_batch[b++] = PIPELINE_SELECT;
+	addr_bo_buffer_batch[b++] = XEHP_STATE_COMPUTE_MODE;
+	addr_bo_buffer_batch[b++] = 0x00180010;
 	addr_bo_buffer_batch[b++] = MI_LOAD_REGISTER_IMM(1);
 	addr_bo_buffer_batch[b++] = 0x00007034;
 	addr_bo_buffer_batch[b++] = 0x60000321;
@@ -735,9 +751,9 @@ static void tgllp_compute_exec_compute(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = MEDIA_VFE_STATE | (9 - 2);
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
-	addr_bo_buffer_batch[b++] = 0x00A70100;
+	addr_bo_buffer_batch[b++] = 0x02FF0100;
 	addr_bo_buffer_batch[b++] = 0x00000000;
-	addr_bo_buffer_batch[b++] = 0x07820000;
+	addr_bo_buffer_batch[b++] = 0x04000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
@@ -747,7 +763,7 @@ static void tgllp_compute_exec_compute(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
-	addr_bo_buffer_batch[b++] = STATE_BASE_ADDRESS | (16 - 2);
+	addr_bo_buffer_batch[b++] = STATE_BASE_ADDRESS | 0x14;
 	addr_bo_buffer_batch[b++] = 0x00000001;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00040000;
@@ -756,7 +772,7 @@ static void tgllp_compute_exec_compute(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = (addr_dynamic_state_base & 0xffffffff) | 0x1;
 	addr_bo_buffer_batch[b++] = addr_dynamic_state_base >> 32;
 	addr_bo_buffer_batch[b++] = (addr_indirect_object_base & 0xffffffff) | 0x1;
-	addr_bo_buffer_batch[b++] = (addr_indirect_object_base >> 32) | 0xffff0000;
+	addr_bo_buffer_batch[b++] = (addr_indirect_object_base >> 32);
 	addr_bo_buffer_batch[b++] = (addr_indirect_object_base & 0xffffffff) | 0x41;
 	addr_bo_buffer_batch[b++] = addr_indirect_object_base >> 32;
 	addr_bo_buffer_batch[b++] = 0xFFFFF001;
@@ -794,7 +810,7 @@ static void tgllp_compute_exec_compute(uint32_t *addr_bo_buffer_batch,
 	addr_bo_buffer_batch[b++] = 0x8000000f;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
-	addr_bo_buffer_batch[b++] = 0x00000002;
+	addr_bo_buffer_batch[b++] = prexe_size_thread_group_x(work_size);
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000000;
 	addr_bo_buffer_batch[b++] = 0x00000001;
@@ -962,9 +978,10 @@ static void compute_exec(int fd, const unsigned char *kernel,
 
 	memcpy(bo_dict[0].data, kernel, size);
 	create_dynamic_state(bo_dict[1].data, OFFSET_KERNEL);
-	create_surface_state(bo_dict[2].data, bind_input_addr, bind_output_addr);
+	create_surface_state(bo_dict[2].data, bind_input_addr, bind_output_addr,
+			     execenv.array_size * sizeof(float));
 	create_indirect_data(bo_dict[3].data, bind_input_addr, bind_output_addr,
-			     IS_DG1(devid) ? 0x200 : 0x40, execenv.loop_count);
+			     execenv.loop_count);
 
 	input_data = get_input_data(&execenv, bo_dict, entries);
 	output_data = get_output_data(&execenv, bo_dict, entries);
@@ -980,7 +997,8 @@ static void compute_exec(int fd, const unsigned char *kernel,
 					   ADDR_SURFACE_STATE_BASE,
 					   ADDR_DYNAMIC_STATE_BASE,
 					   ADDR_INDIRECT_OBJECT_BASE,
-					   OFFSET_INDIRECT_DATA_START);
+					   OFFSET_INDIRECT_DATA_START,
+					   execenv.array_size);
 
 	bo_execenv_exec(&execenv, ADDR_BATCH);
 
