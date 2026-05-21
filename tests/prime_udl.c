@@ -27,13 +27,13 @@ static int find_and_open_devices(void)
 	FILE *fl;
 	char vendor_id[8];
 	int venid;
-	for (i = 0; i < 9; i++) {
+	for (i = 0; i < 9 && intel_fd == -1 && udl_fd == -1; i++) {
 		sprintf(path, "/sys/class/drm/card%d/device/vendor", i);
 		if (stat(path, &buf)) {
 			/* look for usb dev */
 			sprintf(path, "/sys/class/drm/card%d/device/idVendor", i);
 			if (stat(path, &buf))
-				break;
+				continue;
 		}
 
 		fl = fopen(path, "r");
@@ -45,11 +45,11 @@ static int find_and_open_devices(void)
 
 		venid = strtoul(vendor_id, NULL, 16);
 		sprintf(path, "/dev/dri/card%d", i);
-		if (venid == 0x8086) {
+		if (venid == 0x8086 && intel_fd == -1) {
 			intel_fd = open(path, O_RDWR);
 			if (!intel_fd)
 				return -1;
-		} else if (venid == 0x17e9) {
+		} else if (venid == 0x17e9 && udl_fd == -1) {
 			udl_fd = open(path, O_RDWR);
 			if (!udl_fd)
 				return -1;
