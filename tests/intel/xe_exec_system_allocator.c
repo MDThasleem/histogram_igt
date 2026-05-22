@@ -2283,36 +2283,23 @@ static void read_gt_stats_snapshot(int fd,
  * Description: Run a simple compute kernel with the system allocator
  * Test category: functionality test
  *
- * SUBTEST: eu-fault-4k-%s
- * Description: Run a simple compute kernel %arg[1] on a 4KB malloc'ed buffer
- * Test category: performance test
- *
- * SUBTEST: eu-fault-64k-%s
- * Description: Run a simple compute kernel %arg[1] on a 64KB malloc'ed buffer
- * Test category: performance test
- *
- * SUBTEST: eu-fault-2m-%s
- * Description: Run a simple compute kernel %arg[1] on a 2MB malloc'ed buffer
- * Test category: performance test
- *
- * SUBTEST: eu-fault-4k-range-device-host-madvise-dontneed
- * Description: Run a simple compute kernel %arg[1] on a 4KB malloc'ed buffer for which madvise(MADV_DONTNEED) is used
- * Test category: performance test
- *
- * SUBTEST: eu-fault-64k-range-device-host-madvise-dontneed
- * Description: Run a simple compute kernel %arg[1] on a 64KB malloc'ed buffer for which madvise(MADV_DONTNEED) is used
- * Test category: performance test
- *
- * SUBTEST: eu-fault-2m-range-device-host-madvise-dontneed
- * Description: Run a simple compute kernel %arg[1] on a 2MB malloc'ed buffer for which madvise(MADV_DONTNEED) is used
+ * SUBTEST: eu-fault-%s-%s
+ * Description: Run a simple compute kernel %arg[2] on a %arg[1] malloc'ed buffer
  * Test category: performance test
  *
  * arg[1]:
+ *
+ * @4k:		4KB
+ * @64k:	64KB
+ * @2m:		2MB
+ *
+ * arg[2]:
  *
  * @once-device:				touch the buffer only once, from the device
  * @once-device-host:				touch the buffer only once, from the device then from the host
  * @range-device:				touch the whole buffer, from the device
  * @range-device-host:				touch the whole buffer, from the device then from the host
+ * @range-device-host-madvise-dontneed:		touch the whole buffer, from the device then from the host, with madvise(MADV_DONTNEED) used
  */
 static void
 test_compute(int fd, struct drm_xe_engine_class_instance *eci, size_t size,
@@ -2578,6 +2565,15 @@ int igt_main()
 		{ "range-device-host-madvise-dontneed", ACCESS_DEVICE_HOST | USE_MADV_DONTNEED },
 		{ NULL },
 	};
+	const struct {
+		const char *name;
+		size_t size;
+	} csizes[] = {
+		{ "4k", SZ_4K },
+		{ "64k", SZ_64K },
+		{ "2m", SZ_2M },
+		{ NULL, 0 },
+	};
 
 	const struct section intel_get_pat_idx_functions[] = {
 		{ "madvise-pat-idx-wb-single-vma", MADVISE_OP | MADVISE_PAT_INDEX,
@@ -2830,18 +2826,11 @@ int igt_main()
 				test_compute(fd, hwe, SZ_2M, 0, svm_compute_loops);
 
 	for (const struct section *s = csections; s->name; s++) {
-		igt_subtest_f("eu-fault-4k-%s", s->name)
-			xe_for_each_engine(fd, hwe)
-				if (hwe->engine_class == DRM_XE_ENGINE_CLASS_COMPUTE)
-					test_compute(fd, hwe, SZ_4K, s->flags, svm_compute_loops);
-		igt_subtest_f("eu-fault-64k-%s", s->name)
-			xe_for_each_engine(fd, hwe)
-				if (hwe->engine_class == DRM_XE_ENGINE_CLASS_COMPUTE)
-					test_compute(fd, hwe, SZ_64K, s->flags, svm_compute_loops);
-		igt_subtest_f("eu-fault-2m-%s", s->name)
-			xe_for_each_engine(fd, hwe)
-				if (hwe->engine_class == DRM_XE_ENGINE_CLASS_COMPUTE)
-					test_compute(fd, hwe, SZ_2M, s->flags, svm_compute_loops);
+		for (int i = 0; csizes[i].name; i++)
+			igt_subtest_f("eu-fault-%s-%s", csizes[i].name, s->name)
+				xe_for_each_engine(fd, hwe)
+					if (hwe->engine_class == DRM_XE_ENGINE_CLASS_COMPUTE)
+						test_compute(fd, hwe, csizes[i].size, s->flags, svm_compute_loops);
 	}
 
 	igt_fixture() {
