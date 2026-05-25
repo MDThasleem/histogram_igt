@@ -2764,10 +2764,9 @@ static void igt_output_reset(igt_output_t *output)
 
 	if (igt_output_has_prop(output, IGT_CONNECTOR_WRITEBACK_FB_ID))
 		igt_output_set_prop_value(output, IGT_CONNECTOR_WRITEBACK_FB_ID, 0);
-	if (igt_output_has_prop(output, IGT_CONNECTOR_WRITEBACK_OUT_FENCE_PTR)) {
+	if (igt_output_has_prop(output, IGT_CONNECTOR_WRITEBACK_OUT_FENCE_PTR))
 		igt_output_clear_prop_changed(output, IGT_CONNECTOR_WRITEBACK_OUT_FENCE_PTR);
-		output->writeback_out_fence_fd = -1;
-	}
+	output->writeback_out_fence_fd = -1;
 	if (igt_output_has_prop(output, IGT_CONNECTOR_DITHERING_MODE))
 		igt_output_set_prop_enum(output, IGT_CONNECTOR_DITHERING_MODE,
 					 "off");
