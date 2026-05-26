@@ -546,3 +546,92 @@ bool intel_is_vf_device(int fd)
 
 	return (value & 1) != 0;
 }
+
+struct sriov_exit_handler_ctx {
+	int pf;
+	bool autoprobe;
+	igt_sriov_exit_cleanup_fn cleanup_fn;
+	void *cleanup_data;
+};
+
+static struct sriov_exit_handler_ctx sriov_exit_ctx = {
+	.pf = -1,
+};
+
+static void sriov_exit_handler_release_fd(void)
+{
+	if (sriov_exit_ctx.pf < 0)
+		return;
+
+	__drm_close_driver(sriov_exit_ctx.pf);
+	sriov_exit_ctx.pf = -1;
+}
+
+static void sriov_exit_handler(int sig)
+{
+	if (sriov_exit_ctx.pf < 0)
+		return;
+
+	igt_sriov_disable_vfs(sriov_exit_ctx.pf);
+
+	if (sriov_exit_ctx.cleanup_fn)
+		sriov_exit_ctx.cleanup_fn(sriov_exit_ctx.pf, sig,
+					  sriov_exit_ctx.cleanup_data);
+
+	if (sriov_exit_ctx.autoprobe)
+		igt_sriov_enable_driver_autoprobe(sriov_exit_ctx.pf);
+	else
+		igt_sriov_disable_driver_autoprobe(sriov_exit_ctx.pf);
+}
+
+/**
+ * igt_sriov_install_exit_handler - Install best-effort SR-IOV cleanup handler
+ * @pf: PF device file descriptor
+ * @cleanup_fn: Optional callback invoked after VF disable
+ * @cleanup_data: Opaque callback data
+ *
+ * Registers a process-exit cleanup routine for SR-IOV tests. The handler runs
+ * from normal and signal-triggered exits (when possible), disables VFs,
+ * invokes @cleanup_fn if provided (passing signal number, or 0 on normal
+ * exit), and restores the original autoprobe setting captured at
+ * installation time. Tests that perform full explicit teardown should call
+ * igt_sriov_clear_exit_handler() once that teardown succeeds. An internal
+ * duplicate of @pf is kept so cleanup remains usable even if the caller closes
+ * the original DRM fd before process exit.
+ */
+void igt_sriov_install_exit_handler(int pf,
+				    igt_sriov_exit_cleanup_fn cleanup_fn,
+				    void *cleanup_data)
+{
+	int pf_dup;
+
+	if (!igt_sriov_is_pf(pf))
+		return;
+
+	pf_dup = dup(pf);
+	igt_assert_f(pf_dup >= 0, "Failed to duplicate PF fd (%s)\n",
+		     strerror(errno));
+
+	sriov_exit_handler_release_fd();
+
+	sriov_exit_ctx.pf = pf_dup;
+	sriov_exit_ctx.autoprobe = igt_sriov_is_driver_autoprobe_enabled(pf_dup);
+	sriov_exit_ctx.cleanup_fn = cleanup_fn;
+	sriov_exit_ctx.cleanup_data = cleanup_data;
+
+	igt_install_exit_handler(sriov_exit_handler);
+}
+
+/**
+ * igt_sriov_clear_exit_handler - Disable SR-IOV exit cleanup context
+ *
+ * Clears the active SR-IOV cleanup context, used when a test has completed
+ * explicit teardown and no longer needs best-effort cleanup on process exit.
+ */
+void igt_sriov_clear_exit_handler(void)
+{
+	sriov_exit_handler_release_fd();
+	sriov_exit_ctx.autoprobe = false;
+	sriov_exit_ctx.cleanup_fn = NULL;
+	sriov_exit_ctx.cleanup_data = NULL;
+}
