@@ -2632,6 +2632,24 @@ static bool block_copy_ok(const struct igt_fb *fb)
 					       fb_tile_to_blt_tile(fb->modifier));
 }
 
+static bool use_vebox_copy(const struct igt_fb *src_fb,
+			   const struct igt_fb *dst_fb)
+{
+	/* TODO:
+	 * X-Tile will need to be fixed for Vebox engine on
+	 * Xe2+ devices
+	 */
+	bool vebox_fix = (is_xe_device(src_fb->fd) &&
+		HAS_4TILE(intel_get_drm_devid(src_fb->fd))) ?
+		(src_fb->modifier == I915_FORMAT_MOD_4_TILED ||
+		 dst_fb->modifier == I915_FORMAT_MOD_4_TILED) : true;
+
+	return (igt_fb_is_gen12_mc_ccs_modifier(dst_fb->modifier) ||
+		igt_format_is_yuv(src_fb->drm_format) ||
+		igt_format_is_yuv(dst_fb->drm_format)) &&
+		vebox_fix;
+}
+
 static bool ccs_needs_enginecopy(const struct igt_fb *fb)
 {
 	if (igt_fb_is_gen12_rc_ccs_cc_modifier(fb->modifier))
@@ -2660,8 +2678,9 @@ static bool blitter_ok(const struct igt_fb *fb)
 	    is_xe_device(fb->fd))
 		return false;
 
+	/* use blitter on xe device except 4tile yuv where utilize vebox */
 	if (is_xe_device(fb->fd))
-		return true;
+		return !use_vebox_copy(fb, fb);
 
 	for (int i = 0; i < fb->num_planes; i++) {
 		int width = fb->plane_width[i];
@@ -2698,6 +2717,12 @@ static bool use_enginecopy(const struct igt_fb *fb)
 		return false;
 
 	if (ccs_needs_enginecopy(fb))
+		return true;
+
+	/*
+	 * This is to utilize Vebox for testing
+	 */
+	if (use_vebox_copy(fb, fb))
 		return true;
 
 	return fb->modifier == I915_FORMAT_MOD_Yf_TILED ||
@@ -2908,15 +2933,6 @@ static struct intel_buf *create_buf(struct fb_blit_upload *blit,
 static void fini_buf(struct intel_buf *buf)
 {
 	intel_buf_destroy(buf);
-}
-
-static bool use_vebox_copy(const struct igt_fb *src_fb,
-			   const struct igt_fb *dst_fb)
-{
-
-	return igt_fb_is_gen12_mc_ccs_modifier(dst_fb->modifier) ||
-	       igt_format_is_yuv(src_fb->drm_format) ||
-	       igt_format_is_yuv(dst_fb->drm_format);
 }
 
 /**
