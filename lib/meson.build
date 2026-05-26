@@ -322,6 +322,9 @@ endforeach
 
 lib_intermediates += static_library('iga64_gpu_codes', iga64_codes_targets)
 
+run_target('rebuild_iga64',
+    command : [ 'bash', '-c', 'ninja -t clean lib/libiga64_asms.a && FORCE_IGA64_REBUILD=1 ninja lib/libiga64_gpu_codes.a' ])
+
 lib_igt_build = shared_library('igt',
     ['dummy.c'],
     link_whole: lib_intermediates,
