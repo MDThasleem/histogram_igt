@@ -135,6 +135,9 @@
  *
  * SUBTEST: flip-P016-linear-to-P016-linear-reflect-x
  * Description: Flip from P016 non scaled fb to P016 non scaled x mirrored fb
+ *
+ * SUBTEST: flip-P010-4tile-to-P016-4tile
+ * Description: Flip from P010 non scaled fb to P016 non scaled
  */
 
 IGT_TEST_DESCRIPTION("Test flipping between scaled/nonscaled framebuffers");
@@ -663,6 +666,16 @@ const struct {
 		1.0,
 		IGT_ROTATION_0,
 		IGT_ROTATION_0 | IGT_REFLECT_X,
+	},
+	{
+		"flip-P010-4tile-to-P016-4tile",
+		"Flip from P010 non scaled fb to P016 non scaled",
+		I915_FORMAT_MOD_4_TILED, DRM_FORMAT_P010,
+		I915_FORMAT_MOD_4_TILED, DRM_FORMAT_P016,
+		1.0,
+		1.0,
+		IGT_ROTATION_0,
+		IGT_ROTATION_0,
 	},
 };
 
