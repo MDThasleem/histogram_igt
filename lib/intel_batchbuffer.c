@@ -1167,6 +1167,32 @@ intel_bb_create_with_context(int fd, uint32_t ctx, uint32_t vm,
 }
 
 /**
+ * intel_bb_create_with_gt:
+ * @fd: drm fd - i915 or xe
+ * @gt_id: gt id
+ * @vm: for xe vm_id, unused for i915
+ * @size: size of the batchbuffer
+ *
+ * Creates bb with gt id passed in @gt_id
+ *
+ * Returns:
+ *
+ * Pointer the intel_bb, asserts on failure.
+ */
+struct intel_bb *intel_bb_create_with_gt(int fd, uint32_t size, int vm, uint16_t gt_id)
+{
+	bool is_i915 = is_i915_device(fd);
+	bool relocs = is_i915 && gem_has_relocations(fd);
+
+	return __intel_bb_create(fd, 0, vm, NULL, size,
+				 relocs && !aux_needs_softpin(fd), 0, 0, 0,
+				 INTEL_ALLOCATOR_SIMPLE,
+				 ALLOC_STRATEGY_HIGH_TO_LOW,
+				 is_i915 ? REGION_SMEM : vram_if_possible(fd, 0),
+				 gt_id);
+}
+
+/**
  * intel_bb_create_with_context_in_region:
  * @fd: drm fd - i915 or xe
  * @ctx: for i915 context id, for xe engine id
