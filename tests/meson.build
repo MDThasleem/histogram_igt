@@ -334,6 +334,7 @@ intel_xe_progs = [
 	'xe_query',
 	'xe_render_copy',
 	'xe_vm',
+	'xe_userptr_pressure',
 	'xe_waitfence',
 	'xe_spin_batch',
 	'xe_sriov_admin',
