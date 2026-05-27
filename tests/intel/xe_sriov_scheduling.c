@@ -1271,6 +1271,112 @@ static void nonpreempt_engine_resets(int pf_fd, int num_vfs,
 	subm_set_fini(set);
 }
 
+static struct job_sched_params
+prepare_default_enabled_job_sched_params(int pf_fd,
+					 const uint8_t *vf_ids,
+					 size_t num_functions,
+					 int job_timeout_ms)
+{
+	struct job_sched_params params = { };
+	uint32_t min_exec_quantum_ms = UINT32_MAX;
+
+	params.sched_params = (struct vf_sched_params) {
+		.exec_quantum_ms = xe_sriov_admin_get_exec_quantum_ms(pf_fd, vf_ids[0]),
+		.preempt_timeout_us = xe_sriov_admin_get_preempt_timeout_us(pf_fd, vf_ids[0]),
+		.priority = xe_sriov_admin_get_sched_priority(pf_fd, vf_ids[0], NULL),
+	};
+
+	for (size_t n = 0; n < num_functions; ++n) {
+		uint32_t exec_quantum_ms =
+			xe_sriov_admin_get_exec_quantum_ms(pf_fd, vf_ids[n]);
+
+		min_exec_quantum_ms = min(min_exec_quantum_ms,
+					  exec_quantum_ms);
+	}
+
+	params.duration_ms = calculate_job_duration_ms(min_exec_quantum_ms);
+	params.num_repeats = adjust_num_repeats(params.duration_ms, num_functions);
+
+	igt_require_f(params.duration_ms +
+		      (num_functions - 1) * params.sched_params.exec_quantum_ms <=
+		      job_timeout_ms,
+		      "Default scheduling eq=%ums across %zu functions exceeds job timeout=%dms\n",
+		      params.sched_params.exec_quantum_ms, num_functions, job_timeout_ms);
+
+	return params;
+}
+
+static void validate_default_enabled_sched_params(int pf_fd,
+						  const uint8_t *vf_ids,
+						  size_t num_functions)
+{
+	for (size_t n = 0; n < num_functions; ++n) {
+		uint32_t exec_quantum_ms =
+			xe_sriov_admin_get_exec_quantum_ms(pf_fd, vf_ids[n]);
+		uint32_t preempt_timeout_us =
+			xe_sriov_admin_get_preempt_timeout_us(pf_fd, vf_ids[n]);
+		enum xe_sriov_sched_priority priority =
+			xe_sriov_admin_get_sched_priority(pf_fd, vf_ids[n], NULL);
+
+		igt_require_f(exec_quantum_ms > 0,
+			      "%s exec_quantum_ms stayed at 0 after enabling VFs\n",
+			      igt_sriov_func_str(vf_ids[n]));
+		igt_require_f(preempt_timeout_us > 0,
+			      "%s preempt_timeout_us stayed at 0 after enabling VFs\n",
+			      igt_sriov_func_str(vf_ids[n]));
+		igt_warn_on_f(priority != XE_SRIOV_SCHED_PRIORITY_LOW,
+			      "%s expected LOW sched_priority after enabling VFs, got %s\n",
+			      igt_sriov_func_str(vf_ids[n]),
+			      xe_sriov_sched_priority_to_string(priority));
+	}
+}
+
+static void ensure_enabled_vfs(int pf_fd, int num_vfs)
+{
+	unsigned int enabled_vfs = igt_sriov_get_enabled_vfs(pf_fd);
+
+	if (enabled_vfs && enabled_vfs != (unsigned int)num_vfs) {
+		xe_sriov_disable_vfs_restore_auto_provisioning(pf_fd);
+		enabled_vfs = 0;
+	}
+
+	if (!enabled_vfs) {
+		xe_sriov_require_default_scheduling_attributes(pf_fd);
+		igt_sriov_enable_driver_autoprobe(pf_fd);
+		igt_sriov_enable_vfs(pf_fd, num_vfs);
+	}
+}
+
+/**
+ * SUBTEST: default-enabled-fair-scheduling
+ * Description:
+ *   Check PF and enabled VFs keep fair scheduling using the driver-applied
+ *   default scheduling settings established when VFs are enabled.
+ */
+static void default_enabled_fair_scheduling(int pf_fd, int num_vfs,
+					    const struct subm_opts *opts,
+					    bool verify_with_perf_counters,
+					    const struct drm_xe_engine_class_instance *eci)
+{
+	uint8_t vf_ids[num_vfs + 1 /*PF*/];
+	uint32_t job_timeout_ms = sysfs_get_job_timeout_ms(pf_fd, eci);
+	struct job_sched_params job_sched_params;
+
+	ensure_enabled_vfs(pf_fd, num_vfs);
+
+	init_vf_ids(vf_ids, ARRAY_SIZE(vf_ids),
+		    &(struct init_vf_ids_opts){ .shuffle = true,
+						.shuffle_pf = true });
+	validate_default_enabled_sched_params(pf_fd, vf_ids, ARRAY_SIZE(vf_ids));
+	job_sched_params = prepare_default_enabled_job_sched_params(pf_fd, vf_ids,
+								    ARRAY_SIZE(vf_ids),
+								    job_timeout_ms);
+
+	verify_applied_scheduling_behavior(pf_fd, vf_ids, ARRAY_SIZE(vf_ids), opts,
+					   verify_with_perf_counters, eci,
+					   &job_sched_params);
+}
+
 static bool skip_visited_gt(bool extended_scope, uint64_t *visited_gts,
 			    unsigned short gt_id)
 {
@@ -1368,6 +1474,45 @@ int igt_main_args("", long_opts, help_str, subm_opts_handler, NULL)
 		xe_perf_device(pf_fd, perf_device, sizeof(perf_device));
 		has_perf_events = has_perf_event(perf_device, "engine-active-ticks") &&
 				  has_perf_event(perf_device, "engine-total-ticks");
+	}
+
+	igt_describe("Check PF and VFs keep fair scheduling using driver defaults applied on VF enable");
+	igt_subtest_with_dynamic("default-enabled-fair-scheduling") {
+		if (extended_scope)
+			for_each_sriov_num_vfs(pf_fd, vf)
+				xe_for_each_engine(pf_fd, eci) {
+					ecls = eci->engine_class;
+					igt_dynamic_f("numvfs-%d-gt%u-%s%u", vf,
+						      eci->gt_id,
+						      xe_engine_class_short_string(ecls),
+						      eci->engine_instance)
+						default_enabled_fair_scheduling(pf_fd, vf,
+										&subm_opts,
+										has_perf_events,
+										eci);
+				}
+
+		for_random_sriov_vf(pf_fd, vf) {
+			uint64_t visited_gts = 0;
+
+			xe_for_each_engine(pf_fd, eci) {
+				if (skip_visited_gt(extended_scope, &visited_gts,
+						    eci->gt_id))
+					continue;
+
+				igt_dynamic_f("numvfs-random-gt%u-%s%u",
+					      eci->gt_id,
+					      xe_engine_class_short_string(eci->engine_class),
+					      eci->engine_instance)
+					default_enabled_fair_scheduling(pf_fd, vf, &subm_opts,
+									has_perf_events,
+									eci);
+			}
+		}
+	}
+
+	igt_fixture() {
+		xe_sriov_disable_vfs_restore_auto_provisioning(pf_fd);
 	}
 
 	for (enum xe_sriov_sched_priority priority = XE_SRIOV_SCHED_PRIORITY_LOW;
