@@ -519,7 +519,7 @@ static void log_sample_values(char *id, struct subm_stats *stats,
 }
 
 #define MIN_NUM_REPEATS 25
-#define MIN_EXEC_QUANTUM_MS 1
+#define MIN_EXEC_QUANTUM_MS 2
 #define MAX_EXEC_QUANTUM_MS 32
 #define MIN_JOB_DURATION_MS 2
 #define MAX_TOTAL_DURATION_MS 15000
