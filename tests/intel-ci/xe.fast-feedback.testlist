@@ -248,6 +248,7 @@ igt@xe_pat@pat-index-xelp
 igt@xe_pat@pat-index-xehpc
 igt@xe_pat@pat-index-xelpg
 igt@xe_pat@pat-index-xe2
+igt@xe_pat@pat-index-auto
 igt@xe_waitfence@abstime
 igt@xe_waitfence@engine
 igt@xe_waitfence@reltime
