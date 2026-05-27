@@ -1405,11 +1405,11 @@ static void safe_alignment(int i915)
 	offset1 = gem_detect_min_start_offset_for_region(i915, region1);
 	offset2 = gem_detect_min_start_offset_for_region(i915, region2);
 	alignment = gem_detect_safe_alignment(i915);
-	igt_debug("safe alignment: %llx\n", (long long) alignment);
-	igt_debug("safe start offset: %llx\n",
-		  (long long) gem_detect_safe_start_offset(i915));
-	igt_debug("minimum object1 start offset: %llx\n", (long long) offset1);
-	igt_debug("minimum object2 start offset: %llx\n", (long long) offset2);
+	igt_info("safe alignment: %llx\n", (long long)alignment);
+	igt_info("safe start offset: %llx\n",
+		 (long long)gem_detect_safe_start_offset(i915));
+	igt_info("minimum object1 start offset: %llx\n", (long long)offset1);
+	igt_info("minimum object2 start offset: %llx\n", (long long)offset2);
 
 	execbuf.buffer_count = 2;
 	execbuf.buffers_ptr = to_user_pointer(obj);
@@ -1420,8 +1420,8 @@ static void safe_alignment(int i915)
 	obj[1].offset = max(ALIGN(offset1 + size1, alignment), offset2);
 	obj[1].flags = EXEC_OBJECT_PINNED;
 	obj[1].handle = handle2;
-	igt_debug("obj[0].offset: %llx, handle: %u\n", obj[0].offset, obj[0].handle);
-	igt_debug("obj[1].offset: %llx, handle: %u\n", obj[1].offset, obj[1].handle);
+	igt_info("obj[0].offset: %llx, handle: %u\n", obj[0].offset, obj[0].handle);
+	igt_info("obj[1].offset: %llx, handle: %u\n", obj[1].offset, obj[1].handle);
 
 	gem_execbuf(i915, &execbuf);
 	execbuf.flags = I915_EXEC_BATCH_FIRST;
@@ -1433,8 +1433,8 @@ static void safe_alignment(int i915)
 	obj[1].offset = max(ALIGN(offset2 + size2, alignment), offset1);
 	obj[1].flags = EXEC_OBJECT_PINNED;
 	obj[1].handle = handle1;
-	igt_debug("obj[0].offset: %llx, handle: %u\n", obj[0].offset, obj[0].handle);
-	igt_debug("obj[1].offset: %llx, handle: %u\n", obj[1].offset, obj[1].handle);
+	igt_info("obj[0].offset: %llx, handle: %u\n", obj[0].offset, obj[0].handle);
+	igt_info("obj[1].offset: %llx, handle: %u\n", obj[1].offset, obj[1].handle);
 
 	gem_execbuf(i915, &execbuf);
 	execbuf.flags = 0;
