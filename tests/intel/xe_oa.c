@@ -2678,7 +2678,7 @@ test_non_zero_reason(const struct drm_xe_oa_unit *oau, size_t oa_buffer_size)
 	 * can result in buffer overflows.
 	 */
 	if (oau->oa_unit_type == DRM_XE_OA_UNIT_TYPE_MERT &&
-		igt_has_intel_wa(drm_fd, "14026633728")) {
+		igt_has_intel_wa(drm_fd, "14026633728") > 0) {
 		oa_exponent = max(oa_exponent, 8);
 		properties[9] = oa_exponent;
 	}
