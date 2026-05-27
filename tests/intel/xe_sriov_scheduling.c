@@ -472,53 +472,6 @@ static void compute_common_time_frame_stats(struct subm_set *set)
 	}
 }
 
-static void log_sample_values(char *id, struct subm_stats *stats,
-			      double comparison_mean, double outlier_treshold)
-{
-	const uint64_t *values = stats->samples.values_u64;
-	unsigned int n = stats->samples.n_values;
-	char buffer[2048];
-	char *p = buffer, *pend = buffer + sizeof(buffer);
-	unsigned int i;
-	const unsigned int edge_items = 3;
-	bool is_outlier;
-	double tolerance = outlier_treshold * comparison_mean;
-
-	p += snprintf(p, pend - p,
-		      "[%s] start=%f end=%f nsamples=%u comparison_mean=%.2fms\n",
-		      id, stats->start_timestamp * 1e-9, stats->end_timestamp * 1e-9, n,
-		      comparison_mean * 1e-6);
-
-	for (i = 0; i < n && p < pend; ++i) {
-		is_outlier = fabs(values[i] - comparison_mean) > tolerance;
-
-		if (n <= 2 * edge_items || i < edge_items ||
-		    i >= n - edge_items || is_outlier) {
-			if (is_outlier) {
-				double pct_diff =
-					100 *
-					(comparison_mean ?
-						 (values[i] - comparison_mean) /
-							 comparison_mean :
-						 1.0);
-
-				p += snprintf(p, pend - p,
-					      "%0.2f @%d Pct Diff %0.2f%%\n",
-					      values[i] * 1e-6, i,
-					      pct_diff);
-			} else {
-				p += snprintf(p, pend - p, "%0.2f\n",
-					      values[i] * 1e-6);
-			}
-		}
-
-		if (i == edge_items && n > 2 * edge_items)
-			p += snprintf(p, pend - p, "...\n");
-	}
-
-	igt_debug("%s\n", buffer);
-}
-
 #define MIN_NUM_REPEATS 25
 #define MIN_EXEC_QUANTUM_MS 2
 #define MAX_EXEC_QUANTUM_MS 32
