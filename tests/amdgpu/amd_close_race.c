@@ -90,6 +90,31 @@ union bo_list {
 #define GTT_DOMAIN    0x4
 #define VRAM_DOMAIN   0x2
 
+/*
+ * VM page mapping flags (AMDGPU_VM_PAGE_*).
+ *
+ * IB buffers must be mapped with READABLE | WRITEABLE | EXECUTABLE,
+ * matching libdrm's amdgpu_bo_va_op() behavior.
+ *
+ * EXECUTABLE is required on all generations.  Without it:
+ *   GFX10: after TLB eviction (~32 submissions), re-walk finds valid PTE
+ *          without execute permission -> silent CP stall.  Protection
+ *          violation does not generate a fault interrupt (unlike invalid
+ *          PTE).  DRM scheduler times out after 2s -> ring reset flushes
+ *          TLB -> GPU resumes.  Cycle repeats every ~32 submissions.
+ *   GFX12: close race tears down page tables while GPU executes.  PTEs
+ *          become invalid -> VM page fault interrupt -> dmesg  VM fault.
+ *          GPU reset recovers, no hard hang.
+ *
+ * Key difference: valid PTE + missing execute = silent stall (no interrupt).
+ * Invalid PTE = fault interrupt.  Reset helps because TLB flush forces a
+ * fresh translation fetch; since pages are still mapped, GPU resumes.
+ */
+#define VM_PAGE_READABLE   (1 << 1)
+#define VM_PAGE_WRITEABLE  (1 << 2)
+#define VM_PAGE_EXECUTABLE (1 << 3)
+#define IB_MAP_FLAGS       (VM_PAGE_READABLE | VM_PAGE_WRITEABLE | VM_PAGE_EXECUTABLE)
+
 struct racer {
         int fd;
         int id;
@@ -252,7 +277,7 @@ static int setup_racer(struct racer *r, int id, int n_ctx,
         memset(&gv, 0, sizeof(gv));
         gv.handle = gc.out.handle;
         gv.operation = 1; /* MAP */
-        gv.flags = 6;     /* readable | writeable */
+        gv.flags = IB_MAP_FLAGS;
         gv.va_address = va;
         gv.map_size = IB_SIZE;
         ioctl(r->fd, IOCTL_GEM_VA, &gv);
@@ -288,7 +313,7 @@ static int setup_racer(struct racer *r, int id, int n_ctx,
                 memset(&v, 0, sizeof(v));
                 v.handle = bo.out.handle;
                 v.operation = 1;
-                v.flags = 6;
+                v.flags = IB_MAP_FLAGS;
                 v.va_address = va;
                 v.map_size = VRAM_BO_SIZE;
                 ioctl(r->fd, IOCTL_GEM_VA, &v);
@@ -445,7 +470,7 @@ sigkill_child(int child_id, int n_ctx, int pipe_wr)
         memset(&gv, 0, sizeof(gv));
         gv.handle = ib_h;
         gv.operation = 1;
-        gv.flags = 6;
+        gv.flags = IB_MAP_FLAGS;
         gv.va_address = va;
         gv.map_size = IB_SIZE;
         ioctl(fd, IOCTL_GEM_VA, &gv);
@@ -489,7 +514,7 @@ sigkill_child(int child_id, int n_ctx, int pipe_wr)
                         memset(&v, 0, sizeof(v));
                         v.handle = bo.out.handle;
                         v.operation = 1;
-                        v.flags = 6;
+                        v.flags = IB_MAP_FLAGS;
                         v.va_address = vram_va;
                         v.map_size = VRAM_BO_SIZE;
                         ioctl(fd, IOCTL_GEM_VA, &v);
