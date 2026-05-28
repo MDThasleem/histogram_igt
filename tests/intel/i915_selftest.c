@@ -649,8 +649,8 @@ int igt_main()
 	igt_kselftests("i915", opts, NULL, "mock", NULL);
 
 	igt_assert(snprintf(opts, sizeof(opts),
-			    "live_selftests=-1 disable_display=1 st_filter=%s",
-			    env) < sizeof(opts));
+			    "live_selftests=-1 disable_display=1 st_filter=%s st_userspace_pid=%d",
+			    env, getpid()) < sizeof(opts));
 	igt_kselftests("i915", opts, "live_selftests", "live", NULL);
 
 	igt_assert(snprintf(opts, sizeof(opts),
