@@ -7025,12 +7025,15 @@ int igt_get_current_cdclk(int fd)
 }
 
 /**
- * get_max_hdisplay:
+ * intel_get_max_pipe_hdisplay:
  * @drm_fd: drm file descriptor
+ *
+ * Get the maximum hdisplay (width) supported by a single pipe on the
+ * platform. This is a public function for querying platform capabilities.
  *
  * Returns: The maximum hdisplay supported per pipe.
  */
-static int get_max_pipe_hdisplay(int drm_fd)
+int intel_get_max_pipe_hdisplay(int drm_fd)
 {
 	int dev_id = intel_get_drm_devid(drm_fd);
 
@@ -7051,7 +7054,7 @@ static int get_max_pipe_hdisplay(int drm_fd)
  */
 bool igt_bigjoiner_possible(int drm_fd, drmModeModeInfo *mode, int max_dotclock)
 {
-	return (mode->hdisplay > get_max_pipe_hdisplay(drm_fd) ||
+	return (mode->hdisplay > intel_get_max_pipe_hdisplay(drm_fd) ||
 		mode->clock > max_dotclock);
 }
 
@@ -7099,7 +7102,7 @@ bool bigjoiner_mode_found(int drm_fd, drmModeConnector *connector,
 bool intel_boundary_non_joiner_mode_found(int drm_fd, drmModeConnector *connector,
 					  int max_dotclock, drmModeModeInfo *mode)
 {
-	int max_hdisplay = get_max_pipe_hdisplay(drm_fd);
+	int max_hdisplay = intel_get_max_pipe_hdisplay(drm_fd);
 
 	for (int i = 0; i < connector->count_modes; i++) {
 		drmModeModeInfo *current_mode = &connector->modes[i];
@@ -7160,7 +7163,7 @@ bool igt_is_joiner_enabled_for_pipe(int drmfd, enum pipe pipe)
  */
 bool igt_ultrajoiner_possible(int drm_fd, drmModeModeInfo *mode, int max_dotclock)
 {
-	return (mode->hdisplay > 2 * get_max_pipe_hdisplay(drm_fd) ||
+	return (mode->hdisplay > 2 * intel_get_max_pipe_hdisplay(drm_fd) ||
 		mode->clock > 2 * max_dotclock);
 }
 
