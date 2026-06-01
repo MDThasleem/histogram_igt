@@ -5,11 +5,12 @@
 
 #include "kms_mst_helper.h"
 
-/*
+/**
+ * igt_find_all_mst_output_in_topology:
  * @drm_fd: DRM file descriptor
  * @display: pointer to #igt_display_t structure
  * @output: target output
- * @mst_outputs: filled with mst output of same toplogy as @output
+ * @mst_outputs: filled with mst output of same topology as @output
  * @num_mst_outputs: filled with count of mst outputs found in topology
  *
  * Iterates over all connected outputs and adds each DP MST
