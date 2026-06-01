@@ -1,11 +1,14 @@
 #include <assert.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <fcntl.h>
+#include <ftw.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <jansson.h>
@@ -266,6 +269,19 @@ static struct json_t *get_or_create_json_object(struct json_t *base, const char 
 		return ret;
 
 	ret = json_object();
+	json_object_set_new(base, key, ret);
+
+	return ret;
+}
+
+static struct json_t *get_or_create_json_array(struct json_t *base, const char *key)
+{
+	struct json_t *ret = json_object_get(base, key);
+
+	if (ret)
+		return ret;
+
+	ret = json_array();
 	json_object_set_new(base, key, ret);
 
 	return ret;
@@ -1140,6 +1156,83 @@ static bool fill_from_dmesg(int fd,
 	g_regex_unref(re);
 	fclose(f);
 	return true;
+}
+
+static struct json_t *tmp_tests;
+static int ftw_attachments_list(const char *fpath, const struct stat *sb,
+				int typeflag, struct FTW *ftwbuf)
+{
+	struct json_t *obj = NULL, *attobj = NULL;
+
+	(void)sb;
+	(void)ftwbuf;
+
+	switch (typeflag) {
+	/*
+	 * There're two keys set/updated here:
+	 * - attachments-dir - absolute path to results
+	 * - attachments - list of files relative to attachments-dir
+	 *
+	 * nftw() call uses "." as traversed directory, so fpath looks like:
+	 * ./igt@xe_exec_basic@once-basic@rcs0/current-date.txt
+	 *
+	 * To extract piglit test name (igt@xe_exec_basic@once-basic@rcs0
+	 * in this case) we have to start from fpath + 2 and finish at the '/'.
+	 * Instead of duplicating string we temporarily overwrite '/' with '\0'.
+	 */
+	case FTW_F:
+		const char *attdirkey = "attachments-dir";
+		char *p, *currpath = (char *) fpath + 2;
+		char currdir[PATH_MAX];
+
+		p = strstr(currpath, "/");
+		if (!p)
+			return -1;
+		*p = '\0'; /* temporary for acquiring the piglit name */
+		obj = get_or_create_json_object(tmp_tests, currpath);
+		attobj = get_or_create_json_array(obj, "attachments");
+		*p = '/'; /* bring '/' back */
+		json_array_append_new(attobj, escaped_json_stringn(currpath, strlen(currpath)));
+		if (getcwd(currdir, PATH_MAX) && !json_object_get(obj, attdirkey))
+			json_object_set_new(obj, attdirkey,
+					    escaped_json_stringn(currdir, strlen(currdir)));
+		break;
+	case FTW_DP:
+		break;
+	default:
+		return -1;
+	}
+
+	return 0;
+}
+
+static bool fill_from_attachments(int idirfd, struct json_t *tests)
+{
+	char attname[32];
+	int attdirfd;
+	DIR *currdir;
+	int ret;
+
+	snprintf(attname, sizeof(attname), "%s", DIR_ATTACHMENTS);
+	if ((attdirfd = openat(idirfd, attname, O_DIRECTORY | O_RDONLY | O_CLOEXEC)) < 0) {
+		fprintf(stderr, "Error opening '%s' dir\n", DIR_ATTACHMENTS);
+		return false;
+	}
+
+	currdir = opendir(".");
+	fchdir(attdirfd);
+
+	/*
+	 * ftw doesn't support passing user data so *tests has to be
+	 * set to some global for being visible in callback function.
+	 * As results.json is not processed in multiple threads it is
+	 * not a big problem.
+	 */
+	tmp_tests = tests;
+	ret = nftw(".", ftw_attachments_list, 4, FTW_PHYS | FTW_DEPTH);
+	fchdir(dirfd(currdir));
+
+	return ret ? false : true;
 }
 
 static const char *result_from_exitcode(int exitcode)
@@ -2229,6 +2322,9 @@ static bool parse_test_directory(int dirfd,
 	if (!fill_from_dmesg(fds[_F_DMESG], settings, entry->binary, &subtests, results->tests)) {
 		fprintf(stderr, "Error parsing output files (dmesg.txt)\n");
 	}
+
+	if (!fill_from_attachments(dirfd, results->tests))
+		fprintf(stderr, "Error parsing attachments directory\n");
 
 	override_results(entry->binary, &subtests, results->tests);
 	prune_subtests(settings, entry, &subtests, results->tests);
