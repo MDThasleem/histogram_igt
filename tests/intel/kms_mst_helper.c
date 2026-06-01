@@ -47,3 +47,22 @@ int igt_find_all_mst_output_in_topology(int drm_fd, igt_display_t *display,
 	}
 	return 0;
 }
+
+/**
+ * igt_display_has_mst_output:
+ * @display: pointer to #igt_display_t structure
+ *
+ * Check if a display has at least one DP MST output connected.
+ *
+ * Returns: true if MST output is found, false otherwise
+ */
+bool igt_display_has_mst_output(igt_display_t *display)
+{
+	igt_output_t *output;
+
+	for_each_connected_output(display, output) {
+		if (igt_check_output_is_dp_mst(output))
+			return true;
+	}
+	return false;
+}
