@@ -7084,20 +7084,20 @@ bool bigjoiner_mode_found(int drm_fd, drmModeConnector *connector,
 }
 
 /**
- * max_non_joiner_mode_found:
+ * intel_boundary_non_joiner_mode_found:
  * @drm_fd: drm file descriptor
  * @connector: libdrm connector
  * @max_dot_clock: max dot clock frequency
  * @mode: libdrm mode to be filled
  *
- * Finds the highest possible display mode that does
- * not require a big joiner.
+ * Check if connector supports a mode at the platform's maximum single-pipe
+ * hdisplay boundary.
  *
- * Returns: True if a valid non-joiner mode is found,
+ * Returns: True if a valid non-joiner mode at the boundary is found,
  * false otherwise.
  */
-bool max_non_joiner_mode_found(int drm_fd, drmModeConnector *connector,
-			   int max_dotclock, drmModeModeInfo *mode)
+bool intel_boundary_non_joiner_mode_found(int drm_fd, drmModeConnector *connector,
+					  int max_dotclock, drmModeModeInfo *mode)
 {
 	int max_hdisplay = get_max_pipe_hdisplay(drm_fd);
 

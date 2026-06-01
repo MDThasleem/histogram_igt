@@ -593,9 +593,9 @@ static void test_basic_max_non_joiner(data_t *data)
 				igt_assert_f(crtc, "There is no pipe %s\n", kmstest_pipe_name(pipe));
 
 				igt_output_set_crtc(output, crtc);
-				igt_require(max_non_joiner_mode_found(data->drm_fd,
-								      output->config.connector,
-								      max_dotclock, &mode));
+				igt_require(intel_boundary_non_joiner_mode_found(data->drm_fd,
+										  output->config.connector,
+										  max_dotclock, &mode));
 				igt_output_override_mode(output, &mode);
 				igt_info("Appplying mode = %dx%d@%d\n", mode.hdisplay,
 					 mode.vdisplay, mode.vrefresh);
@@ -658,8 +658,8 @@ int igt_main()
 			 */
 			bigjoiner_found = bigjoiner_mode_found(data.drm_fd, connector, max_dotclock, &mode);
 			ultrajoiner_found = ultrajoiner_mode_found(data.drm_fd, connector, max_dotclock, &mode);
-			non_joiner_found = max_non_joiner_mode_found(data.drm_fd, connector,
-								     max_dotclock, &mode);
+			non_joiner_found = intel_boundary_non_joiner_mode_found(data.drm_fd, connector,
+										 max_dotclock, &mode);
 
 			if (igt_has_force_joiner_debugfs(data.drm_fd, output->name))
 				force_joiner_supported = true;
