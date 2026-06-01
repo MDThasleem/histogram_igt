@@ -35,8 +35,19 @@ intelci_files = [
   'xe.wcl.core.blocklist.txt',
 ]
 
+hooks_files = [
+  'hooks/common.helper.sh',
+  'hooks/copy_guc_log_on_fail.sh',
+  'hooks/copy_guc_log_on_fail.allowlist',
+  'hooks/hook-date.sh',
+  'hooks/hook-date.allowlist',
+  'hooks/hooks-wrapper.sh',
+]
+
 if meson.version().version_compare('<1.3.0')
   install_data(sources : intelci_files, install_dir : datadir)
+  install_data(sources : hooks_files, install_dir : datadir + '/hooks')
 else
   install_data(sources : intelci_files, install_dir : datadir, follow_symlinks : false)
+  install_data(sources : hooks_files, install_dir : datadir + '/hooks', follow_symlinks : false)
 endif
