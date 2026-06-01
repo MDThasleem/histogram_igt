@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <ftw.h>
 #ifdef ANDROID
 #include "android/glib.h"
 #else
@@ -1779,17 +1780,22 @@ static int execute_next_entry(struct execute_state *state,
 	int errpipe[2] = { -1, -1 };
 	int socket[2] = { -1, -1 };
 	int outfd, errfd, socketfd;
-	char name[32];
+	char name[32], attname[32];
+	char attdirname[PATH_MAX];
 	pid_t child;
 	int result;
 	size_t idx = state->next;
 
 	snprintf(name, sizeof(name), "%zd", idx);
+	snprintf(attname, sizeof(attname), "%zd/%s", idx, DIR_ATTACHMENTS);
 	mkdirat(resdirfd, name, 0777);
+	mkdirat(resdirfd, attname, 0777);
 	if ((idirfd = openat(resdirfd, name, O_DIRECTORY | O_RDONLY | O_CLOEXEC)) < 0) {
 		errf("Error accessing individual test result directory\n");
 		return -1;
 	}
+	snprintf(attdirname, sizeof(attdirname), "%s/%s",
+		 settings->results_path, attname);
 
 	if (!open_output_files(idirfd, outputs, true)) {
 		errf("Error opening output files\n");
@@ -1870,6 +1876,7 @@ static int execute_next_entry(struct execute_state *state,
 			setenv("IGT_RUNNER_SOCKET_FD", envstring, 1);
 		}
 		setenv("IGT_SENTINEL_ON_STDERR", "1", 1);
+		setenv("IGT_RUNNER_ATTACHMENTS_DIR", attdirname, 1);
 
 		execute_test_process(outfd, errfd, socketfd, settings, entry);
 		/* unreachable */
@@ -1948,19 +1955,66 @@ static int remove_file(int dirfd, const char *name)
 	return unlinkat(dirfd, name, 0) && errno != ENOENT;
 }
 
-static bool clear_test_result_directory(int dirfd)
+static int ftw_attachment_removal(const char *fpath, const struct stat *sb,
+				  int typeflag, struct FTW *ftwbuf)
 {
-	int i;
+	(void)sb;
+	(void)ftwbuf;
+
+	switch (typeflag) {
+	case FTW_F:
+	case FTW_SL:
+		if (unlink(fpath)) {
+			errf("Error removing file %s: %s\n",
+			     fpath, strerror(errno));
+			return -1;
+		}
+		break;
+	case FTW_DP:
+		if (rmdir(fpath)) {
+			errf("Error removing directory %s: %s\n",
+			     fpath, strerror(errno));
+			return -1;
+		}
+		break;
+	default:
+		errf("Cannot remove %s (unsupported file type)\n", fpath);
+		return -1;
+	}
+
+	return 0;
+}
+
+static bool clear_test_result_directory(const char *name)
+{
+	char *attdirname;
+	int i, resdirfd;
+	int ret;
+
+	if ((resdirfd = open(name, O_DIRECTORY | O_RDONLY)) < 0)
+		return false;
 
 	for (i = 0; i < _F_LAST; i++) {
-		if (remove_file(dirfd, filenames[i])) {
+		if (remove_file(resdirfd, filenames[i])) {
 			errf("Error deleting %s from test result directory: %m\n",
 			     filenames[i]);
+			close(resdirfd);
 			return false;
 		}
 	}
 
-	return true;
+	close(resdirfd);
+
+	if (strlen(name) + strlen(DIR_ATTACHMENTS) + 1 >= PATH_MAX) {
+		errf("Attachments directory length exceeds PATH_MAX\n");
+		return false;
+	}
+
+	asprintf(&attdirname, "%s/%s", name, DIR_ATTACHMENTS);
+	ret = nftw(attdirname, ftw_attachment_removal, 4, FTW_PHYS | FTW_DEPTH);
+	free(attdirname);
+
+	return ret ? false : true;
 }
 
 static bool clear_old_results(char *path)
@@ -1991,19 +2045,17 @@ static bool clear_old_results(char *path)
 	}
 
 	for (i = 0; true; i++) {
-		int resdirfd;
+		struct stat st;
 
-		snprintf(name, sizeof(name), "%zd", i);
-		if ((resdirfd = openat(dirfd, name, O_DIRECTORY | O_RDONLY)) < 0)
+		snprintf(name, sizeof(name), "%s/%zd", path, i);
+		if (stat(name, &st))
 			break;
 
-		if (!clear_test_result_directory(resdirfd)) {
-			close(resdirfd);
+		if (!clear_test_result_directory(name)) {
 			close(dirfd);
 			return false;
 		}
-		close(resdirfd);
-		if (unlinkat(dirfd, name, AT_REMOVEDIR)) {
+		if (rmdir(name)) {
 			errf("Warning: Result directory %s contains extra files\n",
 			     name);
 		}
