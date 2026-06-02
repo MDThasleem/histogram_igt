@@ -346,6 +346,9 @@ int igt_main()
 		igt_require(igt_sriov_is_pf(pf_fd));
 		igt_require(igt_sriov_get_enabled_vfs(pf_fd) == 0);
 		igt_require(xe_sriov_admin_is_present(pf_fd));
+		igt_sriov_install_exit_handler(pf_fd,
+					       xe_sriov_admin_exit_cleanup_restore_defaults,
+					       NULL);
 		total_vfs = igt_sriov_get_total_vfs(pf_fd);
 	}
 
@@ -429,6 +432,7 @@ int igt_main()
 		igt_abort_on_f(igt_sriov_get_enabled_vfs(pf_fd) > 0,
 			       "Failed to disable VF(s)");
 		igt_abort_on_f(ret, "Failed to restore default profile values\n");
+		igt_sriov_clear_exit_handler();
 		drm_close_driver(pf_fd);
 	}
 }

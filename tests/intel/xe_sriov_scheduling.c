@@ -1469,6 +1469,9 @@ int igt_main_args("", long_opts, help_str, subm_opts_handler, NULL)
 		igt_require(igt_sriov_is_pf(pf_fd));
 		igt_require(igt_sriov_get_enabled_vfs(pf_fd) == 0);
 		igt_require(xe_sriov_admin_is_present(pf_fd));
+		igt_sriov_install_exit_handler(pf_fd,
+					       xe_sriov_admin_exit_cleanup_restore_defaults,
+					       NULL);
 		autoprobe = igt_sriov_is_driver_autoprobe_enabled(pf_fd);
 		xe_sriov_require_default_scheduling_attributes(pf_fd);
 		xe_perf_device(pf_fd, perf_device, sizeof(perf_device));
@@ -1635,6 +1638,7 @@ int igt_main_args("", long_opts, help_str, subm_opts_handler, NULL)
 			       "Failed to restore sriov_drivers_autoprobe value\n");
 		igt_abort_on_f(ret,
 			       "Failed to restore scheduling params\n");
+		igt_sriov_clear_exit_handler();
 		drm_close_driver(pf_fd);
 	}
 }

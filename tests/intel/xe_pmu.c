@@ -994,6 +994,9 @@ static unsigned int enable_and_provision_vfs(int fd)
 	igt_require(xe_sriov_admin_is_present(fd));
 	igt_require(igt_sriov_get_enabled_vfs(fd) == 0);
 	xe_sriov_require_default_scheduling_attributes(fd);
+	igt_sriov_install_exit_handler(fd,
+				       xe_sriov_admin_exit_cleanup_restore_defaults,
+				       NULL);
 	autoprobe = igt_sriov_is_driver_autoprobe_enabled(fd);
 
 	/* Enable VF's */
@@ -1035,6 +1038,7 @@ static void unprovision_and_disable_vfs(int fd)
 
 	igt_abort_on_f(autoprobe != igt_sriov_is_driver_autoprobe_enabled(fd),
 		       "Failed to restore sriov_drivers_autoprobe value\n");
+	igt_sriov_clear_exit_handler();
 }
 
 static void stash_gt_freq(int fd, uint32_t **stash_min, uint32_t **stash_max)
