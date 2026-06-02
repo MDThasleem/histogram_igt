@@ -623,3 +623,24 @@ void xe_sriov_admin_bulk_restore_defaults(int pf_fd)
 {
 	igt_assert_eq(0, __xe_sriov_admin_bulk_restore_defaults(pf_fd));
 }
+
+/**
+ * xe_sriov_admin_exit_cleanup_restore_defaults - Best-effort SR-IOV defaults restore callback
+ * @pf_fd: PF device file descriptor
+ * @sig: Exit signal number, or 0 on normal exit
+ * @user_data: Unused
+ *
+ * Callback suitable for igt_sriov_install_exit_handler() when a test modifies
+ * XE SR-IOV scheduling defaults. Restores PF and VF scheduling attributes to
+ * driver defaults. Failures are ignored so the callback remains best-effort.
+ */
+void xe_sriov_admin_exit_cleanup_restore_defaults(int pf_fd, int sig, void *user_data)
+{
+	(void)sig;
+	(void)user_data;
+
+	if (!xe_sriov_admin_is_present(pf_fd))
+		return;
+
+	(void)__xe_sriov_admin_bulk_restore_defaults(pf_fd);
+}

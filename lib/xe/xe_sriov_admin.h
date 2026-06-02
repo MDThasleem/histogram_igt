@@ -56,5 +56,7 @@ int  __xe_sriov_admin_restore_defaults(int pf_fd, unsigned int vf_num);
 void  xe_sriov_admin_restore_defaults(int pf_fd, unsigned int vf_num);
 int  __xe_sriov_admin_bulk_restore_defaults(int pf_fd);
 void  xe_sriov_admin_bulk_restore_defaults(int pf_fd);
+void xe_sriov_admin_exit_cleanup_restore_defaults(int pf_fd, int sig,
+						  void *user_data);
 
 #endif /* __XE_SRIOV_ADMIN_H__ */
