@@ -132,6 +132,19 @@ static void test_init(data_t *data, bool physical)
 			igt_crtc_crc_new(crtc, IGT_PIPE_CRC_SOURCE_AUTO);
 	}
 
+	/*
+	 * Scan ALL connectors to count connected outputs. Do not cap at
+	 * max_pipes: the number of connectors can exceed the number of pipes
+	 * and capping would silently drop connectors at indices >= max_pipes.
+	 */
+	for (i = 0; i < display->n_outputs; i++) {
+		output = &display->outputs[i];
+		if (!igt_output_is_connected(output))
+			continue;
+		if (data->connected_outputs < IGT_MAX_PIPES)
+			data->connected_output[data->connected_outputs++] = output;
+	}
+
 	for (i = 0; i < display->n_outputs && i < max_pipes; i++) {
 		if (!data->crtc[i] && !physical)
 			continue;
@@ -139,10 +152,8 @@ static void test_init(data_t *data, bool physical)
 		output = &display->outputs[i];
 		data->output[i] = output;
 
-		/* Only allow physically connected displays for the tests. */
 		if (!igt_output_is_connected(output))
 			continue;
-		data->connected_output[data->connected_outputs++] = output;
 
 		igt_assert(kmstest_get_connector_default_mode(
 			data->fd, output->config.connector, &data->mode[i]));
@@ -150,7 +161,6 @@ static void test_init(data_t *data, bool physical)
 		data->w[i] = data->mode[i].hdisplay;
 		data->h[i] = data->mode[i].vdisplay;
 	}
-
 
 	igt_require(data->output[0]);
 	igt_display_reset(display);
