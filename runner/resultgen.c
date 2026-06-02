@@ -1230,6 +1230,7 @@ static bool fill_from_attachments(int idirfd, struct json_t *tests)
 	tmp_tests = tests;
 	ret = nftw(".", ftw_attachments_list, 4, FTW_PHYS | FTW_DEPTH);
 	fchdir(dirfd(currdir));
+	closedir(currdir);
 
 	return ret ? false : true;
 }
