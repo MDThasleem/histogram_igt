@@ -334,28 +334,50 @@ static void vf_unbind_driver_override(int pf_fd, unsigned int vf_id)
 	free(slot);
 }
 
-static void restore_xe_vfio_module(void)
+static bool __restore_xe_vfio_module_state(void)
 {
 	bool loaded = igt_kmod_is_loaded(XE_VFIO_PCI_MODULE);
 	int ret;
 
 	if (loaded == g_xe_vfio_loaded_initially)
-		return;
+		return true;
 
 	ret = g_xe_vfio_loaded_initially ?
 		igt_kmod_load(XE_VFIO_PCI_MODULE, NULL) :
 		igt_kmod_unload(XE_VFIO_PCI_MODULE);
-	igt_abort_on_f(ret,
-		       "Failed to %s %s during cleanup\n",
-		       g_xe_vfio_loaded_initially ? "load" : "unload",
-		       XE_VFIO_PCI_MODULE);
+	if (ret)
+		return false;
 
 	loaded = igt_kmod_is_loaded(XE_VFIO_PCI_MODULE);
-	igt_abort_on_f(loaded != g_xe_vfio_loaded_initially,
-		       "%s should be %s after cleanup\n",
+
+	return loaded == g_xe_vfio_loaded_initially;
+}
+
+static void restore_xe_vfio_module_or_abort(void)
+{
+	igt_abort_on_f(!__restore_xe_vfio_module_state(),
+		       "Failed to restore %s to %s during cleanup\n",
 		       XE_VFIO_PCI_MODULE,
 		       g_xe_vfio_loaded_initially ? "loaded" : "unloaded");
 }
+
+static void restore_xe_vfio_module_best_effort(void)
+{
+	igt_warn_on_f(!__restore_xe_vfio_module_state(),
+		      "Failed to restore %s to %s during exit cleanup\n",
+		      XE_VFIO_PCI_MODULE,
+		      g_xe_vfio_loaded_initially ? "loaded" : "unloaded");
+}
+
+static void exit_cleanup(int pf_fd, int sig, void *data)
+{
+	(void)pf_fd;
+	(void)sig;
+	(void)data;
+
+	restore_xe_vfio_module_best_effort();
+}
+
 /**
  * flr_exec_strategy - Function pointer for FLR execution strategy
  * @pf_fd: File descriptor for the Physical Function (PF).
@@ -1230,6 +1252,7 @@ int igt_main_args("evw:", long_options, help_str, opt_handler, NULL)
 		igt_require(igt_sriov_get_enabled_vfs(pf_fd) == 0);
 		autoprobe = igt_sriov_is_driver_autoprobe_enabled(pf_fd);
 		g_xe_vfio_loaded_initially = igt_kmod_is_loaded(XE_VFIO_PCI_MODULE);
+		igt_sriov_install_exit_handler(pf_fd, exit_cleanup, NULL);
 	}
 
 	igt_describe("Initiate FLR without any additional state checks.");
@@ -1279,7 +1302,8 @@ int igt_main_args("evw:", long_options, help_str, opt_handler, NULL)
 			    igt_sriov_disable_driver_autoprobe(pf_fd);
 		igt_abort_on_f(autoprobe != igt_sriov_is_driver_autoprobe_enabled(pf_fd),
 			       "Failed to restore sriov_drivers_autoprobe value\n");
-		restore_xe_vfio_module();
+		restore_xe_vfio_module_or_abort();
+		igt_sriov_clear_exit_handler();
 		close(pf_fd);
 	}
 }
