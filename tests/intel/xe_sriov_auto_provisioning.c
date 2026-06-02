@@ -347,6 +347,7 @@ int igt_main_args("", long_opts, help_str, opts_handler, NULL)
 		}
 		autoprobe = igt_sriov_is_driver_autoprobe_enabled(pf_fd);
 		total_vfs = igt_sriov_get_total_vfs(pf_fd);
+		igt_sriov_install_exit_handler(pf_fd, NULL, NULL);
 	}
 
 	igt_describe("Verify that auto-provisioned resources are allocated by PF driver in fairly manner");
@@ -443,6 +444,7 @@ int igt_main_args("", long_opts, help_str, opts_handler, NULL)
 			    igt_sriov_disable_driver_autoprobe(pf_fd);
 		igt_abort_on_f(autoprobe != igt_sriov_is_driver_autoprobe_enabled(pf_fd),
 			       "Failed to restore sriov_drivers_autoprobe value\n");
+		igt_sriov_clear_exit_handler();
 		drm_close_driver(pf_fd);
 	}
 }
