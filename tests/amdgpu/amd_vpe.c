@@ -14,41 +14,6 @@ IGT_TEST_DESCRIPTION("Test VPE functionality");
 
 #define MAX_RESOURCES		16
 
-#define PLANE_WIDTH		1024
-#define PLANE_HEIGHT		256
-#define PLANE_SIZE		(PLANE_WIDTH*PLANE_HEIGHT*4)
-
-#define SRC_PLANE_PATTERN	0x12345678
-#define DST_PLANE_PATTERN	0xff123456
-
-static uint32_t vpe_descriptor[] = {
-0x00000001, 0x33002200, 0xff000021, 0x00000003, 0x33002234, 0xff000021, 0x33002328, 0xff000021,
-0x33002384, 0xff000021, 0x330023c0, 0xff000021,
-};
-
-static uint32_t vpe_config[] = {
-0x00000002, 0x00000000, 0xbeefbe00, 0xff005678, 0x000003ff, 0x00000000, 0x00ff43ff, 0x00000000,
-0xbeefbe00, 0xff005679, 0x000003ff, 0x00000000, 0x00ff43ff, 0x003b0003, 0x00047808, 0x00000809,
-0x0004780c, 0x000000e4, 0x00047d10, 0x00000009, 0x00047d14, 0x00000101, 0x00047d18, 0x00000000,
-0x00047d1c, 0x00000000, 0x00047d20, 0x00000000, 0x00047d24, 0x0001f010, 0x00047d28, 0x0001f010,
-0x00047d2c, 0x0001f010, 0x00547ee9, 0x00002000, 0x00000000, 0x20000000, 0x00000000, 0x00000000,
-0x00002000, 0x00047ee4, 0x00000001, 0x00047ee0, 0x00000000, 0x00047f24, 0x00000000, 0x00047fc4,
-0x00000000, 0x00547f05, 0x00002000, 0x00000000, 0x20000000, 0x00000000, 0x00000000, 0x00002000,
-0x00047f00, 0x00000001, 0x00049700, 0x00000000, 0x00049704, 0x0000000f, 0x00049f30, 0x00000000,
-0x00049708, 0x00000000, 0x0004970c, 0xffff0462, 0x0004a208, 0x00000000, 0x0004971c, 0x00000000,
-0x00047fc0, 0x0001f000, 0x00150003, 0x00047df8, 0x00000001, 0x00047dfc, 0x00000001, 0x00047da8,
-0x00000006, 0x00047e18, 0x00000000, 0x0004970c, 0xffff0422, 0x00049710, 0x0001f000, 0x00049714,
-0x0001f000, 0x00049718, 0x0001f000, 0x00049720, 0x00000000, 0x00049724, 0x00000000, 0x00049728,
-0x00000000, 0x000d0003, 0x00047810, 0x00000000, 0x00047814, 0x01000400, 0x00047818, 0x00000000,
-0x0004781c, 0x01000400, 0x00047e00, 0x00000000, 0x00047e04, 0x01000400, 0x00047e08, 0x01000400,
-0x00280003, 0x00047820, 0x00000036, 0x00047824, 0x0960f015, 0x0004972c, 0x00000014, 0x0004972c,
-0x00000014, 0x0004972c, 0x00000014, 0x00049f90, 0x00000000, 0x00049f94, 0x00000001, 0x00549f99,
-0x00002000, 0x00000000, 0x20000000, 0x00000000, 0x00000000, 0x00002000, 0x00049850, 0x00000000,
-0x00049f34, 0x00000000, 0x00049f38, 0x02fff000, 0x00049f3c, 0x00fff000, 0x00049f40, 0x00fff000,
-0x0004aba0, 0xffff0000, 0x0004aba0, 0xffff0000, 0x0004aacc, 0x00000000, 0x0004aad4, 0x00000013,
-0x0004aad4, 0x00000013,
-};
-
 static bool is_vpe_tests_enabled(amdgpu_device_handle device_handle,
 		struct mmd_shared_context *shared_context)
 {
@@ -179,17 +144,25 @@ static int check_rgba8888_hmirror(void *addr, uint32_t width, uint32_t height)
 static void amdgpu_cs_vpe1_csc(amdgpu_device_handle device_handle,
 				struct mmd_context *context)
 {
-	const uint32_t vpep_config_offsets[] = {0x34, 0x128, 0x184, 0x1c0};
-	struct amdgpu_mmd_bo vpe_config_bo, src_plane_bo, dst_plane_bo;
 	int r;
+	uint32_t frame_size;
+	struct amdgpu_mmd_bo vpep_cmd_bo, src_plane_bo, dst_plane_bo;
+	/* same height and pitch for input and output */
+	const uint32_t height = 256;
+	const uint32_t pitch = 1024;
+	const uint32_t vpep_config_offsets[] = { 0x34, 0x128, 0x184, 0x1c0, };
 
+	uint32_t *vpec_csc_cmd = vpe_get_vpec_csc_cmd();
+	uint32_t *vpep_csc_cmd = vpe_get_vpep_csc_cmd();
+
+	frame_size = pitch * height * 4;
 	context->num_resources = 0;
 
-	alloc_resource(device_handle, &vpe_config_bo, sizeof(vpe_config), AMDGPU_GEM_DOMAIN_GTT);
-	alloc_resource(device_handle, &src_plane_bo, PLANE_SIZE, AMDGPU_GEM_DOMAIN_GTT);
-	alloc_resource(device_handle, &dst_plane_bo, PLANE_SIZE, AMDGPU_GEM_DOMAIN_GTT);
+	alloc_resource(device_handle, &vpep_cmd_bo, VPEP_CSC_CMD_SIZE, AMDGPU_GEM_DOMAIN_GTT);
+	alloc_resource(device_handle, &src_plane_bo, frame_size, AMDGPU_GEM_DOMAIN_GTT);
+	alloc_resource(device_handle, &dst_plane_bo, frame_size, AMDGPU_GEM_DOMAIN_GTT);
 
-	r = amdgpu_bo_cpu_map(vpe_config_bo.handle, (void **)&vpe_config_bo.ptr);
+	r = amdgpu_bo_cpu_map(vpep_cmd_bo.handle, (void **)&vpep_cmd_bo.ptr);
 	igt_assert_eq(r, 0);
 
 	r = amdgpu_bo_cpu_map(src_plane_bo.handle, (void **)&src_plane_bo.ptr);
@@ -198,45 +171,45 @@ static void amdgpu_cs_vpe1_csc(amdgpu_device_handle device_handle,
 	r = amdgpu_bo_cpu_map(dst_plane_bo.handle, (void **)&dst_plane_bo.ptr);
 	igt_assert_eq(r, 0);
 
-	context->resources[context->num_resources++] = vpe_config_bo.handle;
+	context->resources[context->num_resources++] = vpep_cmd_bo.handle;
 	context->resources[context->num_resources++] = src_plane_bo.handle;
 	context->resources[context->num_resources++] = dst_plane_bo.handle;
 
-	// plane config gpu addr
-	*(uint64_t *)(vpe_descriptor + 1) = vpe_config_bo.addr;
-	// vpep config0 gpu addr
-	*(uint64_t *)(vpe_descriptor + 4) = vpe_config_bo.addr + vpep_config_offsets[0];
-	// vpep config1 gpu addr
-	*(uint64_t *)(vpe_descriptor + 6) = vpe_config_bo.addr + vpep_config_offsets[1];
-	// vpep config2 gpu addr
-	*(uint64_t *)(vpe_descriptor + 8) = vpe_config_bo.addr + vpep_config_offsets[2];
-	// vpep config3 gpu addr
-	*(uint64_t *)(vpe_descriptor + 10) = vpe_config_bo.addr + vpep_config_offsets[3];
+	/* plane config gpu addr */
+	*(uint64_t *)(vpec_csc_cmd + 1) = vpep_cmd_bo.addr;
+	/* vpep config0 gpu addr */
+	*(uint64_t *)(vpec_csc_cmd + 4) = vpep_cmd_bo.addr + vpep_config_offsets[0];
+	/* vpep config1 gpu addr */
+	*(uint64_t *)(vpec_csc_cmd + 6) = vpep_cmd_bo.addr + vpep_config_offsets[1];
+	/* vpep config2 gpu addr */
+	*(uint64_t *)(vpec_csc_cmd + 8) = vpep_cmd_bo.addr + vpep_config_offsets[2];
+	/* vpep config3 gpu addr */
+	*(uint64_t *)(vpec_csc_cmd + 10) = vpep_cmd_bo.addr + vpep_config_offsets[3];
 
-	memset(src_plane_bo.ptr, 0, PLANE_SIZE);
-	memset(dst_plane_bo.ptr, 0, PLANE_SIZE);
-	create_rgba8888(src_plane_bo.ptr, PLANE_WIDTH, PLANE_HEIGHT);
+	memset(src_plane_bo.ptr, 0, frame_size);
+	memset(dst_plane_bo.ptr, 0, frame_size);
+	create_rgba8888(src_plane_bo.ptr, pitch, height);
 
 	/* gpu address of src */
-	*(uint64_t *)(vpe_config + 2) = src_plane_bo.addr;
+	*(uint64_t *)(vpep_csc_cmd + 2) = src_plane_bo.addr;
 	/* gpu address of dst */
-	*(uint64_t *)(vpe_config + 8) = dst_plane_bo.addr;
+	*(uint64_t *)(vpep_csc_cmd + 8) = dst_plane_bo.addr;
 
-	memset(vpe_config_bo.ptr, 0, sizeof(vpe_config));
-	memcpy(vpe_config_bo.ptr, vpe_config, sizeof(vpe_config));
+	memset(vpep_cmd_bo.ptr, 0, VPEP_CSC_CMD_SIZE);
+	memcpy(vpep_cmd_bo.ptr, vpep_csc_cmd, VPEP_CSC_CMD_SIZE);
 
 	memset(context->ib_cpu, 0, IB_SIZE);
-	memcpy(context->ib_cpu, vpe_descriptor, sizeof(vpe_descriptor));
+	memcpy(context->ib_cpu, vpec_csc_cmd, VPEC_CSC_CMD_SIZE);
 
 	context->resources[context->num_resources++] = context->ib_handle;
 
-	r = submit(device_handle, context, sizeof(vpe_descriptor)/4, AMDGPU_HW_IP_VPE);
+	r = submit(device_handle, context, VPEC_CSC_CMD_SIZE / 4, AMDGPU_HW_IP_VPE);
 	igt_assert_eq(r, 0);
 
-	r = check_argb8888(dst_plane_bo.ptr, PLANE_WIDTH, PLANE_HEIGHT);
+	r = check_argb8888(dst_plane_bo.ptr, pitch, height);
 	igt_assert_eq(r, 0);
 
-	r = amdgpu_bo_cpu_unmap(vpe_config_bo.handle);
+	r = amdgpu_bo_cpu_unmap(vpep_cmd_bo.handle);
 	igt_assert_eq(r, 0);
 
 	r = amdgpu_bo_cpu_unmap(src_plane_bo.handle);
@@ -245,7 +218,7 @@ static void amdgpu_cs_vpe1_csc(amdgpu_device_handle device_handle,
 	r = amdgpu_bo_cpu_unmap(dst_plane_bo.handle);
 	igt_assert_eq(r, 0);
 
-	free_resource(&vpe_config_bo);
+	free_resource(&vpep_cmd_bo);
 	free_resource(&src_plane_bo);
 	free_resource(&dst_plane_bo);
 }
@@ -384,7 +357,7 @@ int igt_main()
 
 	igt_describe("Test VPE fence");
 	igt_subtest("vpe-fence-test")
-	amdgpu_cs_vpe_fence(device, &context);
+		amdgpu_cs_vpe_fence(device, &context);
 
 	igt_describe("Test VPE blit");
 	igt_subtest("vpe-blit-test")
