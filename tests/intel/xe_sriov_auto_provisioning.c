@@ -351,6 +351,9 @@ int igt_main_args("", long_opts, help_str, opts_handler, NULL)
 
 	igt_describe("Verify that auto-provisioned resources are allocated by PF driver in fairly manner");
 	igt_subtest_with_dynamic("fair-allocation") {
+
+		igt_require(total_vfs > 1);
+
 		if (extended_scope)
 			for_each_sriov_num_vfs(pf_fd, num_vfs)
 				igt_dynamic_f("numvfs-%d", num_vfs)
