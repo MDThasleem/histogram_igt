@@ -3,8 +3,8 @@
  * Copyright 2023 Advanced Micro Devices, Inc.
  */
 
-#include <amdgpu.h>
 #include "amdgpu_drm.h"
+#include "amd_vpe.h"
 
 #include "igt.h"
 
@@ -114,7 +114,7 @@ static void amdgpu_cs_vpe_fence(amdgpu_device_handle device_handle,
 	free_resource(&test_bo);
 }
 
-// a in byte 0, b in byte 1, g in byte 2, r in byte 3
+/* a in byte 0, b in byte 1, g in byte 2, r in byte 3 */
 static void create_rgba8888(void *addr, uint32_t width, uint32_t height)
 {
 	uint32_t *ptr = (uint32_t *)addr;
@@ -125,7 +125,23 @@ static void create_rgba8888(void *addr, uint32_t width, uint32_t height)
 		ptr += width;
 	}
 }
-// b in byte 0, g in byte 1, r in byte 2, a in byte 3
+
+/* a in byte 0, b in byte 1, g in byte 2, r in byte 3 */
+static void create_rgba8888_hmirror(void *addr, uint32_t width, uint32_t height)
+{
+	uint32_t *ptr = (uint32_t *)addr;
+
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width / 2; j++)
+			ptr[j] = LEFT_PLANE_PATTERN;
+		for (int j = width / 2; j < width; j++)
+			ptr[j] = RIGHT_PLANE_PATTERN;
+
+		ptr += width;
+	}
+}
+
+/* b in byte 0, g in byte 1, r in byte 2, a in byte 3 */
 static int check_argb8888(void *addr, uint32_t width, uint32_t height)
 {
 	uint32_t *ptr = (uint32_t *)addr;
@@ -140,7 +156,27 @@ static int check_argb8888(void *addr, uint32_t width, uint32_t height)
 	return 0;
 }
 
-static void amdgpu_cs_vpe_blit(amdgpu_device_handle device_handle,
+/* a in byte 0, b in byte 1, g in byte 2, r in byte 3 */
+static int check_rgba8888_hmirror(void *addr, uint32_t width, uint32_t height)
+{
+	uint32_t *ptr = (uint32_t *)addr;
+
+	ptr += width * (height / 2);
+
+	if (ptr[width / 4] != RIGHT_PLANE_PATTERN) {
+		igt_info("Unexpected left pattern: 0x%x", ptr[width / 4]);
+		return 1;
+	}
+
+	if (ptr[width * 3 / 4] != LEFT_PLANE_PATTERN) {
+		igt_info("Unexpected right pattern: 0x%x", ptr[width * 3 / 4]);
+		return 1;
+	}
+
+	return 0;
+}
+
+static void amdgpu_cs_vpe1_csc(amdgpu_device_handle device_handle,
 				struct mmd_context *context)
 {
 	const uint32_t vpep_config_offsets[] = {0x34, 0x128, 0x184, 0x1c0};
@@ -214,6 +250,111 @@ static void amdgpu_cs_vpe_blit(amdgpu_device_handle device_handle,
 	free_resource(&dst_plane_bo);
 }
 
+static void amdgpu_cs_vpe2_hmirror(amdgpu_device_handle device_handle, struct mmd_context *context)
+{
+	int i, r;
+	uint32_t frame_size;
+	struct amdgpu_mmd_bo vpep_cmd_bo, src_plane_bo, dst_plane_bo;
+	/* same height and pitch for input and output */
+	const uint32_t height = 256;
+	const uint32_t pitch = 1024;
+
+	const uint32_t patch_vpec_index[18] = {
+	 1,  4,  6,  8, 10, 12, 14, 16,
+	18, 20, 22, 24, 26, 28, 30, 32,
+	34, 36, };
+	const uint32_t patch_vpec_offset[18] = {
+	0x0000, 0x0080, 0x00c0, 0x0100, 0x0140, 0x01c0, 0x0740, 0x0b80,
+	0x0c40, 0x0cc0, 0x0d40, 0x1280, 0x16c0, 0x1780, 0x1800, 0x18c0,
+	0x1900, 0x19c0, };
+	const uint32_t patch_src_luma[2] = { 2, 8, };
+	const uint32_t patch_dst_luma[2] = { 14, 20, };
+
+	uint32_t *vpec_hmirror_cmd = vpe_get_vpec_hmirror_cmd();
+	uint32_t *vpep_hmirror_cmd = vpe_get_vpep_hmirror_cmd();
+
+	frame_size = pitch * height * 4;
+	context->num_resources = 0;
+
+	/* prepare source image buffer and data */
+	alloc_resource(device_handle, &src_plane_bo, frame_size, AMDGPU_GEM_DOMAIN_GTT);
+	r = amdgpu_bo_cpu_map(src_plane_bo.handle, (void **)&src_plane_bo.ptr);
+	igt_assert_eq(r, 0);
+	create_rgba8888_hmirror(src_plane_bo.ptr, pitch, height);
+	r = amdgpu_bo_cpu_unmap(src_plane_bo.handle);
+	igt_assert_eq(r, 0);
+
+	/* prepare destination image buffer */
+	alloc_resource(device_handle, &dst_plane_bo, frame_size, AMDGPU_GEM_DOMAIN_GTT);
+	r = amdgpu_bo_cpu_map(dst_plane_bo.handle, (void **)&dst_plane_bo.ptr);
+	igt_assert_eq(r, 0);
+	memset(dst_plane_bo.ptr, 0, frame_size);
+	r = amdgpu_bo_cpu_unmap(dst_plane_bo.handle);
+	igt_assert_eq(r, 0);
+
+	/* prepare VPEP command buffer and setup command buffer data */
+	alloc_resource(device_handle, &vpep_cmd_bo, VPEP_HMIRROR_CMD_SIZE, AMDGPU_GEM_DOMAIN_GTT);
+	/* patch gpu addr of vpep cmd */
+	for (i = 0; i < sizeof(patch_vpec_index) / sizeof(uint32_t); i++) {
+		vpec_hmirror_cmd[patch_vpec_index[i] + 0] = (uint32_t)(vpep_cmd_bo.addr & 0xffffffff) + patch_vpec_offset[i];
+		vpec_hmirror_cmd[patch_vpec_index[i] + 1] = (uint32_t)((vpep_cmd_bo.addr & 0xffffffff00000000) >> 32);
+	}
+	/* patch gpu addr of src/dst plane */
+	for (i = 0; i < sizeof(patch_dst_luma) / sizeof(uint32_t); i++) {
+		vpep_hmirror_cmd[patch_src_luma[i] + 0] =  (uint32_t)(src_plane_bo.addr & 0xffffffff);
+		vpep_hmirror_cmd[patch_src_luma[i] + 1] = (uint32_t)((src_plane_bo.addr & 0xffffffff00000000) >> 32);
+
+		vpep_hmirror_cmd[patch_dst_luma[i] + 0] =  (uint32_t)(dst_plane_bo.addr & 0xffffffff);
+		vpep_hmirror_cmd[patch_dst_luma[i] + 1] = (uint32_t)((dst_plane_bo.addr & 0xffffffff00000000) >> 32);
+	}
+	r = amdgpu_bo_cpu_map(vpep_cmd_bo.handle, (void **)&vpep_cmd_bo.ptr);
+	igt_assert_eq(r, 0);
+	memset(vpep_cmd_bo.ptr, 0, VPEP_HMIRROR_CMD_SIZE);
+	memcpy(vpep_cmd_bo.ptr, vpep_hmirror_cmd, VPEP_HMIRROR_CMD_SIZE);
+	r = amdgpu_bo_cpu_unmap(vpep_cmd_bo.handle);
+	igt_assert_eq(r, 0);
+
+	context->resources[context->num_resources++] = context->ib_handle;
+	context->resources[context->num_resources++] = vpep_cmd_bo.handle;
+	context->resources[context->num_resources++] = src_plane_bo.handle;
+	context->resources[context->num_resources++] = dst_plane_bo.handle;
+
+	memset(context->ib_cpu, 0, IB_SIZE);
+	memcpy(context->ib_cpu, vpec_hmirror_cmd, VPEC_HMIRROR_CMD_SIZE);
+	r = submit(device_handle, context, VPEC_HMIRROR_CMD_SIZE / 4, AMDGPU_HW_IP_VPE);
+	igt_assert_eq(r, 0);
+
+	r = amdgpu_bo_cpu_map(dst_plane_bo.handle, (void **)&dst_plane_bo.ptr);
+	igt_assert_eq(r, 0);
+	r = check_rgba8888_hmirror(dst_plane_bo.ptr, pitch, height);
+	igt_assert_eq(r, 0);
+	r = amdgpu_bo_cpu_unmap(dst_plane_bo.handle);
+	igt_assert_eq(r, 0);
+
+	free_resource(&vpep_cmd_bo);
+	free_resource(&src_plane_bo);
+	free_resource(&dst_plane_bo);
+}
+
+static void amdgpu_cs_vpe_blit(amdgpu_device_handle device_handle,
+				struct mmd_context *context, struct mmd_shared_context *shared_context)
+{
+	switch (shared_context->vpe_ip_version_major) {
+	case 6:
+		/* VPE1 has major version as 6 */
+		amdgpu_cs_vpe1_csc(device_handle, context);
+		break;
+	case 2:
+		amdgpu_cs_vpe2_hmirror(device_handle, context);
+		break;
+	default:
+		igt_info("Unsupported VPE major version %d in blitting test",
+			 shared_context->vpe_ip_version_major);
+		igt_assert(false);
+		break;
+	}
+}
+
 int igt_main()
 {
 	struct mmd_context context = {};
@@ -247,7 +388,7 @@ int igt_main()
 
 	igt_describe("Test VPE blit");
 	igt_subtest("vpe-blit-test")
-	amdgpu_cs_vpe_blit(device, &context);
+		amdgpu_cs_vpe_blit(device, &context, &shared_context);
 
 	igt_fixture() {
 		amdgpu_device_deinitialize(device);

@@ -51,7 +51,6 @@ if libdrm_amdgpu.found()
 			  'amd_mall',
 			  'amd_odm',
 			  'amd_subvp',
-			  'amd_vpe',
 			  'amd_mem',
 			  'amd_remote_mem',
                           'amd_userptr_invalidation',
@@ -84,6 +83,15 @@ if libdrm_amdgpu.found()
                 warning('linux/kfd_ioctl.h not found, amd_kfd_dmabuf_unload test not applicable')
         endif
 	amdgpu_deps += libdrm_amdgpu
+
+	# amd_vpe requires additional source file for data
+	test_executables += executable('amd_vpe',
+				       ['amd_vpe.c', 'amd_vpe_cmd.c'],
+				       dependencies : amdgpu_deps,
+				       install_dir : amdgpudir,
+				       install_rpath : amdgpudir_rpathdir,
+				       install : true)
+	test_list += join_paths('amdgpu', 'amd_vpe')
 endif
 
 foreach prog : amdgpu_progs
