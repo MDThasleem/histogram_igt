@@ -379,6 +379,41 @@ err:
 	return -1;
 }
 
+/**
+ * drm_open_driver_path:
+ * @path: DRM device node path
+ *
+ * Opens @path with O_RDWR and verifies the fd is a DRM device via
+ * DRM_IOCTL_VERSION before returning it.
+ *
+ * Returns: DRM file descriptor or -1 on error
+ */
+int drm_open_driver_path(const char *path)
+{
+	char name[12] = "";
+	int fd;
+
+	fd = open(path, O_RDWR);
+	if (fd < 0)
+		return -1;
+
+	if (__get_drm_device_name(fd, name, sizeof(name) - 1))
+		goto err;
+
+	if (!name[0])
+		goto err;
+
+	log_opened_device_path(path);
+
+	if (is_xe_device(fd))
+		xe_device_get(fd);
+
+	return fd;
+err:
+	close(fd);
+	return -1;
+}
+
 static struct {
 	int fd;
 	struct stat stat;
