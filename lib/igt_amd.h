@@ -237,6 +237,7 @@ int  igt_amd_read_psr_state(int drm_fd, char *connector_name);
 void igt_amd_allow_edp_hotplug_detect(int drm_fd, char *connector_name, bool enable);
 void igt_amd_disallow_edp_enter_psr(int drm_fd, char *connector_name, bool enable);
 void igt_amd_disallow_edp_enter_replay(int drm_fd, char *connector_name, bool enable);
+bool igt_amd_disallow_replay_on_all_edp(int drm_fd, igt_display_t *display, bool disallow);
 
 /* DM interface helpers */
 bool igt_amd_has_visual_confirm(int drm_fd);

@@ -1395,8 +1395,11 @@ void igt_amd_disallow_edp_enter_replay(int drm_fd, char *connector_name, bool en
 	igt_assert(fd >= 0);
 	ret = openat(fd, DEBUGFS_DISALLOW_EDP_ENTER_REPLAY, O_WRONLY);
 	close(fd);
-	igt_skip_on_f(ret < 0, "Skip test: Debugfs %s not supported\n",
-		      DEBUGFS_DISALLOW_EDP_ENTER_REPLAY);
+	if (ret < 0) {
+		igt_info("output %s: debugfs %s not supported, skipping\n",
+			 connector_name, DEBUGFS_DISALLOW_EDP_ENTER_REPLAY);
+		return;
+	}
 
 	if (enable) {
 		wr_len = write(ret, allow_edp_replay, strlen(allow_edp_replay));
@@ -1407,6 +1410,52 @@ void igt_amd_disallow_edp_enter_replay(int drm_fd, char *connector_name, bool en
 	}
 
 	close(ret);
+}
+
+/**
+ * igt_amd_disallow_replay_on_all_edp: toggle Panel Replay entry on every
+ * connected Replay-capable eDP connector on @display.
+ * @drm_fd: DRM file descriptor
+ * @display: target display (already initialised via igt_display_require)
+ * @disallow: true to disable Panel Replay entry (e.g. during a test that
+ *            cannot tolerate self-refresh), false to restore.
+ *
+ * Returns true if at least one eDP was reconfigured, so callers can cache
+ * the value and decide whether a restore call is needed later.
+ */
+bool igt_amd_disallow_replay_on_all_edp(int drm_fd, igt_display_t *display, bool disallow)
+{
+	igt_output_t *output;
+	bool changed = false;
+
+	if (!is_amdgpu_device(drm_fd))
+		return false;
+
+	for_each_connected_output(display, output) {
+		char buf[128];
+
+		if (output->config.connector->connector_type != DRM_MODE_CONNECTOR_eDP)
+			continue;
+
+		if (igt_debugfs_read_connector_file(drm_fd, output->name,
+						    DEBUGFS_EDP_REPLAY_CAP,
+						    buf, sizeof(buf)) < 0 ||
+		    !strstr(buf, "Sink support: yes") ||
+		    !strstr(buf, "Driver support: yes"))
+			continue;
+
+		igt_info("%s AMD Panel Replay on %s\n",
+			 disallow ? "Disabling" : "Restoring", output->name);
+
+		kmstest_set_connector_dpms(drm_fd, output->config.connector,
+					   DRM_MODE_DPMS_OFF);
+		igt_amd_disallow_edp_enter_replay(drm_fd, output->name, disallow);
+		kmstest_set_connector_dpms(drm_fd, output->config.connector,
+					   DRM_MODE_DPMS_ON);
+		changed = true;
+	}
+
+	return changed;
 }
 
 static bool get_dm_capabilities(int drm_fd, char *buf, size_t size)
