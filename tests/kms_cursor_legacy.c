@@ -35,6 +35,7 @@
 
 #include "i915/gem.h"
 #include "igt.h"
+#include "igt_amd.h"
 #include "igt_psr.h"
 #include "igt_rand.h"
 #include "igt_stats.h"
@@ -1875,6 +1876,7 @@ int igt_main()
 	const int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	igt_display_t display = { .drm_fd = -1 };
 	bool intel_psr2_restore = false;
+	bool amd_replay_restore = false;
 	int i;
 	const char *modes[flip_test_last+1] = {
 		"legacy",
@@ -1897,6 +1899,14 @@ int igt_main()
 		 * fetch is enabled, so switching PSR1 for this whole test.
 		 */
 		intel_psr2_restore = i915_psr2_sel_fetch_to_psr1(display.drm_fd, NULL);
+
+		/*
+		 * On AMD, when Panel Replay is enabled the HW cannot guarantee
+		 * that all required cursor updates land within a single vblank,
+		 * so disable Panel Replay (if any eDP output has it on) for the
+		 * duration of this test and restore it on teardown.
+		 */
+		amd_replay_restore = igt_amd_disallow_replay_on_all_edp(display.drm_fd, &display, true);
 
 		igt_install_exit_handler(igt_drm_debug_mask_reset_exit_handler);
 		update_debug_mask_if_ci(debug_mask_if_ci);
@@ -2128,6 +2138,8 @@ int igt_main()
 	}
 
 	igt_fixture() {
+		if (amd_replay_restore)
+			igt_amd_disallow_replay_on_all_edp(display.drm_fd, &display, false);
 		if (intel_psr2_restore)
 			i915_psr2_sel_fetch_restore(display.drm_fd, NULL);
 		igt_display_fini(&display);
