@@ -1163,6 +1163,9 @@ static int ftw_attachments_list(const char *fpath, const struct stat *sb,
 				int typeflag, struct FTW *ftwbuf)
 {
 	struct json_t *obj = NULL, *attobj = NULL;
+	const char *attdirkey = "attachments-dir";
+	char *p, *currpath = (char *)fpath + 2;
+	char currdir[PATH_MAX];
 
 	(void)sb;
 	(void)ftwbuf;
@@ -1181,10 +1184,6 @@ static int ftw_attachments_list(const char *fpath, const struct stat *sb,
 	 * Instead of duplicating string we temporarily overwrite '/' with '\0'.
 	 */
 	case FTW_F:
-		const char *attdirkey = "attachments-dir";
-		char *p, *currpath = (char *) fpath + 2;
-		char currdir[PATH_MAX];
-
 		p = strstr(currpath, "/");
 		if (!p)
 			return -1;
