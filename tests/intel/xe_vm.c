@@ -3060,6 +3060,8 @@ static void get_property_exercise(int fd, uint32_t vm)
 		igt_assert_eq(f.address, f0.address);
 		igt_assert_eq(f.access_type, f0.access_type);
 		igt_assert_eq(f.fault_type, f0.fault_type);
+		igt_assert_eq(f.reserved[0] | f.reserved[1] |
+			      f.reserved[2] | f.reserved[3], 0);
 	}
 	free(faults);
 }
