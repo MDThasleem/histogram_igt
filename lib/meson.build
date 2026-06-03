@@ -257,12 +257,6 @@ if build_xe_eudebug
 	lib_sources += 'xe/xe_eudebug.c'
 endif
 
-if libprocps.found()
-	lib_deps += libprocps
-else
-	lib_deps += libproc2
-endif
-
 if get_option('srcdir') != ''
     srcdir = join_paths(get_option('srcdir'), 'tests')
 else

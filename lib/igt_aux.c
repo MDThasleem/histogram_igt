@@ -53,12 +53,6 @@
 #include <assert.h>
 #include <grp.h>
 
-#ifdef HAVE_LIBPROCPS
-#  include <proc/readproc.h>
-#elif HAVE_LIBPROC2
-#  include <libproc2/pids.h>
-#endif
-
 #include <dirent.h>
 #ifdef __linux__
 #  include <libudev.h>
@@ -1285,93 +1279,156 @@ void igt_unlock_mem(void)
 	locked_mem = NULL;
 }
 
+/*
+ * Internal /proc-based process iterator.  Reads /proc/<pid>/status directly
+ * so there is no dependency on libprocps or libproc2.
+ *
+ * /proc/<pid>/status fields used:
+ *   Name:  <comm>  - command name (kernel escapes spaces, so %s is safe)
+ *   Pid:   <pid>
+ *   Uid:   ruid euid suid fsuid
+ *   Gid:   rgid egid sgid fsgid
+ */
+struct procps_iter {
+	DIR   *procdir;
+	char   comm[64];
+	pid_t  tid;
+	uid_t  euid;
+	gid_t  egid;
+};
+
+static struct procps_iter *procps_open(void)
+{
+	struct procps_iter *iter = calloc(1, sizeof(*iter));
+
+	if (!iter)
+		return NULL;
+
+	iter->procdir = opendir("/proc");
+	if (!iter->procdir) {
+		free(iter);
+		return NULL;
+	}
+
+	return iter;
+}
+
+static bool procps_next(struct procps_iter *iter,
+			pid_t *tid, uid_t *euid, gid_t *egid,
+			const char **comm)
+{
+	struct dirent *ent;
+
+	if (!iter || !iter->procdir)
+		return false;
+
+	while ((ent = readdir(iter->procdir))) {
+		char path[64];
+		FILE *f;
+		pid_t _tid = 0;
+		uid_t _euid = 0;
+		gid_t _egid = 0;
+		char _comm[64] = "";
+		int fields = 0;   /* bit 0=Name, 1=Pid, 2=Uid, 3=Gid */
+		char line[256];
+
+		if (ent->d_name[0] < '1' || ent->d_name[0] > '9')
+			continue;
+
+		snprintf(path, sizeof(path), "/proc/%.20s/status", ent->d_name);
+
+		f = fopen(path, "r");
+		if (!f)
+			continue;
+
+		while (fields != 0xf && fgets(line, sizeof(line), f)) {
+			if (!(fields & 0x1) && strncmp(line, "Name:", 5) == 0) {
+				if (sscanf(line + 5, " %63s", _comm) == 1)
+					fields |= 0x1;
+			} else if (!(fields & 0x2) && strncmp(line, "Pid:", 4) == 0) {
+				if (sscanf(line + 4, " %d", &_tid) == 1)
+					fields |= 0x2;
+			} else if (!(fields & 0x4) && strncmp(line, "Uid:", 4) == 0) {
+				/* skip ruid, read euid */
+				unsigned int _e;
+
+				if (sscanf(line + 4, " %*u %u", &_e) == 1) {
+					_euid = (uid_t)_e;
+					fields |= 0x4;
+				}
+			} else if (!(fields & 0x8) && strncmp(line, "Gid:", 4) == 0) {
+				/* skip rgid, read egid */
+				unsigned int _e;
+
+				if (sscanf(line + 4, " %*u %u", &_e) == 1) {
+					_egid = (gid_t)_e;
+					fields |= 0x8;
+				}
+			}
+		}
+
+		fclose(f);
+
+		if (_tid <= 0)
+			continue;
+
+		iter->tid  = _tid;
+		iter->euid = _euid;
+		iter->egid = _egid;
+		snprintf(iter->comm, sizeof(iter->comm), "%s", _comm);
+
+		*tid  = iter->tid;
+		*euid = iter->euid;
+		*egid = iter->egid;
+		*comm = iter->comm;
+		return true;
+	}
+
+	return false;
+}
+
+static void procps_close(struct procps_iter *iter)
+{
+	if (!iter)
+		return;
+
+	if (iter->procdir)
+		closedir(iter->procdir);
+
+	free(iter);
+}
+
 struct igt_process {
-#ifdef HAVE_LIBPROCPS
-	PROCTAB * proc;
-	proc_t *proc_info;
-#elif HAVE_LIBPROC2
-	struct pids_info *info;
-	struct pids_stack *stack;
-#endif
+	struct procps_iter *iter;
 	pid_t tid;
-	pid_t euid;
-	pid_t egid;
-	char *comm;
+	uid_t euid;
+	gid_t egid;
+	const char *comm;
 };
 
 static void open_process(struct igt_process *prcs)
 {
-#ifdef HAVE_LIBPROCPS
-	prcs->proc = openproc(PROC_FILLCOM | PROC_FILLSTAT | PROC_FILLARG);
-	igt_assert_f(prcs->proc != NULL, "procps open failed\n");
-	prcs->proc_info = NULL;
-#elif HAVE_LIBPROC2
-	enum pids_item Items[] = { PIDS_ID_PID, PIDS_ID_EUID, PIDS_ID_EGID, PIDS_CMD };
-	int err;
-
-	prcs->info = NULL;
-	err = procps_pids_new(&prcs->info, Items, 4);
-	igt_assert_f(err >= 0, "procps-ng open failed\n");
-	prcs->stack = NULL;
-#endif
+	prcs->iter = procps_open();
+	igt_assert_f(prcs->iter, "procps open failed (no /proc filesystem?)\n");
 	prcs->tid = 0;
 	prcs->comm = NULL;
 }
 
 static void close_process(struct igt_process *prcs)
 {
-#ifdef HAVE_LIBPROCPS
-	if (prcs->proc_info)
-		freeproc(prcs->proc_info);
-
-	closeproc(prcs->proc);
-	prcs->proc_info = NULL;
-	prcs->proc = NULL;
-#elif HAVE_LIBPROC2
-	procps_pids_unref(&prcs->info);
-	prcs->info = NULL;
-#endif
+	procps_close(prcs->iter);
+	prcs->iter = NULL;
 	prcs->tid = 0;
 	prcs->comm = NULL;
 }
 
 static bool get_process_ids(struct igt_process *prcs)
 {
-#ifdef HAVE_LIBPROCPS
-	if (prcs->proc_info)
-		freeproc(prcs->proc_info);
-
 	prcs->tid = 0;
 	prcs->comm = NULL;
-	prcs->proc_info = readproc(prcs->proc, NULL);
-
-	if (prcs->proc_info) {
-		prcs->tid = prcs->proc_info->tid;
-		prcs->euid = prcs->proc_info->euid;
-		prcs->egid = prcs->proc_info->egid;
-		prcs->comm = prcs->proc_info->cmd;
-	}
-#elif HAVE_LIBPROC2
-	enum rel_items { EU_PID, EU_EUID, EU_EGID, EU_CMD }; // order at open
-
-	prcs->tid = 0;
-	prcs->comm = NULL;
-	prcs->stack = procps_pids_get(prcs->info, PIDS_FETCH_TASKS_ONLY);
-	if (prcs->stack) {
-#if defined(HAVE_LIBPROC2_POST_4_0_5_API)
-		prcs->tid = PIDS_VAL(EU_PID, s_int, prcs->stack);
-		prcs->euid = PIDS_VAL(EU_EUID, s_int, prcs->stack);
-		prcs->egid = PIDS_VAL(EU_EGID, s_int, prcs->stack);
-		prcs->comm = PIDS_VAL(EU_CMD, str, prcs->stack);
-#else
-		prcs->tid = PIDS_VAL(EU_PID, s_int, prcs->stack, prcs->info);
-		prcs->euid = PIDS_VAL(EU_EUID, s_int, prcs->stack, prcs->info);
-		prcs->egid = PIDS_VAL(EU_EGID, s_int, prcs->stack, prcs->info);
-		prcs->comm = PIDS_VAL(EU_CMD, str, prcs->stack, prcs->info);
-#endif
-	}
-#endif
-	return prcs->tid != 0;
+	return procps_next(prcs->iter,
+			   &prcs->tid, &prcs->euid, &prcs->egid,
+			   &prcs->comm);
 }
 
 /**

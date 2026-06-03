@@ -133,18 +133,7 @@ build_info += 'With libdrm: ' + ','.join(libdrm_info)
 
 pciaccess = dependency('pciaccess', version : '>=0.10')
 libkmod = dependency('libkmod')
-libprocps = dependency('libprocps', required : false)
-libproc2 = dependency('libproc2', required : false)
-if libprocps.found()
-  config.set('HAVE_LIBPROCPS', 1)
-elif libproc2.found()
-  config.set('HAVE_LIBPROC2', 1)
-  if libproc2.version().version_compare('>= 4.0.5')
-    config.set('HAVE_LIBPROC2_POST_4_0_5_API', 1)
-  endif
-else
-  error('Either libprocps or libproc2 is required')
-endif
+# igt_procps.c reads /proc directly; libprocps and libproc2 are not needed.
 
 libunwind = dependency('libunwind', required : get_option('libunwind'))
 if libunwind.found()
