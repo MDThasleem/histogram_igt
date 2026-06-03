@@ -32,11 +32,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 #include <assert.h>
 #include <limits.h>
 
 #include <xf86drmMode.h>
 
+#include "igt_core.h"
 #include "igt_fb.h"
 #include "ioctl_wrappers.h"
 
@@ -673,6 +675,27 @@ static inline bool igt_output_is_connected(igt_output_t *output)
 }
 
 /**
+ * igt_output_matches_connector_filter:
+ * @output: #igt_output_t to check.
+ *
+ * Checks whether the given @output passes the global connector filter set via
+ * the '--connector' command line option (or the 'IGT_CONNECTOR' environment
+ * variable). The match is done with strstr(), so e.g. "HDMI" matches all HDMI
+ * connectors.
+ *
+ * Returns: True if no filter is set or the @output's name contains the filter
+ * string, otherwise False.
+ */
+static inline bool igt_output_matches_connector_filter(igt_output_t *output)
+{
+	if (!igt_connector_filter)
+		return true;
+
+	return output->name &&
+	       strstr(output->name, igt_connector_filter);
+}
+
+/**
  * igt_crtc_connector_valid:
  * @crtc: CRTC to check.
  * @output: #igt_output_t to check.
@@ -682,6 +705,7 @@ static inline bool igt_output_is_connected(igt_output_t *output)
 static inline bool igt_crtc_connector_valid(igt_crtc_t *crtc, igt_output_t *output)
 {
 	return igt_output_is_connected(output) &&
+		igt_output_matches_connector_filter(output) &&
 		output->config.valid_crtc_index_mask & (1 << crtc->crtc_index);
 }
 
@@ -708,7 +732,8 @@ static inline bool igt_crtc_connector_valid(igt_crtc_t *crtc, igt_output_t *outp
  */
 #define for_each_connected_output(display, output)		\
 	for_each_output((display), (output))	\
-		for_each_if ((igt_output_is_connected((output))))
+		for_each_if ((igt_output_is_connected((output))) && \
+			     igt_output_matches_connector_filter((output)))
 
 /**
  * for_each_disconnected_output:

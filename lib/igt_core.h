@@ -1355,6 +1355,18 @@ void igt_log_buffer_inspect(igt_buffer_log_handler_t check, void *data);
 extern enum igt_log_level igt_log_level;
 
 /**
+ * igt_connector_filter:
+ *
+ * Global connector name filter, set via the '--connector' command line option
+ * or the 'IGT_CONNECTOR' environment variable. When non-NULL, KMS output
+ * iteration macros (e.g. for_each_connected_output(),
+ * for_each_valid_output_on_crtc()) only enumerate outputs whose name contains
+ * this string (matched with strstr()). NULL means no filtering
+ * (all outputs are enumerated).
+ */
+extern char *igt_connector_filter;
+
+/**
  * igt_warn_on:
  * @condition: condition to test
  *

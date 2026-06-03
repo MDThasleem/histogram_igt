@@ -358,6 +358,7 @@ enum {
 	OPT_HOOK,
 	OPT_HELP_HOOK,
 	OPT_DEVICE,
+	OPT_CONNECTOR,
 	OPT_VERSION,
 	OPT_HELP = 'h'
 };
@@ -951,6 +952,7 @@ static void print_usage(const char *help_str, bool output_on_stderr)
 		   "  --help-description\n"
 		   "  --describe\n"
 		   "  --device filters\n"
+		   "  --connector <name>\n"
 		   "  --version\n"
 		   "  --help|-h\n");
 	if (help_str)
@@ -1119,6 +1121,10 @@ static void common_init_env(void)
 		igt_rc_device = strdup(env);
 	}
 
+	env = getenv("IGT_CONNECTOR");
+	if (env)
+		igt_connector_filter = strdup(env);
+
 	env = getenv("IGT_RUNNER_SOCKET_FD");
 	if (env) {
 		set_runner_socket(atoi(env));
@@ -1147,6 +1153,7 @@ static int common_init(int *argc, char **argv,
 		{"hook",              required_argument, NULL, OPT_HOOK},
 		{"help-hook",         no_argument,       NULL, OPT_HELP_HOOK},
 		{"device",            required_argument, NULL, OPT_DEVICE},
+		{"connector",         required_argument, NULL, OPT_CONNECTOR},
 		{"version",           no_argument,       NULL, OPT_VERSION},
 		{"help",              no_argument,       NULL, OPT_HELP},
 		{0, 0, 0, 0}
@@ -1300,6 +1307,10 @@ static int common_init(int *argc, char **argv,
 			}
 			igt_device_filter_add(optarg);
 			break;
+		case OPT_CONNECTOR:
+			assert(optarg);
+			igt_connector_filter = strdup(optarg);
+			break;
 		case OPT_VERSION:
 			print_version();
 			ret = -1;
@@ -1440,6 +1451,7 @@ int igt_subtest_init_parse_opts(int *argc, char **argv,
 }
 
 enum igt_log_level igt_log_level = IGT_LOG_INFO;
+char *igt_connector_filter;
 
 /**
  * igt_simple_init_parse_opts:
