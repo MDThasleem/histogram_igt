@@ -400,14 +400,19 @@ extra_sources = {
 	'kms_chamelium_hpd': [ join_paths ('chamelium', 'kms_chamelium_helper.c') ],
 	'kms_chamelium_sharpness_filter': [ join_paths ('chamelium', 'kms_chamelium_helper.c') ],
 	'kms_dp_linktrain_fallback': [
-           join_paths ('intel', 'kms_mst_helper.c'),
-           join_paths ('intel', 'kms_dsc_helper.c') ],
+          join_paths ('intel', 'kms_mst_helper.c'),
+          join_paths ('intel', 'kms_dsc_helper.c'),
+          join_paths ('intel', 'kms_joiner_helper.c') ],
 	'kms_dp_link_training': [
-           join_paths ('intel', 'kms_mst_helper.c'),
-           join_paths ('intel', 'kms_joiner_helper.c') ],
-	'kms_dsc': [ join_paths ('intel', 'kms_dsc_helper.c') ],
+          join_paths ('intel', 'kms_mst_helper.c'),
+          join_paths ('intel', 'kms_joiner_helper.c') ],
+	'kms_dsc': [
+          join_paths ('intel', 'kms_dsc_helper.c'),
+          join_paths ('intel', 'kms_joiner_helper.c') ],
 	'kms_joiner': [ join_paths ('intel', 'kms_joiner_helper.c') ],
-	'kms_psr2_sf':  [ join_paths ('intel', 'kms_dsc_helper.c') ],
+	'kms_psr2_sf': [
+          join_paths ('intel', 'kms_dsc_helper.c'),
+          join_paths ('intel', 'kms_joiner_helper.c') ],
 }
 
 # Extra dependencies used on core and Intel drivers

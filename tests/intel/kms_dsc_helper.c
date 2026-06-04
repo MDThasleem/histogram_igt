@@ -203,3 +203,71 @@ bool is_dsc_fractional_bpp_supported(int disp_ver, int drmfd, igt_output_t *outp
 
 	return true;
 }
+
+/*
+ * Check whether the given output and pipe combination meets the
+ * requirements for DSC with joiner (big joiner / ultra joiner):
+ * - Source supports the requested joiner type
+ * - Sufficient number of pipes available
+ * - Consecutive HW pipes exist starting from the given pipe
+ * - Sink supports the minimum DSC slice count required by the joiner config
+ */
+bool check_dsc_joiner_constraints(int drm_fd,
+				  igt_output_t *output,
+				  igt_display_t *display,
+				  enum pipe pipe,
+				  int num_pipes,
+				  enum joined_pipes type)
+{
+	int min_pipes = 0, min_slices = 0;
+
+	if (!igt_is_joiner_supported_by_source(drm_fd, type))
+		return false;
+
+	/*
+	 * For joiner, 2 slices per pipe is used
+	 * i.e. min_slices = 2 * min_pipes
+	 */
+	switch (type) {
+	case JOINED_PIPES_BIG_JOINER:
+		min_pipes = JOINED_PIPES_BIG_JOINER;
+		min_slices = min_pipes * 2;
+		break;
+	case JOINED_PIPES_ULTRA_JOINER:
+		min_pipes = JOINED_PIPES_ULTRA_JOINER;
+		min_slices = min_pipes * 2;
+		break;
+	case JOINED_PIPES_NONE:
+	case JOINED_PIPES_DEFAULT:
+		return true;
+	default:
+		igt_info("Unknown joiner type: %d\n", type);
+		return false;
+	}
+
+	if (num_pipes < min_pipes) {
+		igt_info("%s requires minimum %d pipes\n",
+			 igt_get_joined_pipes_name(type), min_pipes);
+		return false;
+	}
+
+	/* Verify consecutive HW pipes are available from this pipe */
+	if (type == JOINED_PIPES_BIG_JOINER &&
+	    !igt_crtc_for_pipe(display, pipe + 1))
+		return false;
+
+	if (type == JOINED_PIPES_ULTRA_JOINER &&
+	    (!igt_crtc_for_pipe(display, pipe + 1) ||
+	     !igt_crtc_for_pipe(display, pipe + 2) ||
+	     !igt_crtc_for_pipe(display, pipe + 3)))
+		return false;
+
+	if (igt_get_dsc_sink_max_slice_count(drm_fd, output->name) < min_slices) {
+		igt_info("Output %s doesn't support minimum %d slice count for %s\n",
+			 igt_output_name(output), min_slices,
+			 igt_get_joined_pipes_name(type));
+		return false;
+	}
+
+	return true;
+}
