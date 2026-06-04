@@ -33,7 +33,6 @@
  */
 
 #include "igt.h"
-#include "xe/xe_query.h"
 #include "kms_dsc_helper.c"
 #include "kms_joiner_helper.h"
 
@@ -619,9 +618,8 @@ static void test_basic_max_non_joiner(data_t *data)
 
 int igt_main()
 {
-	bool is_dgfx;
 	igt_crtc_t *crtc;
-	int j, display_ver;
+	int j;
 	igt_output_t *output;
 	drmModeModeInfo mode;
 	data_t data;
@@ -644,9 +642,7 @@ int igt_main()
 		igt_require(data.display.is_atomic);
 		max_dotclock = igt_get_max_dotclock(data.drm_fd);
 
-		is_dgfx = is_xe_device(data.drm_fd) ? xe_has_vram(data.drm_fd) : gem_has_lmem(data.drm_fd);
-		display_ver = intel_display_ver(intel_get_drm_devid(data.drm_fd));
-		if (is_dgfx && display_ver == 14)
+		if (igt_is_joiner_supported_by_source(data.drm_fd, JOINED_PIPES_ULTRA_JOINER))
 			data.ultra_joiner_supported = true;
 
 		for_each_connected_output(&data.display, output) {
