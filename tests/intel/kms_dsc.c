@@ -71,12 +71,14 @@ IGT_TEST_DESCRIPTION("Test to validate display stream compression");
 
 typedef struct {
 	int drm_fd;
+	int count;
 	uint32_t devid;
 	igt_display_t display;
 	struct igt_fb fb_test_pattern;
 	enum dsc_output_format output_format;
 	unsigned int plane_format;
 	igt_output_t *output;
+	igt_output_t *valid_output[IGT_MAX_PIPES];
 	int input_bpc;
 	int disp_ver;
 	igt_crtc_t *crtc;
@@ -254,7 +256,6 @@ static void test_dsc(data_t *data, uint32_t test_type, int bpc,
 		     enum dsc_output_format output_format)
 {
 	igt_display_t *display = &data->display;
-	igt_output_t *output;
 	igt_crtc_t *crtc;
 	char name[3][LEN] = {
 				{0},
@@ -262,47 +263,44 @@ static void test_dsc(data_t *data, uint32_t test_type, int bpc,
 				{0},
 			    };
 
+	igt_require_f(data->count > 0, "No valid output found, either sink doesn't support DSC or doesn't support min %d bpc\n", MIN_DSC_BPC);
 	igt_require(check_gen11_bpc_constraint(data->drm_fd, data->input_bpc));
 
-	for_each_crtc_with_valid_output(display, crtc, output) {
-		data->output_format = output_format;
-		data->plane_format = plane_format;
-		data->input_bpc = bpc;
-		data->output = output;
-		data->crtc = crtc;
+	for_each_crtc(display, crtc) {
+		for (int i = 0; i < data->count; i++) {
+			data->output_format = output_format;
+			data->plane_format = plane_format;
+			data->input_bpc = bpc;
+			data->output = data->valid_output[i];
+			data->crtc = crtc;
 
-		if (!is_dsc_supported_by_sink(data->drm_fd, data->output) ||
-		    !check_gen11_dp_constraint(data->drm_fd, data->output, data->crtc))
-			continue;
+			if (!check_gen11_dp_constraint(data->drm_fd, data->output, data->crtc))
+				continue;
 
-		if (igt_get_output_max_bpc(output) < MIN_DSC_BPC) {
-			igt_info("Output %s doesn't support min %d-bpc\n", igt_output_name(data->output), MIN_DSC_BPC);
-			continue;
-		}
-
-		if ((test_type & TEST_DSC_OUTPUT_FORMAT) &&
-		    (!is_dsc_output_format_supported(data->drm_fd, data->disp_ver,
+			if ((test_type & TEST_DSC_OUTPUT_FORMAT) &&
+			    (!is_dsc_output_format_supported(data->drm_fd, data->disp_ver,
 						     data->output, data->output_format)))
-			continue;
+				continue;
 
-		if ((test_type & TEST_DSC_FRACTIONAL_BPP) &&
-		    (!is_dsc_fractional_bpp_supported(data->disp_ver,
+			if ((test_type & TEST_DSC_FRACTIONAL_BPP) &&
+			    (!is_dsc_fractional_bpp_supported(data->disp_ver,
 						      data->drm_fd, data->output)))
-			continue;
+				continue;
 
-		if (test_type & TEST_DSC_OUTPUT_FORMAT)
-			snprintf(&name[0][0], LEN, "-%s", kmstest_dsc_output_format_str(data->output_format));
-		if (test_type & TEST_DSC_FORMAT)
-			snprintf(&name[1][0], LEN, "-%s", igt_format_str(data->plane_format));
-		if (test_type & TEST_DSC_BPC)
-			snprintf(&name[2][0], LEN, "-%dbpc", data->input_bpc);
+			if (test_type & TEST_DSC_OUTPUT_FORMAT)
+				snprintf(&name[0][0], LEN, "-%s", kmstest_dsc_output_format_str(data->output_format));
+			if (test_type & TEST_DSC_FORMAT)
+				snprintf(&name[1][0], LEN, "-%s", igt_format_str(data->plane_format));
+			if (test_type & TEST_DSC_BPC)
+				snprintf(&name[2][0], LEN, "-%dbpc", data->input_bpc);
 
-		igt_dynamic_f("pipe-%s-%s%s%s%s",  igt_crtc_name(data->crtc), data->output->name,
-			      &name[0][0], &name[1][0], &name[2][0])
-			update_display(data, test_type);
+			igt_dynamic_f("pipe-%s-%s%s%s%s", igt_crtc_name(data->crtc), data->output->name,
+				      &name[0][0], &name[1][0], &name[2][0])
+				update_display(data, test_type);
 
-		if (data->limited)
-			break;
+			if (data->limited)
+				break;
+		}
 	}
 }
 
@@ -328,15 +326,24 @@ data_t data = {};
 
 int igt_main_args("l", NULL, help_str, opt_handler, &data)
 {
+	igt_output_t *output;
+
 	igt_fixture() {
 		data.drm_fd = drm_open_driver_master(DRIVER_INTEL | DRIVER_XE);
 		data.devid = intel_get_drm_devid(data.drm_fd);
 		data.disp_ver = intel_display_ver(data.devid);
+		data.count = 0;
 		kmstest_set_vt_graphics_mode();
 		igt_install_exit_handler(kms_dsc_exit_handler);
 		igt_display_require(&data.display, data.drm_fd);
 		igt_display_require_output(&data.display);
 		igt_require(is_dsc_supported_by_source(data.drm_fd));
+
+		for_each_connected_output(&data.display, output) {
+			if (is_dsc_supported_by_sink(data.drm_fd, output) &&
+			    igt_get_output_max_bpc(output) >= MIN_DSC_BPC)
+				data.valid_output[data.count++] = output;
+		}
 	}
 
 	igt_describe("Tests basic display stream compression functionality if supported "
