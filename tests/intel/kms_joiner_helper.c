@@ -183,3 +183,25 @@ bool igt_assign_pipes_for_outputs(int drm_fd,
 	}
 	return true;
 }
+
+/**
+ * igt_get_joined_pipes_name:
+ * @val: joined_pipes enum value
+ *
+ * Returns: A readable string for the given joined_pipes enum value.
+ */
+const char *igt_get_joined_pipes_name(enum joined_pipes val)
+{
+	switch (val) {
+	case JOINED_PIPES_DEFAULT:
+		return "";
+	case JOINED_PIPES_NONE:
+		return "none";
+	case JOINED_PIPES_BIG_JOINER:
+		return "bigjoiner";
+	case JOINED_PIPES_ULTRA_JOINER:
+		return "ultrajoiner";
+	default:
+		igt_assert(false);
+	}
+}

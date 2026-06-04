@@ -17,6 +17,7 @@ bool igt_assign_pipes_for_outputs(int drm_fd,
 				  uint32_t *used_pipes_mask,
 				  uint32_t master_pipes_mask,
 				  uint32_t valid_pipes_mask);
+const char *igt_get_joined_pipes_name(enum joined_pipes val);
 
 enum force_joiner_mode {
 	FORCE_JOINER_ENABLE = 0,
