@@ -60,6 +60,9 @@
 #define USERMODE_QUEUE_SIZE		(PAGE_SIZE * 256)   //In bytes with total size as 1 Mbyte
 #define ALIGNMENT			4096
 #define DOORBELL_INDEX			4
+/* SDMA per-page sub-aperture starts at dword 0x200 within any 4K page.
+ * In qword units (USERQ doorbell_offset is qword-indexed): 0x100. */
+#define SDMA_DOORBELL_INDEX		0x100
 #define USERMODE_QUEUE_SIZE_DW		(USERMODE_QUEUE_SIZE >> 2)
 #define USERMODE_QUEUE_SIZE_DW_MASK	(USERMODE_QUEUE_SIZE_DW - 1)
 

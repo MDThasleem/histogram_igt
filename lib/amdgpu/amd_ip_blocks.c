@@ -748,7 +748,12 @@ user_queue_submit(amdgpu_device_handle device, struct amdgpu_ring_context *ring_
 #if DETECT_CC_GCC && (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
 	asm volatile ("mfence" : : : "memory");
 #endif
-	ring_context->doorbell_cpu[DOORBELL_INDEX] = *ring_context->wptr_cpu;
+	if (ip_type == AMD_IP_DMA) {
+		/* Ring the SDMA doorbell at the page-modulo SDMA sub-aperture. */
+		ring_context->doorbell_cpu[SDMA_DOORBELL_INDEX] = *ring_context->wptr_cpu;
+	} else {
+		ring_context->doorbell_cpu[DOORBELL_INDEX] = *ring_context->wptr_cpu;
+	}
 
 	switch (ring_context->submit_mode) {
 	case UQ_SUBMIT_NO_SYNC:
@@ -1006,8 +1011,10 @@ user_queue_create(amdgpu_device_handle device_handle, struct amdgpu_ring_context
 		break;
 
 	case AMD_IP_DMA:
+		/* Per-page BIF decode verified: standard userqueue path with
+		 * doorbell_offset placed in any 4K page's SDMA sub-aperture. */
 		r = amdgpu_create_userqueue(device_handle, AMDGPU_HW_IP_DMA,
-					    ctxt->db_handle, DOORBELL_INDEX,
+					    ctxt->db_handle, SDMA_DOORBELL_INDEX,
 					    ctxt->queue.mc_addr, USERMODE_QUEUE_SIZE,
 					    ctxt->wptr.mc_addr, ctxt->rptr.mc_addr,
 					    mqd, queue_flags, &ctxt->queue_id);
