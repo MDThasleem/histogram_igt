@@ -459,32 +459,28 @@ static void test_static_swap(data_t *data, igt_crtc_t *crtc,
 
 	igt_pipe_crc_collect_crc(data->pipe_crc, &ref_crc);
 
-	/* Change the mastering information, no modeset allowed
-	 * for amd driver, whereas a modeset is required for intel
-	 * driver. */
+	/* Change the mastering information, no modeset required
+	 * as only infoframe content changes. */
 	hdr.hdmi_metadata_type1.max_display_mastering_luminance = 200;
 	hdr.hdmi_metadata_type1.max_fall = 200;
 	hdr.hdmi_metadata_type1.max_cll = 100;
 
 	igt_hdr_set_metadata(data->output, &hdr);
-	if (is_amdgpu_device(data->fd))
-		igt_display_commit_atomic(display, 0, NULL);
-	else
-		igt_display_commit_atomic(display, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+	igt_display_commit_atomic(display, 0, NULL);
 
 	if (flags & TEST_NEEDS_DSC) {
 		igt_force_dsc_enable(data->fd, data->output->name);
 		igt_assert(igt_is_force_dsc_enabled(data->fd, data->output->name));
 	}
-	/* Enter SDR via metadata, no modeset allowed for
-	 * amd driver, whereas a modeset is required for
-	 * intel driver. */
+	/* Enter SDR via metadata. When DSC is forced, a full modeset
+	 * might be needed due to DSC parameter changes; otherwise only
+	 * infoframe content changes. */
 	igt_hdr_fill_sdr(&hdr);
 	igt_hdr_set_metadata(data->output, &hdr);
-	if (is_amdgpu_device(data->fd))
-		igt_display_commit_atomic(display, 0, NULL);
-	else
+	if (flags & TEST_NEEDS_DSC)
 		igt_display_commit_atomic(display, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+	else
+		igt_display_commit_atomic(display, 0, NULL);
 	igt_debug_interactive_mode_check("traditional-sdr",
 					 "SDR pattern displayed with traditional SDR metadata");
 
