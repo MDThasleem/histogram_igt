@@ -63,6 +63,9 @@
 /* SDMA per-page sub-aperture starts at dword 0x200 within any 4K page.
  * In qword units (USERQ doorbell_offset is qword-indexed): 0x100. */
 #define SDMA_DOORBELL_INDEX		0x100
+/* GFX UMQ per-page sub-aperture starts at dword 0x11A within any 4K page
+ * (gfx_userqueue_start in amdgpu_doorbell.h). In qword units: 0x08D. */
+#define GFX_DOORBELL_INDEX		0x08D
 #define USERMODE_QUEUE_SIZE_DW		(USERMODE_QUEUE_SIZE >> 2)
 #define USERMODE_QUEUE_SIZE_DW_MASK	(USERMODE_QUEUE_SIZE_DW - 1)
 

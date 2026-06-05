@@ -748,11 +748,17 @@ user_queue_submit(amdgpu_device_handle device, struct amdgpu_ring_context *ring_
 #if DETECT_CC_GCC && (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
 	asm volatile ("mfence" : : : "memory");
 #endif
-	if (ip_type == AMD_IP_DMA) {
-		/* Ring the SDMA doorbell at the page-modulo SDMA sub-aperture. */
+	/* Ring at the engine's per-page UMQ sub-aperture (see amd_ip_blocks.h). */
+	switch (ip_type) {
+	case AMD_IP_DMA:
 		ring_context->doorbell_cpu[SDMA_DOORBELL_INDEX] = *ring_context->wptr_cpu;
-	} else {
+		break;
+	case AMD_IP_GFX:
+		ring_context->doorbell_cpu[GFX_DOORBELL_INDEX] = *ring_context->wptr_cpu;
+		break;
+	default:
 		ring_context->doorbell_cpu[DOORBELL_INDEX] = *ring_context->wptr_cpu;
+		break;
 	}
 
 	switch (ring_context->submit_mode) {
@@ -994,7 +1000,7 @@ user_queue_create(amdgpu_device_handle device_handle, struct amdgpu_ring_context
 	switch (type) {
 	case AMD_IP_GFX:
 		r = amdgpu_create_userqueue(device_handle, AMDGPU_HW_IP_GFX,
-					    ctxt->db_handle, DOORBELL_INDEX,
+					    ctxt->db_handle, GFX_DOORBELL_INDEX,
 					    ctxt->queue.mc_addr, USERMODE_QUEUE_SIZE,
 					    ctxt->wptr.mc_addr, ctxt->rptr.mc_addr,
 					    mqd, queue_flags, &ctxt->queue_id);
