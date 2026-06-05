@@ -29,6 +29,11 @@
 #define SYNC_OBJ_SIGNALED	(0x1 << 0)
 #define LEGACY_MODE_ADDR	0x1a0000
 
+static void ignore_gt_reset_warnings_in_dmesg(void)
+{
+	igt_emit_ignore_dmesg_regex("Wait for CGP_SYNC_DONE response failed");
+}
+
 /**
  * SUBTEST: spin
  * Description: test spin
@@ -1104,6 +1109,7 @@ int igt_main()
 
 	igt_subtest("multi-queue-gt-reset") {
 		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		ignore_gt_reset_warnings_in_dmesg();
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(fd, hwe, 16, 16,
 					    GT_RESET | MULTI_QUEUE,
@@ -1165,6 +1171,7 @@ int igt_main()
 
 	igt_subtest("cm-multi-queue-gt-reset") {
 		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		ignore_gt_reset_warnings_in_dmesg();
 		xe_for_each_multi_queue_engine(fd, hwe)
 			test_compute_mode(fd, hwe, 16, 16,
 					  GT_RESET | MULTI_QUEUE);
