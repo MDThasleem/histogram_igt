@@ -746,13 +746,10 @@ test_preempt_mode(int fd, struct drm_xe_engine_class_instance *eci, int num_plac
 				       fence_timeout);
 			igt_assert_eq(data[i].data, 0xc0ffee);
 
-			if (i) {
-				data = mmap((void *)MAP_ADDRESS, bo_size, PROT_READ |
-					    PROT_WRITE, MAP_SHARED | MAP_FIXED |
-					    MAP_ANONYMOUS, -1, 0);
-				igt_assert(data != MAP_FAILED);
-			}
-
+			data = mmap((void *)MAP_ADDRESS, bo_size, PROT_READ |
+				    PROT_WRITE, MAP_SHARED | MAP_FIXED |
+				    MAP_ANONYMOUS, -1, 0);
+			igt_assert(data != MAP_FAILED);
 		}
 	}
 
@@ -915,12 +912,10 @@ test_legacy_mode(int fd, struct drm_xe_engine_class_instance *eci, int num_place
 						INT64_MAX, 0, NULL));
 			igt_assert_eq(data[i].data, 0xc0ffee);
 
-			if (i) {
-				data = mmap((void *)MAP_ADDRESS, bo_size, PROT_READ |
-					    PROT_WRITE, MAP_SHARED | MAP_FIXED |
-					    MAP_ANONYMOUS, -1, 0);
-				igt_assert(data != MAP_FAILED);
-			}
+			data = mmap((void *)MAP_ADDRESS, bo_size, PROT_READ |
+				    PROT_WRITE, MAP_SHARED | MAP_FIXED |
+				    MAP_ANONYMOUS, -1, 0);
+			igt_assert(data != MAP_FAILED);
 		}
 	}
 
