@@ -65,7 +65,7 @@ foreach group : test_groups
 	generated_docs += custom_target(description_xml,
 		      build_by_default : true,
 		      output : description_xml,
-		      depends : test_executables + test_list_target,
+		      depends : test_executables + [ test_list_target ],
 		      command : [ gen_description, '@OUTPUT@', group, test_list_target ])
 endforeach
 
