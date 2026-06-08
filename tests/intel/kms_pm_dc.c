@@ -77,6 +77,9 @@
  *
  * SUBTEST: dc5-retention-flops
  * Description: This test validates display engine entry to DC5 state while PSR is active on Pipe B
+ *
+ * SUBTEST: dc5-pageflip-negative
+ * Description: This test validates that DC5 entry should not occur during continuous page-flips
  */
 
 #define PWR_DOMAIN_INFO "i915_power_domain_info"
@@ -622,6 +625,49 @@ static void test_deep_pkgc_state(data_t *data)
 	igt_assert_f(pkgc_flag, "PKGC10 is not achieved.\n");
 }
 
+static void test_dc5_pageflip_negative(data_t *data, int dc_flag)
+{
+	igt_plane_t *primary;
+	uint32_t dc5_prev_counter;
+	time_t duration = 10;
+	bool flip = false;
+	time_t start;
+
+	igt_require_dc_counter(data->debugfs_fd, dc_flag);
+
+	setup_output(data);
+	setup_videoplayback(data);
+
+	primary = igt_output_get_plane_type(data->output,
+					     DRM_PLANE_TYPE_PRIMARY);
+
+	igt_plane_set_fb(primary, &data->fb_rgb);
+	igt_display_commit(&data->display);
+
+	dc5_prev_counter = igt_read_dc_counter(data->debugfs_fd, dc_flag);
+
+	/*
+	 * Page-flip loop for 10 seconds.
+	 * No delay in between flips - here display engine remains continuously busy.
+	 */
+	start = time(NULL);
+	while (time(NULL) - start < duration) {
+		flip = !flip;
+
+		igt_plane_set_fb(primary,
+				 flip ? &data->fb_rgb : &data->fb_rgr);
+
+		igt_display_commit(&data->display);
+	}
+
+	igt_assert_f(igt_read_dc_counter(data->debugfs_fd, dc_flag) == dc5_prev_counter,
+		     "DC5 state incorrectly entered during continuous page-flips\n%s:\n%s\n",
+		     PWR_DOMAIN_INFO, data->debugfs_dump = igt_sysfs_get(data->debugfs_fd,
+		     PWR_DOMAIN_INFO));
+
+	cleanup_dc3co_fbs(data);
+}
+
 static void kms_poll_state_restore(int sig)
 {
 	int sysfs_fd;
@@ -715,6 +761,18 @@ int igt_main()
 		psr_enable(data.drm_fd, data.debugfs_fd, data.op_psr_mode, NULL);
 		igt_require(!psr_disabled_check(data.debugfs_fd));
 		test_dc5_retention_flops(&data, IGT_INTEL_CHECK_DC5);
+	}
+
+	igt_describe("This test validates that DC5 entry should not occur during "
+		     "continuous page-flips");
+	igt_subtest("dc5-pageflip-negative") {
+		igt_require(psr_sink_support(data.drm_fd, data.debugfs_fd,
+					     PSR_MODE_1, NULL));
+		data.op_psr_mode = PSR_MODE_1;
+		psr_enable(data.drm_fd, data.debugfs_fd, data.op_psr_mode, NULL);
+		igt_require(!psr_disabled_check(data.debugfs_fd));
+		test_dc5_pageflip_negative(&data, IGT_INTEL_CHECK_DC5);
+		psr_disable(data.drm_fd, data.debugfs_fd, NULL);
 	}
 
 	igt_describe("This test validates negative scenario of DC5 display "
