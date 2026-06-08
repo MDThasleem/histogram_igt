@@ -118,6 +118,7 @@ igt@kms_frontbuffer_tracking@.*drrs.*
 # Bspec: 69556
 ##############################################################################
 igt@kms_joiner@.*ultra-joiner.*
+igt@kms_dsc@.*ultrajoiner
 ##############################################################################
 # Valid skip: Display 12+ is not supporting FBC with PSR2
 # in case of selective update.

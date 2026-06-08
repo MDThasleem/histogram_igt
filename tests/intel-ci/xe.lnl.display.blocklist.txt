@@ -74,6 +74,7 @@ igt@kms_bw@.*-4-displays-.*
 # Ultrajoiner is not supported with only 3 pipes
 #########################################
 igt@kms_joiner@.*ultra-joiner.*
+igt@kms_dsc@.*ultrajoiner
 ##########################################
 # Valid skip :- Feature is not enabled on kernel
 ##########################################
