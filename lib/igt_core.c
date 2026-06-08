@@ -1745,10 +1745,12 @@ __noreturn static void exit_subtest(const char *result)
 				*subtest_name,
 				result,
 				igt_time_elapsed(thentime, &now));
-	igt_kmsg(KMSG_INFO "%s: finished subtest %s, %s\n",
-		 command_str, *subtest_name, result);
-	igt_trace("%s: finished subtest %s, %s\n",
-		  command_str, *subtest_name, result);
+	igt_kmsg(KMSG_INFO "%s: finished %s %s, %s\n",
+		 command_str, in_dynamic_subtest ? "dynamic subtest" : "subtest",
+		 *subtest_name, result);
+	igt_trace("%s: finished %s %s, %s\n",
+		  command_str, in_dynamic_subtest ? "dynamic subtest" : "subtest",
+		  *subtest_name, result);
 
 	igt_terminate_spins();
 
