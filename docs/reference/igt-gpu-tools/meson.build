@@ -56,13 +56,16 @@ configure_file(input: 'version.xml.in',
 foreach group : test_groups
 	programs_xml = 'igt_test_programs_' + group + '_programs.xml'
 	generated_docs += custom_target(programs_xml,
+		      build_by_default : true,
 		      output : programs_xml,
+		      depends : test_list_target,
 		      command : [ gen_programs, '@OUTPUT@', group, test_list_target ])
 
 	description_xml = 'igt_test_programs_' + group + '_description.xml'
 	generated_docs += custom_target(description_xml,
+		      build_by_default : true,
 		      output : description_xml,
-		      depends : test_executables,
+		      depends : test_executables + test_list_target,
 		      command : [ gen_description, '@OUTPUT@', group, test_list_target ])
 endforeach
 
