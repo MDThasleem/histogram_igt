@@ -15,6 +15,7 @@
 #include <fcntl.h>
 
 #include "igt.h"
+#include "igt_sysfs.h"
 #include "lib/igt_syncobj.h"
 #include "lib/intel_reg.h"
 #include "xe_drm.h"
@@ -158,6 +159,20 @@ static void test_spin(int fd, struct drm_xe_engine_class_instance *eci,
  */
 
 static void
+wait_gt_idle(int gt_id)
+{
+	int fd = drm_open_driver(DRIVER_XE);
+
+	if (xe_sysfs_gt_has_node(fd, gt_id, "gtidle/idle_status"))
+		igt_wait(xe_gt_is_in_c6(fd, gt_id), 1000, 10);
+	else
+		/* GT C6 idle status not available (e.g. VF), fall back to fixed delay */
+		usleep(150000);
+
+	drm_close_driver(fd);
+}
+
+static void
 test_balancer(int fd, int gt, int class, int n_exec_queues, int n_execs,
 	      unsigned int flags)
 {
@@ -277,8 +292,7 @@ test_balancer(int fd, int gt, int class, int n_exec_queues, int n_execs,
 				xe_exec_queue_destroy(fd, exec_queues[i]);
 		}
 		drm_close_driver(fd);
-		/* FIXME: wait for idle */
-		usleep(150000);
+		wait_gt_idle(gt);
 		return;
 	}
 
@@ -542,8 +556,7 @@ test_compute_mode(int fd, struct drm_xe_engine_class_instance *eci,
 				xe_exec_queue_destroy(fd, exec_queues[i]);
 		}
 		drm_close_driver(fd);
-		/* FIXME: wait for idle */
-		usleep(150000);
+		wait_gt_idle(eci->gt_id);
 		return;
 	}
 
