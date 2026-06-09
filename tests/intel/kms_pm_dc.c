@@ -51,6 +51,10 @@
  * Description: Make sure that system enters DC3CO when PSR2 or PR is active and
  *              system is in SLEEP state
  *
+ * SUBTEST: dc3co-framedrop-check
+ * Description: Verify that DC3CO entry does not cause frame drops and successfully
+ *              enters the power state
+ *
  * SUBTEST: dc5-dpms
  * Description: Validate display engine entry to DC5 state while all connectors's
  *              DPMS property set to OFF
@@ -89,6 +93,10 @@
 #define DC9_RESETS_DC_COUNTERS(devid) (!(IS_DG1(devid) || IS_DG2(devid) || intel_display_ver(devid) >= 14))
 #define SEC 1
 #define MSEC (SEC * 1000)
+#define DC3CO_FRAME_DELAY_FACTOR 1.5
+#define DC3CO_TARGET_FLIPS 200
+#define DC3CO_VERIFY_COMMITS 300
+#define DC3CO_MAX_VBLANK_GAP 2
 
 IGT_TEST_DESCRIPTION("Tests to validate display power DC states.");
 
@@ -342,6 +350,86 @@ static void test_dc3co_vpb_simulation(data_t *data)
 	setup_dc3co(data);
 	setup_videoplayback(data);
 	check_dc3co_with_videoplayback_like_load(data);
+	cleanup_dc3co_fbs(data);
+}
+
+static uint32_t wait_for_next_vblank_seq(data_t *data)
+{
+	drmVBlank wait = {};
+	igt_crtc_t *crtc = data->output->pending_crtc;
+
+	igt_assert_f(crtc, "No CRTC bound to output for vblank wait\n");
+
+	wait.request.type = kmstest_get_vbl_flag(crtc->crtc_index) |
+						 DRM_VBLANK_RELATIVE |
+						 DRM_VBLANK_NEXTONMISS;
+	wait.request.sequence = 1;
+	igt_assert_eq(drmWaitVBlank(data->drm_fd, &wait), 0);
+
+	return wait.reply.sequence;
+}
+
+static void detect_dc3co_framedrop(data_t *data)
+{
+	igt_plane_t *primary;
+	uint32_t dc3co_prev_cnt;
+	uint32_t dc3co_cur_cnt;
+	uint32_t prev_vblank_seq = 0;
+	uint32_t vblank_seq;
+	uint32_t vblank_gap;
+	int delay;
+	int committed = 0;
+	bool dc3co_after_target = false;
+	bool front = false;
+
+	igt_require_f(data->mode->vrefresh != 0, "Invalid vrefresh rate of 0\n");
+
+	primary = igt_output_get_plane_type(data->output, DRM_PLANE_TYPE_PRIMARY);
+	igt_plane_set_fb(primary, NULL);
+	igt_display_commit(&data->display);
+
+	dc3co_prev_cnt = igt_read_dc_counter(data->debugfs_fd, IGT_INTEL_CHECK_DC3CO);
+
+	delay = (int)(DC3CO_FRAME_DELAY_FACTOR * (1000000 / data->mode->vrefresh));
+
+	while (committed < DC3CO_VERIFY_COMMITS) {
+		front = !front;
+		igt_plane_set_fb(primary, front ? &data->fb_rgr : &data->fb_rgb);
+		igt_display_commit(&data->display);
+
+		vblank_seq = wait_for_next_vblank_seq(data);
+		if (prev_vblank_seq) {
+			vblank_gap = vblank_seq - prev_vblank_seq;
+			igt_assert_f(igt_vblank_after(vblank_seq, prev_vblank_seq) &&
+				     vblank_gap <= DC3CO_MAX_VBLANK_GAP,
+				     "Unexpected vblank gap %u after commit %d (prev=%u, cur=%u)\n",
+				     vblank_gap, committed + 1, prev_vblank_seq, vblank_seq);
+		}
+		prev_vblank_seq = vblank_seq;
+		committed++;
+		usleep(delay);
+
+		if (committed >= DC3CO_TARGET_FLIPS) {
+			dc3co_cur_cnt = igt_read_dc_counter(data->debugfs_fd,
+						    IGT_INTEL_CHECK_DC3CO);
+			if (dc3co_cur_cnt > dc3co_prev_cnt)
+				dc3co_after_target = true;
+		}
+	}
+
+	igt_assert_eq(committed, DC3CO_VERIFY_COMMITS);
+	igt_assert_f(dc3co_after_target,
+		     "DC3CO did not increment after %d flips while validating %d commits\n",
+		     DC3CO_TARGET_FLIPS, DC3CO_VERIFY_COMMITS);
+}
+
+static void test_dc3co_framedrop(data_t *data)
+{
+	igt_require_dc_counter(data->debugfs_fd, IGT_INTEL_CHECK_DC3CO);
+	setup_output(data);
+	setup_dc3co(data);
+	setup_videoplayback(data);
+	detect_dc3co_framedrop(data);
 	cleanup_dc3co_fbs(data);
 }
 
@@ -731,6 +819,32 @@ int igt_main()
 							     data.op_psr_mode, NULL));
 
 				test_dc3co_vpb_simulation(&data);
+			}
+		}
+	}
+
+	igt_describe("Validate that no frame drops occur during DC3CO entry "
+			     "while alternating framebuffers with PSR2 or Panel Replay active");
+	igt_subtest_with_dynamic("dc3co-framedrop-check") {
+		static const struct dc3co_test_mode dc3co_modes[] = {
+			{ PSR_MODE_2, "psr2" },
+			{ PR_MODE,    "pr"   },
+		};
+
+		for (int i = 0; i < ARRAY_SIZE(dc3co_modes); i++) {
+			const char *name = dc3co_modes[i].name;
+			data.op_psr_mode = dc3co_modes[i].mode;
+
+			igt_dynamic_f("%s", name) {
+				igt_require_f(intel_display_ver(data.devid) >= 35,
+					      "Platform does not support DC3CO with %s\n",
+					      data.op_psr_mode == PSR_MODE_2 ? "PSR2" : "Panel Replay");
+
+				igt_require(psr_sink_support(data.drm_fd,
+						     data.debugfs_fd,
+						     data.op_psr_mode, NULL));
+
+				test_dc3co_framedrop(&data);
 			}
 		}
 	}
