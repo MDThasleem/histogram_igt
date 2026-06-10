@@ -296,6 +296,17 @@ test_resolution_with_output(data_t *data, igt_crtc_t *crtc, int max_planes,
 		/* switch to lower resolution */
 		igt_output_override_mode(output, mode_lo);
 		free(mode_lo);
+
+		/*
+		 * If mode_lo requires bigjoiner support that this pipe cannot
+		 * satisfy (e.g. a high-refresh mode on pipe-D with no pipe-E
+		 * available), skip the subtest.
+		 */
+		igt_skip_on_f(is_intel_device(data->drm_fd) &&
+			      !igt_check_bigjoiner_support(&data->display),
+			      "Skipping pipe-%s: mode_lo does not satisfy bigjoiner requirements\n",
+			      igt_crtc_name(crtc));
+
 		if (is_amdgpu_device(data->drm_fd))
 			igt_output_set_crtc(output, NULL);
 		igt_display_commit2(&data->display, COMMIT_ATOMIC);
