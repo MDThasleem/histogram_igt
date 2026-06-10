@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright 2024 Advanced Micro Devices, Inc.
+ * Copyright 2026 Advanced Micro Devices, Inc.
  *
  * Test: amd_lockdep - Exercise lock-heavy GPU paths for lockdep validation
  *
@@ -22,19 +22,20 @@
  *   stress-all-paths             - Combined stress of all paths
  */
 
-#include "igt.h"
-#include "igt_amd.h"
-#include "igt_taints.h"
-#include "lib/amdgpu/amd_memory.h"
-#include "lib/amdgpu/amd_command_submission.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
+#include <sys/mman.h>
 
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
-#include <pthread.h>
-#include <sys/mman.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <errno.h>
+
+#include "igt.h"
+#include "igt_amd.h"
+#include "igt_taints.h"
+#include "lib/amdgpu/amd_command_submission.h"
+#include "lib/amdgpu/amd_memory.h"
 
 #define BO_SIZE (4 * 1024 * 1024)  /* 4MB */
 #define NUM_BOS 16
