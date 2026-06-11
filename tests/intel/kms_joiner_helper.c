@@ -185,6 +185,47 @@ bool igt_assign_pipes_for_outputs(int drm_fd,
 }
 
 /**
+ * intel_max_hdisplay_non_joiner_mode_found:
+ * @drm_fd: drm file descriptor
+ * @connector: libdrm connector
+ * @max_dot_clock: max dot clock frequency
+ * @mode: libdrm mode to be filled
+ *
+ * Find the mode with maximum hdisplay that does not require bigjoiner.
+ *
+ * Bigjoiner is triggered when EITHER:
+ * - hdisplay > max_pipe_hdisplay (platform's single-pipe width limit)
+ * - clock > max_dotclock (platform's clock limit)
+ *
+ * Prioritizes hdisplay as the primary metric, using clock as a
+ * tiebreaker when multiple modes have identical hdisplay. This is correct for
+ * display testing where maximum supported resolution is the primary concern.
+ *
+ * Returns: true if a valid non-joiner mode exists, false otherwise.
+ */
+bool intel_max_hdisplay_non_joiner_mode_found(int drm_fd, drmModeConnector *connector,
+					     int max_dotclock, drmModeModeInfo *mode)
+{
+	bool found = false;
+
+	for (int i = 0; i < connector->count_modes; i++) {
+		drmModeModeInfo *current_mode = &connector->modes[i];
+
+	if (igt_bigjoiner_possible(drm_fd, current_mode, max_dotclock))
+		continue;
+
+	if (!found || current_mode->hdisplay > mode->hdisplay ||
+	    (current_mode->hdisplay == mode->hdisplay &&
+	     current_mode->clock > mode->clock)) {
+		*mode = *current_mode;
+		found = true;
+	}
+	}
+
+	return found;
+}
+
+/**
  * igt_is_joiner_supported_by_source:
  * @drm_fd: drm file descriptor
  * @joiner_type: joiner type

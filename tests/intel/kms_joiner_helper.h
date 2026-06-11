@@ -18,6 +18,8 @@ bool igt_assign_pipes_for_outputs(int drm_fd,
 				  uint32_t *used_pipes_mask,
 				  uint32_t master_pipes_mask,
 				  uint32_t valid_pipes_mask);
+bool intel_max_hdisplay_non_joiner_mode_found(int drm_fd, drmModeConnector *connector,
+					      int max_dotclock, drmModeModeInfo *mode);
 bool igt_is_joiner_supported_by_source(int drm_fd, enum joined_pipes joiner_type);
 const char *igt_get_joined_pipes_name(enum joined_pipes val);
 
