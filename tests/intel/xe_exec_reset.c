@@ -846,6 +846,9 @@ static void threads(int fd, int n_exec_queues, int n_execs, unsigned int flags)
 	int n_engines = 0, i = 0;
 	bool go = false;
 
+	if (flags & COMPRESSION)
+		igt_require(HAS_FLATCCS(intel_get_drm_devid(fd)));
+
 	xe_for_each_engine(fd, hwe) {
 		if (hwe->gt_id && (flags & GT0))
 			continue;
