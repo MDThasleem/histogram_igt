@@ -102,11 +102,17 @@ static void trigger_memory_pressure(int fd)
 	overpressure = mem_size / 2;
 	if (overpressure < (64 << 20))
 		overpressure = 64 << 20;
+	max_objs = DIV_ROUND_UP(mem_size + overpressure, chunk);
+
+	/*
+	 * Pressure BOs are faulted in and kept alive until cleanup. If the
+	 * system is already low on RAM, this can cause OOM.
+	 */
+	igt_require_memory(max_objs, chunk, CHECK_RAM);
 
 	/* Separate VM so pressure BOs don't interfere with the test */
 	vm = xe_vm_create(fd, 0, 0);
 
-	max_objs = (mem_size + overpressure) / chunk + 1;
 	handles = malloc(max_objs * sizeof(*handles));
 	igt_assert(handles);
 
