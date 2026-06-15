@@ -51,7 +51,7 @@ static void gpgpu_shader__prefetch_fault(struct gpgpu_shader *shdr,
 
 	emit_iga64_code(shdr, xe_prefetch_fault_prefetch, R"(
 #define IGA64_FLAGS ""
-#if GEN_VER >= 3500
+#if GFX_VER >= 3500
 L0:
 // Set base address with scalar register
 (W)	mov (1)		s0.0<1>:ud		ARG(0):ud

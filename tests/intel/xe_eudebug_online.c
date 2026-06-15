@@ -217,7 +217,7 @@ static struct gpgpu_shader *get_shader(struct online_debug_data *data)
 
 	shader = gpgpu_shader_create(data->drm_fd);
 
-	if (shader->gen_ver == 3000)
+	if (shader->gfx_ver == 3000)
 		gpgpu_shader_set_vrt(shader, VRT_96);
 
 	shader->simd_size = SIMD_SIZE;
@@ -260,7 +260,7 @@ static struct gpgpu_shader *get_shader(struct online_debug_data *data)
 			gpgpu_shader__write_a64_d32(shader, BAD_OFFSET, BAD_CANARY);
 		else if (data->flags & SHADER_PAGEFAULT_ONE_OF_MANY)
 			emit_iga64_code(shader, pagefault_one_of_many, R"(
-#if GEN_VER >= 2000
+#if GFX_VER >= 2000
 	// prepare load descriptor for page-faulting address
 	mov (8) r30.0<1>:uq 0x0:uq
 	mov (1) r30.0<1>:uq 0x12345678000:uq // PF address
@@ -296,7 +296,7 @@ static struct gpgpu_shader *get_sip(struct online_debug_data *data)
 		gpgpu_shader__write_aip(sip, 0);
 	else
 		emit_iga64_code(sip, store_sr0_0, R"(
-#if GEN_VER >= 2000
+#if GFX_VER >= 2000
 	mov (1) r5.0<1>:ud sr0.0:ud
 	SET_THREAD_SPACE_ADDR(r4, 0, 0:ud, 4)
 	STORE_SPACE_DW(r4, r5)

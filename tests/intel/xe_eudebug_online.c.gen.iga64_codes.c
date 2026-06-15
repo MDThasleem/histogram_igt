@@ -3,10 +3,10 @@
 
 #include "gpgpu_shader.h"
 
-#define MD5_SUM_IGA64_ASMS e184c9b1ac9287f33544ad0737b2831a
+#define MD5_SUM_IGA64_ASMS bf6c1c37f18b9c42e4f4cd789a12158e
 
 struct iga64_template const iga64_code_store_sr0_0[] = {
-	{ .gen_ver = 3500, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 52, .code = (const uint32_t []) {
 		0x00000961, 0x05050220, 0x00007000, 0x00000000,
 		0x80000961, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -21,7 +21,7 @@ struct iga64_template const iga64_code_store_sr0_0[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 3000, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 3000, .size = 52, .code = (const uint32_t []) {
 		0x00000961, 0x05050220, 0x00007000, 0x00000000,
 		0x80000961, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -36,7 +36,7 @@ struct iga64_template const iga64_code_store_sr0_0[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 40, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 40, .code = (const uint32_t []) {
 		0x00000961, 0x05050220, 0x00007000, 0x00000000,
 		0x800c0961, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04558220, 0x02000014, 0x00000002,
@@ -48,13 +48,13 @@ struct iga64_template const iga64_code_store_sr0_0[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 0, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 0, .code = (const uint32_t []) {
 
 	}}
 };
 
 struct iga64_template const iga64_code_pagefault_one_of_many[] = {
-	{ .gen_ver = 3500, .size = 44, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 44, .code = (const uint32_t []) {
 		0x000c0061, 0x1e054330, 0x00000000, 0x00000000,
 		0x00000061, 0x1e054330, 0x00000123, 0x45678000,
 		0x00000061, 0x1e254220, 0x00000000, 0x0000003f,
@@ -67,7 +67,7 @@ struct iga64_template const iga64_code_pagefault_one_of_many[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 44, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 44, .code = (const uint32_t []) {
 		0x000c0061, 0x1e054330, 0x00000000, 0x00000000,
 		0x00000061, 0x1e054330, 0x00000123, 0x45678000,
 		0x00000061, 0x1e254220, 0x00000000, 0x0000003f,
@@ -80,7 +80,7 @@ struct iga64_template const iga64_code_pagefault_one_of_many[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 0, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 0, .code = (const uint32_t []) {
 
 	}}
 };

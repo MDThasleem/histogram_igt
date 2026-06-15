@@ -22,7 +22,7 @@ struct label_entry {
 #define IGA64_ARG0 0xc0ded000
 #define IGA64_ARG_MASK 0xffffff00
 
-#define SUPPORTED_GEN_VER 1200 /* Support TGL and up */
+#define SUPPORTED_GFX_VER 1200 /* Support TGL and up */
 
 #define PAGE_SIZE 4096
 #define BATCH_STATE_SPLIT 2048
@@ -46,10 +46,10 @@ __emit_iga64_code(struct gpgpu_shader *shdr, struct iga64_template const *tpls,
 {
 	uint32_t *ptr;
 
-	igt_require_f(shdr->gen_ver >= SUPPORTED_GEN_VER,
+	igt_require_f(shdr->gfx_ver >= SUPPORTED_GFX_VER,
 		      "No available shader templates for platforms older than XeLP\n");
 
-	while (shdr->gen_ver < tpls->gen_ver)
+	while (shdr->gfx_ver < tpls->gfx_ver)
 		tpls++;
 
 	while (shdr->max_size < shdr->size + tpls->size)
@@ -196,7 +196,7 @@ __xehp_gpgpu_execfunc(struct intel_bb *ibb,
 		emit_sip(ibb, sip_offset);
 
 	/* Inline data is at 31th/32th dword of COMPUTE_WALKER, BSpec: 67028 */
-	inline_data = intel_bb_ptr(ibb) + 4 * (shdr->gen_ver < 2000 ? 31 : 32);
+	inline_data = intel_bb_ptr(ibb) + 4 * (shdr->gfx_ver < 2000 ? 31 : 32);
 	xehp_emit_compute_walk(ibb, 0, 0, x_dim * 16, y_dim, &idd, 0x0);
 	fill_inline_data(inline_data, CANONICAL(target->addr.offset), target, x_dim);
 
@@ -297,17 +297,17 @@ void gpgpu_shader_exec(struct intel_bb *ibb,
 		       struct gpgpu_shader *sip,
 		       uint64_t ring, bool explicit_engine)
 {
-	igt_require(shdr->gen_ver >= SUPPORTED_GEN_VER);
+	igt_require(shdr->gfx_ver >= SUPPORTED_GFX_VER);
 	igt_assert(ibb->size >= PAGE_SIZE);
 	igt_assert(ibb->ptr == ibb->batch);
 
 	if (target->addr.offset == INTEL_BUF_INVALID_ADDRESS)
 		gpgpu_alloc_gpu_addr(ibb, target);
 
-	if (shdr->gen_ver >= 3500)
+	if (shdr->gfx_ver >= 3500)
 		__xe3p_gpgpu_execfunc(ibb, target, x_dim, y_dim, shdr, sip,
 				      ring, explicit_engine);
-	else if (shdr->gen_ver >= 1250)
+	else if (shdr->gfx_ver >= 1250)
 		__xehp_gpgpu_execfunc(ibb, target, x_dim, y_dim, shdr, sip,
 				      ring, explicit_engine);
 	else
@@ -330,7 +330,7 @@ struct gpgpu_shader *gpgpu_shader_create(int fd)
 
 	igt_assert(shdr);
 	info = intel_get_device_info(intel_get_drm_devid(fd));
-	shdr->gen_ver = 100 * info->graphics_ver + info->graphics_rel;
+	shdr->gfx_ver = 100 * info->graphics_ver + info->graphics_rel;
 	shdr->max_size = 16 * 4;
 	shdr->code = malloc(4 * shdr->max_size);
 	shdr->labels = igt_map_create(igt_map_hash_32, igt_map_equal_32);
@@ -385,7 +385,7 @@ void gpgpu_shader_dump(struct gpgpu_shader *shdr)
  */
 void gpgpu_shader_set_vrt(struct gpgpu_shader *shdr, enum gpgpu_shader_vrt_modes vrt)
 {
-	igt_assert(vrt == VRT_DISABLED || shdr->gen_ver >= 3000);
+	igt_assert(vrt == VRT_DISABLED || shdr->gfx_ver >= 3000);
 	shdr->vrt = vrt;
 }
 
@@ -500,11 +500,11 @@ uint32_t gpgpu_shader__get_max_threads_in_tg(struct gpgpu_shader *shdr)
 	enum gpgpu_shader_vrt_modes register_size = shdr->vrt;
 
 	/* Not implemented for Xe platforms  */
-	if (shdr->gen_ver < 2000)
+	if (shdr->gfx_ver < 2000)
 		return 1;
 
 	/* Xe2 platforms */
-	if (shdr->gen_ver < 3000) {
+	if (shdr->gfx_ver < 3000) {
 		return compute_max_threads_in_tg_xe2(shdr->large_grf_mode,
 						     shdr->simd_size,
 						     shdr->hw_local_id_generation);
@@ -586,10 +586,10 @@ void gpgpu_shader__eot(struct gpgpu_shader *shdr)
 	else
 		emit_iga64_code(shdr, eot, R"(
 (W)	mov (8|M0)               r112.0<1>:ud  r0.0<8;8,1>:ud
-#if GEN_VER < 1250
+#if GFX_VER < 1250
 (W)	send.ts (16|M0)          null r112 null 0x10000000 0x02000010 {EOT,@1}
 
-#elif GEN_VER <= 3000
+#elif GFX_VER <= 3000
 (W)	send.gtwy (8|M0)         null r112 src1_null     0 0x02000000 {EOT}
 
 #else
@@ -948,7 +948,7 @@ void gpgpu_shader__write_a64_d32(struct gpgpu_shader *shdr, uint64_t ppgtt_addr,
 	igt_assert_f((addr & 0x3) == 0, "address must be aligned to DWord!\n");
 
 	emit_iga64_code(shdr, write_a64_d32, R"(
-#if GEN_VER >= 2000
+#if GFX_VER >= 2000
 // Unyped 2D Block Store
 // Instruction_Store2DBlock
 // bspec: 63981
@@ -1037,7 +1037,7 @@ void gpgpu_shader__read_a64_d32(struct gpgpu_shader *shdr, uint64_t ppgtt_addr)
 	igt_assert_f((addr & 0x3) == 0, "address must be aligned to DWord!\n");
 
 	emit_iga64_code(shdr, read_a64_d32, R"(
-#if GEN_VER >= 2000
+#if GFX_VER >= 2000
 // Unyped 2D Block Array Load
 // Instruction_Load2DBlockArray
 // bspec: 63972

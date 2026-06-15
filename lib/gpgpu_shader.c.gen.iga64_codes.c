@@ -3,10 +3,10 @@
 
 #include "gpgpu_shader.h"
 
-#define MD5_SUM_IGA64_ASMS 16bafa89cc2fb5f6617e3dac61120f47
+#define MD5_SUM_IGA64_ASMS 4068ae55c6aa50d845b74f5d61da4630
 
 struct iga64_template const iga64_code_read_a64_d32[] = {
-	{ .gen_ver = 2000, .size = 40, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 40, .code = (const uint32_t []) {
 		0x800c0061, 0x1e054330, 0x00000000, 0x00000000,
 		0x80000061, 0x1e054220, 0x00000000, 0xc0ded000,
 		0x80000061, 0x1e154220, 0x00000000, 0xc0ded001,
@@ -18,13 +18,13 @@ struct iga64_template const iga64_code_read_a64_d32[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 0, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 0, .code = (const uint32_t []) {
 
 	}}
 };
 
 struct iga64_template const iga64_code_write_a64_d32[] = {
-	{ .gen_ver = 2000, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 48, .code = (const uint32_t []) {
 		0x800c0061, 0x1e054330, 0x00000000, 0x00000000,
 		0x80000061, 0x1e054220, 0x00000000, 0xc0ded000,
 		0x80000061, 0x1e154220, 0x00000000, 0xc0ded001,
@@ -38,13 +38,13 @@ struct iga64_template const iga64_code_write_a64_d32[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 0, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 0, .code = (const uint32_t []) {
 
 	}}
 };
 
 struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
-	{ .gen_ver = 3500, .size = 60, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 60, .code = (const uint32_t []) {
 		0x80000966, 0x80018220, 0x02008000, 0x00008000,
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000961, 0x1e050330, 0x00000104, 0x00000000,
@@ -61,7 +61,7 @@ struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 3000, .size = 60, .code = (const uint32_t []) {
+	{ .gfx_ver = 3000, .size = 60, .code = (const uint32_t []) {
 		0x80000966, 0x80018220, 0x02008000, 0x00008000,
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000961, 0x1e050330, 0x00000104, 0x00000000,
@@ -78,7 +78,7 @@ struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 48, .code = (const uint32_t []) {
 		0x80000966, 0x80018220, 0x02008000, 0x00008000,
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x800c0961, 0x1e054220, 0x00000000, 0x00000000,
@@ -92,7 +92,7 @@ struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 52, .code = (const uint32_t []) {
 		0x80000966, 0x80018220, 0x02008000, 0x00008000,
 		0x80000965, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80030961, 0x1e054220, 0x00000000, 0x00000000,
@@ -107,7 +107,7 @@ struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 48, .code = (const uint32_t []) {
 		0x80000966, 0x80018220, 0x02008000, 0x00008000,
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x800c0961, 0x1e054220, 0x00000000, 0x00000000,
@@ -121,7 +121,7 @@ struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 52, .code = (const uint32_t []) {
 		0x80000966, 0x80018220, 0x02008000, 0x00008000,
 		0x80000965, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80030961, 0x1e054220, 0x00000000, 0x00000000,
@@ -136,7 +136,7 @@ struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 48, .code = (const uint32_t []) {
 		0x80000166, 0x80018220, 0x02008000, 0x00008000,
 		0x80000165, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80030161, 0x1e054220, 0x00000000, 0x00000000,
@@ -153,27 +153,27 @@ struct iga64_template const iga64_code_end_system_routine_step_if_eq[] = {
 };
 
 struct iga64_template const iga64_code_end_system_routine[] = {
-	{ .gen_ver = 2000, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 12, .code = (const uint32_t []) {
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 12, .code = (const uint32_t []) {
 		0x80000965, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 12, .code = (const uint32_t []) {
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 12, .code = (const uint32_t []) {
 		0x80000965, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000965, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 12, .code = (const uint32_t []) {
 		0x80000165, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000165, 0x80018220, 0x02008000, 0x7ffffffd,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
@@ -181,18 +181,18 @@ struct iga64_template const iga64_code_end_system_routine[] = {
 };
 
 struct iga64_template const iga64_code_breakpoint_suppress[] = {
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x80000966, 0x80018220, 0x02008000, 0x00008000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80000166, 0x80018220, 0x02008000, 0x00008000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_write_on_exception[] = {
-	{ .gen_ver = 3500, .size = 64, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 64, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded002,
 		0x80000061, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -210,7 +210,7 @@ struct iga64_template const iga64_code_write_on_exception[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 3000, .size = 64, .code = (const uint32_t []) {
+	{ .gfx_ver = 3000, .size = 64, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded002,
 		0x80000061, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -228,7 +228,7 @@ struct iga64_template const iga64_code_write_on_exception[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 52, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded002,
 		0x800c0061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04558220, 0x02000014, 0x00000002,
@@ -243,7 +243,7 @@ struct iga64_template const iga64_code_write_on_exception[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 60, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 60, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded002,
 		0x80030061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -260,7 +260,7 @@ struct iga64_template const iga64_code_write_on_exception[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 56, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 56, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded002,
 		0x800c0061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000014, 0x00000002,
@@ -276,7 +276,7 @@ struct iga64_template const iga64_code_write_on_exception[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 60, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 60, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded002,
 		0x80030061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -293,7 +293,7 @@ struct iga64_template const iga64_code_write_on_exception[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 56, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 56, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded002,
 		0x80030061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -312,53 +312,53 @@ struct iga64_template const iga64_code_write_on_exception[] = {
 };
 
 struct iga64_template const iga64_code_set_exception[] = {
-	{ .gen_ver = 2000, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 8, .code = (const uint32_t []) {
 		0x80000966, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 8, .code = (const uint32_t []) {
 		0x80000966, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 8, .code = (const uint32_t []) {
 		0x80000966, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x80000966, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80000166, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_clear_exception[] = {
-	{ .gen_ver = 2000, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 8, .code = (const uint32_t []) {
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 8, .code = (const uint32_t []) {
 		0x80000965, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 8, .code = (const uint32_t []) {
 		0x80000965, 0x80118220, 0x02008010, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x80000965, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80000165, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_media_block_write[] = {
-	{ .gen_ver = 3500, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 52, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -373,7 +373,7 @@ struct iga64_template const iga64_code_media_block_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 3000, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 3000, .size = 52, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -388,7 +388,7 @@ struct iga64_template const iga64_code_media_block_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 40, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 40, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded001,
 		0x800c0061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04558220, 0x02000014, 0x00000002,
@@ -400,7 +400,7 @@ struct iga64_template const iga64_code_media_block_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 48, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded001,
 		0x80030061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -414,7 +414,7 @@ struct iga64_template const iga64_code_media_block_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 44, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 44, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded001,
 		0x800c0061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000014, 0x00000002,
@@ -427,7 +427,7 @@ struct iga64_template const iga64_code_media_block_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 48, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded001,
 		0x80030061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -441,7 +441,7 @@ struct iga64_template const iga64_code_media_block_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 44, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 44, .code = (const uint32_t []) {
 		0x80000061, 0x05054220, 0x00000000, 0xc0ded001,
 		0x80030061, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -457,30 +457,30 @@ struct iga64_template const iga64_code_media_block_write[] = {
 };
 
 struct iga64_template const iga64_code_write_aip[] = {
-	{ .gen_ver = 2000, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 8, .code = (const uint32_t []) {
 		0x80000940, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 8, .code = (const uint32_t []) {
 		0x80000940, 0x80418220, 0x02008040, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 8, .code = (const uint32_t []) {
 		0x80000940, 0x80218220, 0x02008020, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x80000940, 0x80418220, 0x02008040, 0xc0ded000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80000140, 0x80418220, 0x02008040, 0xc0ded000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_media_block_write_aip[] = {
-	{ .gen_ver = 3500, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 52, .code = (const uint32_t []) {
 		0x80000961, 0x05050220, 0x00008020, 0x00000000,
 		0x80000961, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -495,7 +495,7 @@ struct iga64_template const iga64_code_media_block_write_aip[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 3000, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 3000, .size = 52, .code = (const uint32_t []) {
 		0x80000961, 0x05050220, 0x00008020, 0x00000000,
 		0x80000961, 0x04050330, 0x00000104, 0x00000000,
 		0x80000040, 0x04258220, 0x06000124, 0xffffffff,
@@ -510,7 +510,7 @@ struct iga64_template const iga64_code_media_block_write_aip[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 40, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 40, .code = (const uint32_t []) {
 		0x80000961, 0x05050220, 0x00008020, 0x00000000,
 		0x800c0961, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04558220, 0x02000014, 0x00000002,
@@ -522,7 +522,7 @@ struct iga64_template const iga64_code_media_block_write_aip[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 48, .code = (const uint32_t []) {
 		0x80000961, 0x05050220, 0x00008040, 0x00000000,
 		0x80030961, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -536,7 +536,7 @@ struct iga64_template const iga64_code_media_block_write_aip[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 44, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 44, .code = (const uint32_t []) {
 		0x80000961, 0x05050220, 0x00008020, 0x00000000,
 		0x800c0961, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000014, 0x00000002,
@@ -549,7 +549,7 @@ struct iga64_template const iga64_code_media_block_write_aip[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 48, .code = (const uint32_t []) {
 		0x80000961, 0x05050220, 0x00008040, 0x00000000,
 		0x80030961, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -563,7 +563,7 @@ struct iga64_template const iga64_code_media_block_write_aip[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 44, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 44, .code = (const uint32_t []) {
 		0x80000161, 0x05050220, 0x00008040, 0x00000000,
 		0x80030161, 0x04054220, 0x00000000, 0x00000000,
 		0x80000069, 0x04058220, 0x02000024, 0x00000002,
@@ -579,7 +579,7 @@ struct iga64_template const iga64_code_media_block_write_aip[] = {
 };
 
 struct iga64_template const iga64_code_common_target_write[] = {
-	{ .gen_ver = 3500, .size = 64, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 64, .code = (const uint32_t []) {
 		0x80100061, 0x1f054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1f054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x1f154220, 0x00000000, 0xc0ded002,
@@ -597,7 +597,7 @@ struct iga64_template const iga64_code_common_target_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 3000, .size = 64, .code = (const uint32_t []) {
+	{ .gfx_ver = 3000, .size = 64, .code = (const uint32_t []) {
 		0x80100061, 0x1f054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1f054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x1f154220, 0x00000000, 0xc0ded002,
@@ -615,7 +615,7 @@ struct iga64_template const iga64_code_common_target_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 52, .code = (const uint32_t []) {
 		0x80100061, 0x1f054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1f054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x1f154220, 0x00000000, 0xc0ded002,
@@ -630,7 +630,7 @@ struct iga64_template const iga64_code_common_target_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 56, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 56, .code = (const uint32_t []) {
 		0x80040061, 0x1f054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1f054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x1f254220, 0x00000000, 0xc0ded002,
@@ -646,7 +646,7 @@ struct iga64_template const iga64_code_common_target_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 52, .code = (const uint32_t []) {
 		0x80100061, 0x1f054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1f054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x1f154220, 0x00000000, 0xc0ded002,
@@ -661,7 +661,7 @@ struct iga64_template const iga64_code_common_target_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 56, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 56, .code = (const uint32_t []) {
 		0x80040061, 0x1f054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1f054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x1f254220, 0x00000000, 0xc0ded002,
@@ -677,7 +677,7 @@ struct iga64_template const iga64_code_common_target_write[] = {
 		0x80000001, 0x00010000, 0x30000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 52, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 52, .code = (const uint32_t []) {
 		0x80040061, 0x1f054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1f054220, 0x00000000, 0xc0ded001,
 		0x80000061, 0x1f254220, 0x00000000, 0xc0ded002,
@@ -695,35 +695,35 @@ struct iga64_template const iga64_code_common_target_write[] = {
 };
 
 struct iga64_template const iga64_code_inc_r40_jump_neq[] = {
-	{ .gen_ver = 2000, .size = 20, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 20, .code = (const uint32_t []) {
 		0x80000040, 0x28058220, 0x02002804, 0x00000001,
 		0x80000061, 0x30014220, 0x00000000, 0x00000000,
 		0x80001a70, 0x00018220, 0x22002804, 0xc0ded000,
 		0x84000020, 0x00004000, 0x00000000, 0xffffffd0,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 20, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 20, .code = (const uint32_t []) {
 		0x80000040, 0x28058220, 0x02002804, 0x00000001,
 		0x80000061, 0x30014220, 0x00000000, 0x00000000,
 		0x80001a70, 0x00018220, 0x22002804, 0xc0ded000,
 		0x81000020, 0x00004000, 0x00000000, 0xffffffd0,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 20, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 20, .code = (const uint32_t []) {
 		0x80000040, 0x28058220, 0x02002804, 0x00000001,
 		0x80000061, 0x30014220, 0x00000000, 0x00000000,
 		0x80001a70, 0x00018220, 0x22002804, 0xc0ded000,
 		0x84000020, 0x00004000, 0x00000000, 0xffffffd0,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 20, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 20, .code = (const uint32_t []) {
 		0x80000040, 0x28058220, 0x02002804, 0x00000001,
 		0x80000061, 0x30014220, 0x00000000, 0x00000000,
 		0x80001a70, 0x00018220, 0x22002804, 0xc0ded000,
 		0x81000020, 0x00004000, 0x00000000, 0xffffffd0,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 20, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 20, .code = (const uint32_t []) {
 		0x80000040, 0x28058220, 0x02002804, 0x00000001,
 		0x80000061, 0x30014220, 0x00000000, 0x00000000,
 		0x80000270, 0x00018220, 0x22002804, 0xc0ded000,
@@ -733,18 +733,18 @@ struct iga64_template const iga64_code_inc_r40_jump_neq[] = {
 };
 
 struct iga64_template const iga64_code_clear_r40[] = {
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x80000061, 0x28054220, 0x00000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80000061, 0x28054220, 0x00000000, 0x00000000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_jump_dw_neq[] = {
-	{ .gen_ver = 3500, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 48, .code = (const uint32_t []) {
 		0x80000061, 0x1e050330, 0x00000104, 0x00000000,
 		0x80000040, 0x1e258220, 0x06000124, 0xffffffff,
 		0x80000040, 0x1e358220, 0x06000134, 0xffffffff,
@@ -758,7 +758,7 @@ struct iga64_template const iga64_code_jump_dw_neq[] = {
 		0x84000020, 0x00004000, 0x00000000, 0xffffff60,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 3000, .size = 48, .code = (const uint32_t []) {
+	{ .gfx_ver = 3000, .size = 48, .code = (const uint32_t []) {
 		0x80000061, 0x1e050330, 0x00000104, 0x00000000,
 		0x80000040, 0x1e258220, 0x06000124, 0xffffffff,
 		0x80000040, 0x1e358220, 0x06000134, 0xffffffff,
@@ -772,7 +772,7 @@ struct iga64_template const iga64_code_jump_dw_neq[] = {
 		0x84000020, 0x00004000, 0x00000000, 0xffffff60,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 36, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 36, .code = (const uint32_t []) {
 		0x800c0061, 0x1e054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1e554220, 0x00000000, 0x00000000,
 		0x80000061, 0x1e654220, 0x00000000, 0xc0ded000,
@@ -783,7 +783,7 @@ struct iga64_template const iga64_code_jump_dw_neq[] = {
 		0x84000020, 0x00004000, 0x00000000, 0xffffff90,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 40, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 40, .code = (const uint32_t []) {
 		0x80030061, 0x1e054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1e254220, 0x00000000, 0xc0ded000,
 		0x80000061, 0x1e454220, 0x00000000, 0x00000003,
@@ -795,7 +795,7 @@ struct iga64_template const iga64_code_jump_dw_neq[] = {
 		0x81000020, 0x00004000, 0x00000000, 0xffffff80,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 36, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 36, .code = (const uint32_t []) {
 		0x800c0061, 0x1e054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1e154220, 0x00000000, 0xc0ded000,
 		0x80000061, 0x1e254220, 0x00000000, 0x00000003,
@@ -806,7 +806,7 @@ struct iga64_template const iga64_code_jump_dw_neq[] = {
 		0x84000020, 0x00004000, 0x00000000, 0xffffff90,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 40, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 40, .code = (const uint32_t []) {
 		0x80030061, 0x1e054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1e254220, 0x00000000, 0xc0ded000,
 		0x80000061, 0x1e454220, 0x00000000, 0x00000003,
@@ -818,7 +818,7 @@ struct iga64_template const iga64_code_jump_dw_neq[] = {
 		0x81000020, 0x00004000, 0x00000000, 0xffffff80,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 36, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 36, .code = (const uint32_t []) {
 		0x80030061, 0x1e054220, 0x00000000, 0x00000000,
 		0x80000061, 0x1e254220, 0x00000000, 0xc0ded000,
 		0x80000061, 0x1e454220, 0x00000000, 0x00000003,
@@ -832,87 +832,87 @@ struct iga64_template const iga64_code_jump_dw_neq[] = {
 };
 
 struct iga64_template const iga64_code_jump[] = {
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x80000020, 0x00004000, 0x00000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80000020, 0x00004000, 0x00000000, 0x00000000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_eot[] = {
-	{ .gen_ver = 3500, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 3500, .size = 8, .code = (const uint32_t []) {
 		0x800c0061, 0x70050220, 0x00460005, 0x00000000,
 		0x8000c033, 0x00000001, 0x3000000c, 0x00000000,
 	}},
-	{ .gen_ver = 2000, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 8, .code = (const uint32_t []) {
 		0x800c0061, 0x70050220, 0x00460005, 0x00000000,
 		0x800f2031, 0x00000004, 0x3000700c, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 12, .code = (const uint32_t []) {
 		0x80030061, 0x70050220, 0x00460005, 0x00000000,
 		0x80001901, 0x00010000, 0x00000000, 0x00000000,
 		0x80034031, 0x00000004, 0x3000700c, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 8, .code = (const uint32_t []) {
 		0x800c0061, 0x70050220, 0x00460005, 0x00000000,
 		0x800f2031, 0x00000004, 0x3000700c, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 12, .code = (const uint32_t []) {
 		0x80030061, 0x70050220, 0x00460005, 0x00000000,
 		0x80001901, 0x00010000, 0x00000000, 0x00000000,
 		0x80034031, 0x00000004, 0x3000700c, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80030061, 0x70050220, 0x00460005, 0x00000000,
 		0x80049031, 0x00000004, 0x7020700c, 0x10000000,
 	}}
 };
 
 struct iga64_template const iga64_code_eot_vrt[] = {
-	{ .gen_ver = 2000, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 2000, .size = 8, .code = (const uint32_t []) {
 		0x800c0061, 0x50050220, 0x00460005, 0x00000000,
 		0x800f2031, 0x00000004, 0x3000500c, 0x00000000,
 	}},
-	{ .gen_ver = 1270, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 1270, .size = 12, .code = (const uint32_t []) {
 		0x80030061, 0x50050220, 0x00460005, 0x00000000,
 		0x80001901, 0x00010000, 0x00000000, 0x00000000,
 		0x80034031, 0x00000004, 0x3000500c, 0x00000000,
 	}},
-	{ .gen_ver = 1260, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1260, .size = 8, .code = (const uint32_t []) {
 		0x800c0061, 0x50050220, 0x00460005, 0x00000000,
 		0x800f2031, 0x00000004, 0x3000500c, 0x00000000,
 	}},
-	{ .gen_ver = 1250, .size = 12, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 12, .code = (const uint32_t []) {
 		0x80030061, 0x50050220, 0x00460005, 0x00000000,
 		0x80001901, 0x00010000, 0x00000000, 0x00000000,
 		0x80034031, 0x00000004, 0x3000500c, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80030061, 0x50050220, 0x00460005, 0x00000000,
 		0x80039031, 0x00000004, 0x3000500c, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_nop[] = {
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x00000060, 0x00000000, 0x00000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x00000060, 0x00000000, 0x00000000, 0x00000000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}
 };
 
 struct iga64_template const iga64_code_sync_host[] = {
-	{ .gen_ver = 1250, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 1250, .size = 8, .code = (const uint32_t []) {
 		0x80000001, 0x00010000, 0xf0000000, 0x00000000,
 		0x80000901, 0x00010000, 0x00000000, 0x00000000,
 	}},
-	{ .gen_ver = 0, .size = 8, .code = (const uint32_t []) {
+	{ .gfx_ver = 0, .size = 8, .code = (const uint32_t []) {
 		0x80000001, 0x00010000, 0xf0000000, 0x00000000,
 		0x80000101, 0x00010000, 0x00000000, 0x00000000,
 	}}

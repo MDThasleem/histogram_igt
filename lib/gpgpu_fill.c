@@ -297,7 +297,7 @@ mov (1|M0)		r2.1<1>:ud	r0.6<0;1,0>:ud
 mov (8|M0)		r4.0<1>:ud	0x0:ud
 // fill up message payload with target colour
 mov (16|M0)		r5.0<1>:ud	r1.0<0;1,0>:ud
-#if GEN_VER < 2000
+#if GFX_VER < 2000
 // load block offsets into message header payload
 mov (2|M0)		r4.0<1>:ud	r2.0<2;2,1>:ud
 // load block width
@@ -356,7 +356,7 @@ static struct gpgpu_shader *__xe3p_gpgpu_kernel(int xe)
 #define XCURRENT	r3.4
 #define TMP		r3.7
 #define ADDR_LO		r4.0
-#if GEN_VER >= 3500
+#if GFX_VER >= 3500
 (W)	add (1)		XEND<1>:ud	XPOS:ud		WIDTH:ud
 (W)	mov (1)		OFFSET<1>:ud	0x0:ud
 

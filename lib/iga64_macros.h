@@ -10,7 +10,7 @@
 #define IGA64_MACROS_H
 
 /* send instruction for DG2+ requires 0 length in case src1 is null, BSpec: 47443 */
-#if GEN_VER <= 1250
+#if GFX_VER <= 1250
 #define src1_null null
 #else
 #define src1_null null:0
@@ -43,7 +43,7 @@
 (W)	mov (1)		dst.2<1>:ud	(width - 1):ud		;\
 (W)	mov (1)		dst.4<1>:ud	R0_FFTID
 
-#if GEN_VER < 3000
+#if GFX_VER < 3000
 #define SET_SURFACE_DESC(dst)			\
 (W)	mov (8)		dst.0<1>:ud	0x0:ud
 #else
@@ -67,7 +67,7 @@
 (W)	add (1)		dst.6<1>:ud	R0_TGIDY	y	;\
 (W)	mov (1)		dst.7<1>:ud	(width - 1):ud		;\
 
-#if GEN_VER < 2000
+#if GFX_VER < 2000
 #define SET_SHARED_SPACE_ADDR(dst, y, width) SET_SHARED_MEDIA_BLOCK_MSG_HDR(dst, y, width)
 #define SET_THREAD_SPACE_ADDR(dst, x, y, width) SET_THREAD_MEDIA_BLOCK_MSG_HDR(dst, x, y, width)
 #define LOAD_SPACE_DW(dst, src) send.dc1 (1)	dst	src	src1_null 0x0	0x2190000
@@ -75,10 +75,10 @@
 #else
 #define SET_SHARED_SPACE_ADDR(dst, y, width) SET_SHARED_MEDIA_A2DBLOCK_PAYLOAD(dst, y, width)
 #define SET_THREAD_SPACE_ADDR(dst, x, y, width) SET_THREAD_MEDIA_A2DBLOCK_PAYLOAD(dst, x, y, width)
-#if GEN_VER < 3000
+#if GFX_VER < 3000
 #define LOAD_SPACE_DW(dst, src) send.tgm (1)	dst	src	null:0	0x0	0x62100003
 #define STORE_SPACE_DW(dst, src) send.tgm (1)	null	dst	null:0	0x0	0x64000007
-#elif GEN_VER < 3500
+#elif GFX_VER < 3500
 #define LOAD_SPACE_DW(dst, src) send.ugm (1)	dst	src	null:0	0x0	0x2120003
 #define STORE_SPACE_DW(dst, src) send.ugm (1)	null	dst	src:1	0x0	0x2020007
 #else

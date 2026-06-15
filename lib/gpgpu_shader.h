@@ -25,7 +25,7 @@ enum gpgpu_shader_vrt_modes {
 };
 
 struct gpgpu_shader {
-	uint32_t gen_ver;
+	uint32_t gfx_ver;
 	uint32_t size;
 	uint32_t max_size;
 	union {
@@ -42,7 +42,7 @@ struct gpgpu_shader {
 };
 
 struct iga64_template {
-	uint32_t gen_ver;
+	uint32_t gfx_ver;
 	uint32_t size;
 	const uint32_t *code;
 };
