@@ -74,6 +74,8 @@ struct context {
 	const struct bdb_header *bdb;
 	int size;
 
+	char codename[sizeof(((struct vbt_header *)0)->signature) + 1];
+
 	uint32_t devid;
 	int panel_type, panel_type2;
 	int sdvo_panel_type;
@@ -4023,31 +4025,38 @@ static bool dump_section(struct context *context, int section_id)
 	return true;
 }
 
-/* print a description of the VBT of the form <bdb-version>-<vbt-signature> */
-static void print_description(struct context *context)
+/* initialize something resembling a codename based on the signature */
+static void init_codename(struct context *context)
 {
 	const struct vbt_header *vbt = context->vbt;
-	const struct bdb_header *bdb = context->bdb;
-	char *desc = strndup((char *)vbt->signature, sizeof(vbt->signature));
+	char signature[sizeof(vbt->signature) + 1] = {};
 	char *p;
 
-	for (p = desc + strlen(desc) - 1; p >= desc && isspace(*p); p--)
+	memcpy(signature, vbt->signature, sizeof(vbt->signature));
+
+	for (p = signature + strlen(signature) - 1; p >= signature && isspace(*p); p--)
 		*p = '\0';
 
-	for (p = desc; *p; p++) {
+	for (p = signature; *p; p++) {
 		if (!isalnum(*p))
 			*p = '-';
 		else
 			*p = tolower(*p);
 	}
 
-	p = desc;
+	p = signature;
 	if (strncmp(p, "-vbt-", 5) == 0)
 		p += 5;
 
-	printf("%d-%s\n", bdb->version, p);
+	strncpy(context->codename, p, sizeof(context->codename));
+}
 
-	free (desc);
+/* print a description of the VBT of the form <bdb-version>-<vbt-signature> */
+static void print_description(struct context *context)
+{
+	const struct bdb_header *bdb = context->bdb;
+
+	printf("%d-%s\n", bdb->version, context->codename);
 }
 
 static void dump_headers(struct context *context)
@@ -4312,6 +4321,8 @@ int main(int argc, char **argv)
 	context.vbt = vbt;
 	context.bdb = (const struct bdb_header *)(VBIOS + bdb_off);
 	context.size = size;
+
+	init_codename(&context);
 
 	if (!context.devid) {
 		const char *devid_string = getenv("DEVICE");
