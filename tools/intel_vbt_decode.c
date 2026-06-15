@@ -4332,6 +4332,8 @@ int main(int argc, char **argv)
 	if (!context.devid)
 		context.devid = get_device_id(VBIOS, size);
 	if (!context.devid)
+		context.devid = intel_guess_device_id(context.codename);
+	if (!context.devid)
 		fprintf(stderr, "Warning: could not find PCI device ID!\n");
 
 	if (context.panel_type == -1)
