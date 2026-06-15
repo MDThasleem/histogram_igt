@@ -902,7 +902,7 @@ int igt_main()
 
 			igt_debug("Max working set %d n_execs %d\n", ws, s->n_execs);
 			if (s->flags & MULTI_QUEUE) {
-				igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+				igt_require(xe_has_multi_queue_engine(fd));
 				igt_require(multi_queue_hwe != NULL);
 				igt_assert_f(!(s->flags & MULTI_VM),
 					     "MULTI_QUEUE and MULTI_VM cannot be used together.\n");
@@ -922,7 +922,7 @@ int igt_main()
 
 			igt_debug("Max working set %d n_execs %d\n", ws, s->n_execs);
 			if (s->flags & MULTI_QUEUE) {
-				igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+				igt_require(xe_has_multi_queue_engine(fd));
 				igt_require(multi_queue_hwe != NULL);
 				igt_assert_f(!(s->flags & MULTI_VM),
 					     "MULTI_QUEUE and MULTI_VM cannot be used together.\n");
@@ -941,7 +941,7 @@ int igt_main()
 
 			igt_debug("Max working set %d n_execs %d\n", ws, s->n_execs);
 			if (s->flags & MULTI_QUEUE) {
-				igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+				igt_require(xe_has_multi_queue_engine(fd));
 				igt_require(multi_queue_hwe != NULL);
 				igt_assert_f(!(s->flags & MULTI_VM),
 					     "MULTI_QUEUE and MULTI_VM cannot be used together.\n");

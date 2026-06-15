@@ -1721,7 +1721,7 @@ int igt_main()
 	for (const struct section *s = sections; s->name; s++) {
 		igt_subtest_f("threads-%s", s->name) {
 			if (s->flags & MULTI_QUEUE) {
-				igt_skip_on_f(!(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0)),
+				igt_skip_on_f(!(xe_has_multi_queue_engine(fd)),
 						"multi_queue is supported on graphics version 35 and above");
 				/* Balancer can't be set with multi-queue at the same time */
 				igt_assert(!(s->flags & BALANCER));

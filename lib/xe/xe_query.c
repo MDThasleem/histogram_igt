@@ -346,6 +346,26 @@ bool xe_engine_class_supports_multi_queue(int fd, uint32_t engine_class)
 	}
 }
 
+/**
+ * xe_has_multi_queue_engine:
+ * @fd: xe device fd
+ *
+ * Returns true if any engine supports multi queue, false otherwise.
+ */
+bool xe_has_multi_queue_engine(int fd)
+{
+	struct drm_xe_engine_class_instance *hwe;
+
+	/* Multi-queue is supported only on IP version 35 and above */
+	if (intel_graphics_ver(intel_get_drm_devid(fd)) < IP_VER(35, 0))
+		return false;
+
+	xe_for_each_multi_queue_engine(fd, hwe)
+		return true;
+
+	return false;
+}
+
 static void xe_device_free(struct xe_device *xe_dev)
 {
 	free(xe_dev->config);

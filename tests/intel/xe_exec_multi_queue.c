@@ -1093,7 +1093,7 @@ int igt_main()
 
 	igt_fixture() {
 		fd = drm_open_driver(DRIVER_XE);
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 	}
 
 	igt_subtest_f("sanity")

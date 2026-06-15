@@ -1105,7 +1105,7 @@ int igt_main()
 			gt_mocs_reset(fd, gt);
 
 	igt_subtest("multi-queue-cat-error") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(fd, hwe, 16, 16,
 					    CAT_ERROR | MULTI_QUEUE,
@@ -1114,7 +1114,7 @@ int igt_main()
 	}
 
 	igt_subtest("multi-queue-cat-error-on-secondary") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(fd, hwe, 16, 16,
 					    CAT_ERROR | MULTI_QUEUE |
@@ -1124,7 +1124,7 @@ int igt_main()
 	}
 
 	igt_subtest("multi-queue-gt-reset") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		ignore_gt_reset_warnings_in_dmesg();
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(fd, hwe, 16, 16,
@@ -1134,7 +1134,7 @@ int igt_main()
 	}
 
 	igt_subtest("multi-queue-cancel") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(fd, hwe, 16, 16,
 					    MULTI_QUEUE,
@@ -1143,7 +1143,7 @@ int igt_main()
 	}
 
 	igt_subtest("multi-queue-cancel-on-secondary") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(fd, hwe, 16, 16,
 					    MULTI_QUEUE | SECONDARY_QUEUE,
@@ -1152,7 +1152,7 @@ int igt_main()
 	}
 
 	igt_subtest("multi-queue-close-fd") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(-1, hwe, 16, 256,
 					    CLOSE_FD | MULTI_QUEUE,
@@ -1161,7 +1161,7 @@ int igt_main()
 	}
 
 	igt_subtest("multi-queue-close-execqueues") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			xe_legacy_test_mode(-1, hwe, 16, 256,
 					    CLOSE_EXEC_QUEUES | CLOSE_FD |
@@ -1171,14 +1171,14 @@ int igt_main()
 	}
 
 	igt_subtest("cm-multi-queue-cat-error") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			test_compute_mode(fd, hwe, 16, 16,
 					  CAT_ERROR | MULTI_QUEUE);
 	}
 
 	igt_subtest("cm-multi-queue-cat-error-on-secondary") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			test_compute_mode(fd, hwe, 16, 16,
 					  CAT_ERROR | MULTI_QUEUE |
@@ -1186,7 +1186,7 @@ int igt_main()
 	}
 
 	igt_subtest("cm-multi-queue-gt-reset") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		ignore_gt_reset_warnings_in_dmesg();
 		xe_for_each_multi_queue_engine(fd, hwe)
 			test_compute_mode(fd, hwe, 16, 16,
@@ -1194,29 +1194,32 @@ int igt_main()
 	}
 
 	igt_subtest("cm-multi-queue-close-fd") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			test_compute_mode(-1, hwe, 16, 256,
 					  CLOSE_FD | MULTI_QUEUE);
 	}
 
 	igt_subtest("cm-multi-queue-close-execqueues") {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			test_compute_mode(-1, hwe, 16, 256,
 					  CLOSE_EXEC_QUEUES | CLOSE_FD |
 					  MULTI_QUEUE);
 	}
 
-	igt_subtest("multi-queue-long-spin-many-queue-switch")
+	igt_subtest("multi-queue-long-spin-many-queue-switch") {
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe) {
 			xe_legacy_test_mode(fd, hwe, 4, 8,
 					    LONG_SPIN | MULTI_QUEUE,
 					    LEGACY_MODE_ADDR, false);
 			break;
 		}
+	}
 
-	igt_subtest("multi-queue-long-spin-reuse-many-queue-switch")
+	igt_subtest("multi-queue-long-spin-reuse-many-queue-switch") {
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe) {
 			xe_legacy_test_mode(fd, hwe, 4, 8,
 					    LONG_SPIN | MULTI_QUEUE |
@@ -1224,6 +1227,7 @@ int igt_main()
 					    LEGACY_MODE_ADDR, false);
 			break;
 		}
+	}
 
 	igt_fixture()
 		drm_close_driver(fd);

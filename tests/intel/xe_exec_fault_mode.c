@@ -444,7 +444,7 @@ test_exec_main(int fd, int n_exec_queues, int n_execs, unsigned int flags)
 	struct drm_xe_engine_class_instance *hwe;
 
 	if (flags & MULTI_QUEUE) {
-		igt_require(intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(35, 0));
+		igt_require(xe_has_multi_queue_engine(fd));
 		xe_for_each_multi_queue_engine(fd, hwe)
 			test_exec(fd, hwe, n_exec_queues, n_execs, flags);
 	} else {
