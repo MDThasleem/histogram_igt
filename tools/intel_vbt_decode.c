@@ -3702,13 +3702,13 @@ get_device_id(unsigned char *bios, int size)
     int offset = (bios[0x19] << 8) + bios[0x18];
 
     if (offset + 7 >= size)
-	return -1;
+	return 0;
 
     if (bios[offset] != 'P' ||
 	bios[offset+1] != 'C' ||
 	bios[offset+2] != 'I' ||
 	bios[offset+3] != 'R')
-	return -1;
+	return 0;
 
     device = (bios[offset+7] << 8) + bios[offset+6];
 
