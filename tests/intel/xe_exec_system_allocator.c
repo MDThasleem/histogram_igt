@@ -508,7 +508,7 @@ static void __aligned_partial_free(struct aligned_alloc_type  *aligned_alloc_typ
  * Description: performs prefetch and page migration
  * Test category: functionality test
  *
- * SUBTEST: madvise-preffered-loc-atomic-vram
+ * SUBTEST: madvise-preffered-loc-atomic-device
  * Description: performs both atomic and preferred loc madvise operations atomic device attributes set
  * Test category: functionality test
  *
@@ -2538,7 +2538,7 @@ int igt_main()
 		{ "atomic-inc", MADVISE_OP | MADVISE_ATOMIC_DEVICE | ATOMIC_BATCH },
 		{ "preffered-loc-sram-migrate-pages",
 		  MADVISE_OP | MADVISE_SWIZZLE | MIGRATE_ALL_PAGES | ATOMIC_BATCH },
-		{ "preffered-loc-atomic-vram",
+		{ "preffered-loc-atomic-device",
 		  MADVISE_OP | PREFERRED_LOC_ATOMIC_DEVICE | ATOMIC_BATCH },
 		{ "preffered-loc-atomic-gl",
 		  MADVISE_OP | PREFERRED_LOC_ATOMIC_GL | ATOMIC_BATCH },
