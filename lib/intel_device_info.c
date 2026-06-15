@@ -2,6 +2,7 @@
 #include "pciids.h"
 #include "i915_pciids_local.h"
 
+#include <ctype.h>
 #include <strings.h> /* ffs() */
 
 static const struct intel_device_info intel_generic_info = {
@@ -744,6 +745,80 @@ const struct intel_device_info *intel_get_device_info(uint16_t devid)
 
 out:
 	return cache;
+}
+
+static bool char_eq(char c1, char c2)
+{
+	c1 = isalnum(c1) ? tolower(c1) : '-';
+	c2 = isalnum(c2) ? tolower(c2) : '-';
+
+	return c1 == c2;
+}
+
+/*
+ * Return true if the codenames s1 and s2 match, with fuzziness.
+ *
+ * Case insensitive matching, ignoring differences in non-alnum characters. With
+ * non-zero fuzziness, accept matches up to the first non-alnum character.
+ */
+static bool codename_match(const char *s1, const char *s2, int fuzziness)
+{
+	while (*s1 && *s2 && char_eq(*s1, *s2)) {
+		s1++;
+		s2++;
+	}
+
+	/* full match */
+	if (!*s1 && !*s2)
+		return true;
+
+	/* sub-string match up to a non-alnum char */
+	if (fuzziness >=1) {
+		if (!*s1 && !isalnum(*s2))
+			return true;
+		if (!*s2 && !isalnum(*s1))
+			return true;
+	}
+
+	return false;
+}
+
+static uint16_t lookup_device_id(const char *codename, int fuzziness)
+{
+	int i;
+
+	for (i = 0; intel_device_match[i].device_id != PCI_MATCH_ANY; i++) {
+		const struct intel_device_info *info = (void *)intel_device_match[i].match_data;
+
+		if (codename_match(info->codename, codename, fuzziness))
+			return intel_device_match[i].device_id;
+	}
+
+	return 0;
+}
+
+/**
+ * intel_guess_device_id:
+ * @codenameish: something resembling a codename
+ *
+ * Based on something resembling a codename, try to fuzzy find the first PCI
+ * device ID matching the codename.
+ *
+ * Returns:
+ * PCI device ID fuzzy matching the @codenameish, or 0 if no match was found.
+ */
+uint16_t intel_guess_device_id(const char *codenameish)
+{
+	uint16_t devid;
+	int fuzziness;
+
+	for (fuzziness = 0; fuzziness < 2; fuzziness++) {
+		devid = lookup_device_id(codenameish, fuzziness);
+		if (devid)
+			return devid;
+	}
+
+	return 0;
 }
 
 /**
