@@ -265,6 +265,7 @@ intel_kms_progs = [
 	'kms_joiner',
 	'kms_legacy_colorkey',
 	'kms_mmap_write_crc',
+	'kms_mst',
 	'kms_pipe_b_c_ivb',
 	'kms_pipe_stress',
 	'kms_pm_backlight',
@@ -410,6 +411,9 @@ extra_sources = {
           join_paths ('intel', 'kms_dsc_helper.c'),
           join_paths ('intel', 'kms_joiner_helper.c') ],
 	'kms_joiner': [ join_paths ('intel', 'kms_joiner_helper.c') ],
+	'kms_mst': [
+           join_paths ('intel', 'kms_mst_helper.c'),
+           join_paths ('intel', 'kms_joiner_helper.c') ],
 	'kms_psr2_sf': [
           join_paths ('intel', 'kms_dsc_helper.c'),
           join_paths ('intel', 'kms_joiner_helper.c') ],
