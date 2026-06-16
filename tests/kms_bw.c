@@ -240,15 +240,11 @@ static void run_test_linear_tiling(data_t *data, int n_crtcs, const drmModeModeI
 	drmModeModeInfo fb_mode;
 	struct igt_fb buffer[IGT_MAX_PIPES];
 	igt_crc_t zero, captured[IGT_MAX_PIPES];
-	int i = 0, num_pipes = 0;
+	int i = 0;
 	igt_crtc_t *crtc;
 	int ret;
 
-	/* Cannot use igt_display_n_crtcs() due to fused pipes on i915 where they do
-	 * not give the numver of valid crtcs and always return IGT_MAX_PIPES */
-	for_each_crtc(display, crtc) num_pipes++;
-
-	igt_skip_on_f(n_crtcs > num_pipes,
+	igt_skip_on_f(n_crtcs > igt_display_n_crtcs(display),
                       "ASIC does not have %d pipes\n", n_crtcs);
 
 	test_init(data, physical);
