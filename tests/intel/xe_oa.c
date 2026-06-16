@@ -3833,12 +3833,12 @@ test_whitelisted_registers_userspace_config(void)
 	xe_oa_remove_config(drm_fd, config_id);
 }
 
-#define OAG_OASTATUS (0xdafc)
+#define OAG_OAHEADPTR (0xdb00)
 #define OAG_MMIOTRIGGER (0xdb1c)
 
 static const uint32_t oa_wl[] = {
 	OAG_MMIOTRIGGER,
-	OAG_OASTATUS,
+	OAG_OAHEADPTR,
 };
 
 static const uint32_t nonpriv_slot_offsets[] = {
