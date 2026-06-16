@@ -7344,9 +7344,10 @@ bool igt_check_force_joiner_status(int drmfd, char *connector_name)
  */
 bool igt_check_bigjoiner_support(igt_display_t *display)
 {
-	uint8_t i, total_pipes = 0, pipes_in_use = 0;
+	uint8_t i, pipes_in_use = 0;
 	igt_crtc_t *crtc;
 	igt_output_t *output;
+	enum pipe last_pipe = PIPE_NONE;
 	struct {
 		enum pipe idx;
 		drmModeModeInfo *mode;
@@ -7355,9 +7356,11 @@ bool igt_check_bigjoiner_support(igt_display_t *display)
 	} pipes[IGT_MAX_PIPES];
 	int max_dotclock;
 
-	/* Get total enabled pipes. */
-	for_each_crtc(display, crtc)
-		total_pipes++;
+	/* Get last pipe */
+	for_each_crtc(display, crtc) {
+		if (crtc->pipe > last_pipe)
+			last_pipe = crtc->pipe;
+	}
 
 	/*
 	 * Get list of CRTCs in use those were set by igt_output_set_crtc()
@@ -7401,7 +7404,7 @@ bool igt_check_bigjoiner_support(igt_display_t *display)
 				 max_dotclock, pipes[i].force_joiner ? "Yes" : "No");
 			kmstest_dump_mode(pipes[i].mode);
 
-			if (pipes[i].idx >= (total_pipes - 1)) {
+			if (pipes[i].idx >= last_pipe) {
 				igt_info("pipe-%s: Last pipe couldn't be used as a Bigjoiner Primary.\n",
 					 kmstest_pipe_name(pipes[i].idx));
 				return false;
