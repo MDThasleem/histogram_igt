@@ -917,13 +917,10 @@ test_content_protection_mst(int content_type)
 {
 	igt_display_t *display = &data.display;
 	igt_output_t *output;
-	int valid_outputs = 0, dp_mst_outputs = 0, ret, count, max_pipe = 0, i;
+	int valid_outputs = 0, dp_mst_outputs = 0, ret, count, i;
 	igt_crtc_t *crtc;
 	bool pipe_found;
 	igt_output_t *hdcp_mst_output[IGT_MAX_PIPES];
-
-	for_each_crtc(display, crtc)
-		max_pipe++;
 
 	for_each_connected_output(display, output) {
 		if (!output_is_dp_mst(output, dp_mst_outputs))
