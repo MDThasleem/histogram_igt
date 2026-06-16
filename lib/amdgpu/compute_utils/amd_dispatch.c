@@ -489,7 +489,7 @@ amdgpu_memcpy_dispatch_test(amdgpu_device_handle device_handle,
 static void
 amdgpu_memcpy_dispatch_hang_slow_test(amdgpu_device_handle device_handle,
 				      uint32_t ip_type, uint32_t priority,
-				      int version, uint32_t gpu_reset_status_equel,
+				      int version, uint32_t gpu_reset_status_equal,
 				      bool user_queue)
 {
 	amdgpu_context_handle context_handle;
@@ -679,11 +679,21 @@ amdgpu_memcpy_dispatch_hang_slow_test(amdgpu_device_handle device_handle,
 
 		if (!(reset_flags == 0 ||
 			  reset_flags & AMDGPU_CTX_QUERY2_FLAGS_RESET_IN_PROGRESS)) {
-			/* If we're in reset and reset hasn't occurred, then check
-			 * that the hang state is equal to the GPU reset status and
-			 * assert otherwise.
+			/*
+			 * Wait for reset to complete; check the hang state. A per-queue
+			 * reset bumps the global reset counter only after the
+			 * guilty fence is signalled, so QUERY_STATE can briefly
+			 * still read NO_RESET here -- poll until the counter
+			 * catches up before asserting.
 			 */
-			igt_assert_eq(hang_state, gpu_reset_status_equel);
+			for (int i = 0; i < 100 &&
+			     hang_state != gpu_reset_status_equal; i++) {
+				usleep(10000);
+				r = amdgpu_cs_query_reset_state(context_handle,
+								&hang_state, &hangs);
+				igt_assert_eq(r, 0);
+			}
+			igt_assert_eq(hang_state, gpu_reset_status_equal);
 		}
 
 		r = amdgpu_bo_list_destroy(bo_list);
