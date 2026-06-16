@@ -201,7 +201,7 @@ void igt_panthor_query(int fd, int32_t type, void *data, size_t size, int err)
  *
  * Creates a VM.
  */
-void igt_panthor_vm_create(int fd, uint32_t *vm_id, int err)
+void igt_panthor_vm_create_userva_range(int fd, uint32_t *vm_id, int err, uint64_t *uva_range)
 {
 	struct drm_panthor_vm_create vm_create = {};
 
@@ -210,6 +210,9 @@ void igt_panthor_vm_create(int fd, uint32_t *vm_id, int err)
 	} else {
 		do_ioctl(fd, DRM_IOCTL_PANTHOR_VM_CREATE, &vm_create);
 		*vm_id = vm_create.id;
+
+		if (uva_range)
+			*uva_range = vm_create.user_va_range;
 	}
 }
 
