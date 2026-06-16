@@ -270,6 +270,23 @@ int igt_main() {
 		igt_panthor_vm_destroy(fd, vm_id, 0);
 	}
 
+	igt_describe("Perform a vm_bind in the VM's kernel BOs reserved range");
+	igt_subtest("vm_bind_intersect_kbo_range") {
+		uint32_t vm_id;
+		struct panthor_bo bo;
+		uint64_t bo_size = SZ_2M;
+		uint64_t uva_range;
+
+		igt_panthor_vm_create_userva_range(fd, &vm_id, 0, &uva_range);
+		igt_assert(vm_id != 0);
+
+		igt_panthor_bo_create(fd, &bo, bo_size, 0, 0);
+		igt_panthor_vm_bind(fd, vm_id, bo.handle, ALIGN(uva_range, bo_size),
+				    bo_size, DRM_PANTHOR_VM_BIND_OP_TYPE_MAP, EINVAL);
+
+		igt_panthor_vm_destroy(fd, vm_id, 0);
+	}
+
 	igt_fixture() {
 		drm_close_driver(fd);
 	}
