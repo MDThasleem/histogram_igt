@@ -6,8 +6,8 @@
 /**
  * TEST: Basic tests for exec functionality with multi-queue feature
  * Category: Core
- * Mega feature: MultiQ
- * Sub-category: MultiQ tests
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
  * Functionality: multi-queue
  */
 
