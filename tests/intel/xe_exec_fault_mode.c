@@ -78,14 +78,6 @@
  *					bindexecqueue userptr invalidate
  * @bindexecqueue-userptr-invalidate-race:
  *					bindexecqueue userptr invalidate race
- * @multi-queue:			multi-queue
- * @multi-queue-userptr:		multi-queue userptr
- * @multi-queue-rebind:			multi-queue rebind
- * @multi-queue-userptr-rebind:		multi-queue userptr rebind
- * @multi-queue-userptr-invalidate:
- *					multi-queue userptr invalidate
- * @multi-queue-userptr-invalidate-race:
- *					multi-queue userptr invalidate race
  * @basic-imm:				basic imm
  * @userptr-imm:			userptr imm
  * @rebind-imm:				rebind imm
@@ -101,15 +93,6 @@
  *					bindexecqueue userptr invalidate imm
  * @bindexecqueue-userptr-invalidate-race-imm:
  *					bindexecqueue userptr invalidate race imm
- * @multi-queue-imm:			multi-queue imm
- * @multi-queue-userptr-imm:		multi-queue userptr imm
- * @multi-queue-rebind-imm:		multi-queue rebind imm
- * @multi-queue-userptr-rebind-imm:
- *					multi-queue userptr rebind imm
- * @multi-queue-userptr-invalidate-imm:
- *					multi-queue userptr invalidate imm
- * @multi-queue-userptr-invalidate-race-imm:
- *					multi-queue userptr invalidate race imm
  * @basic-prefetch:			basic prefetch
  * @userptr-prefetch:			userptr prefetch
  * @rebind-prefetch:			rebind prefetch
@@ -124,17 +107,63 @@
  *					bindexecqueue userptr invalidate prefetch
  * @bindexecqueue-userptr-invalidate-race-prefetch:
  *					bindexecqueue userptr invalidate race prefetch
- * @multi-queue-prefetch:		multi-queue prefetch
- * @multi-queue-userptr-prefetch:	multi-queue userptr prefetch
- * @multi-queue-rebind-prefetch:	multi-queue rebind prefetch
- * @multi-queue-userptr-rebind-prefetch:	multi-queue userptr rebind prefetch
- * @multi-queue-userptr-invalidate-prefetch:
- *					multi-queue userptr invalidate prefetch
- * @multi-queue-userptr-invalidate-race-prefetch:
- *					multi-queue userptr invalidate race prefetch
  * @invalid-fault:			invalid fault
  * @invalid-userptr-fault:		invalid userptr fault
- * @multi-queue-invalid-fault:		multi-queue invalid fault
+ */
+/**
+ * SUBTEST: once-%s
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Run %arg[1] fault mode test only once
+ * Test category: functionality test
+ *
+ * SUBTEST: twice-%s
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Run %arg[1] fault mode test twice
+ * Test category: functionality test
+ *
+ * SUBTEST: many-%s
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Run %arg[1] fault mode test many times
+ * Test category: stress test
+ *
+ * SUBTEST: many-execqueues-%s
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Run %arg[1] fault mode test on many exec_queues
+ * Test category: stress test
+ *
+ * arg[1]:
+ *
+ * @multi-queue:                        multi-queue
+ * @multi-queue-userptr:                multi-queue userptr
+ * @multi-queue-rebind:                 multi-queue rebind
+ * @multi-queue-userptr-rebind:         multi-queue userptr rebind
+ * @multi-queue-userptr-invalidate:
+ *                                      multi-queue userptr invalidate
+ * @multi-queue-userptr-invalidate-race:
+ *                                      multi-queue userptr invalidate race
+ * @multi-queue-imm:                    multi-queue imm
+ * @multi-queue-userptr-imm:            multi-queue userptr imm
+ * @multi-queue-rebind-imm:             multi-queue rebind imm
+ * @multi-queue-userptr-rebind-imm:
+ *                                      multi-queue userptr rebind imm
+ * @multi-queue-userptr-invalidate-imm:
+ *                                      multi-queue userptr invalidate imm
+ * @multi-queue-userptr-invalidate-race-imm:
+ *                                      multi-queue userptr invalidate race imm
+ * @multi-queue-prefetch:               multi-queue prefetch
+ * @multi-queue-userptr-prefetch:       multi-queue userptr prefetch
+ * @multi-queue-rebind-prefetch:        multi-queue rebind prefetch
+ * @multi-queue-userptr-rebind-prefetch:
+ *                                      multi-queue userptr rebind prefetch
+ * @multi-queue-userptr-invalidate-prefetch:
+ *                                      multi-queue userptr invalidate prefetch
+ * @multi-queue-userptr-invalidate-race-prefetch:
+ *                                      multi-queue userptr invalidate race prefetch
+ * @multi-queue-invalid-fault:          multi-queue invalid fault
  * @multi-queue-invalid-userptr-fault:  multi-queue invalid userptr fault
  */
 

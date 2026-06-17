@@ -1203,6 +1203,14 @@ static void *thread(void *data)
  *	balancer mixed fd userptr invalidate
  * @bal-mixed-fd-userptr-invalidate-race:
  *	balancer mixed fd userptr invalidate race
+ */
+/**
+ * SUBTEST: threads-%s
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Run threads %arg[1] test with multi threads
+ *
+ * arg[1]:
  * @multi-queue-basic:
  *	multi-queue basic
  * @multi-queue-userptr:
@@ -1244,49 +1252,49 @@ static void *thread(void *data)
  * @multi-queue-fd-userptr-invalidate-race:
  *	multi-queue fd userptr invalidate race
  * @multi-queue-hang-basic:
- *     multi-queue hang basic
+ *	multi-queue hang basic
  * @multi-queue-hang-fd-userptr-invalidate-race:
  *	multi-queue hang fd userptr invalidate race
  * @multi-queue-mixed-basic:
  *	multi-queue mixed basic
  * @multi-queue-mixed-userptr:
- *	multi-queue-mixed userptr
+ *	multi-queue mixed userptr
  * @multi-queue-mixed-rebind:
- *	multi-queue-mixed rebind
+ *	multi-queue mixed rebind
  * @multi-queue-mixed-userptr-rebind:
- *	multi-queue-mixed userptr rebind
+ *	multi-queue mixed userptr rebind
  * @multi-queue-mixed-userptr-invalidate:
- *	multi-queue-mixed userptr invalidate
+ *	multi-queue mixed userptr invalidate
  * @multi-queue-mixed-userptr-invalidate-race:
- *	multi-queue-mixed userptr invalidate race
+ *	multi-queue mixed userptr invalidate race
  * @multi-queue-mixed-shared-vm-basic:
  *	multi-queue mixed shared vm basic
  * @multi-queue-mixed-shared-vm-userptr:
- *	multi-queue-mixed shared vm userptr
+ *	multi-queue mixed shared vm userptr
  * @multi-queue-mixed-shared-vm-rebind:
- *	multi-queue-mixed shared vm rebind
+ *	multi-queue mixed shared vm rebind
  * @multi-queue-mixed-shared-vm-userptr-rebind:
- *	multi-queue-mixed shared vm userptr rebind
+ *	multi-queue mixed shared vm userptr rebind
  * @multi-queue-mixed-shared-vm-userptr-invalidate:
- *	multi-queue-mixed shared vm userptr invalidate
+ *	multi-queue mixed shared vm userptr invalidate
  * @multi-queue-mixed-shared-vm-userptr-invalidate-race:
- *	multi-queue-mixed shared vm userptr invalidate race
+ *	multi-queue mixed shared vm userptr invalidate race
  * @multi-queue-mixed-fd-basic:
  *	multi-queue mixed fd basic
  * @multi-queue-mixed-fd-userptr:
- *	multi-queue-mixed fd userptr
+ *	multi-queue mixed fd userptr
  * @multi-queue-mixed-fd-rebind:
- *	multi-queue-mixed fd rebind
+ *	multi-queue mixed fd rebind
  * @multi-queue-mixed-fd-userptr-rebind:
- *	multi-queue-mixed fd userptr rebind
+ *	multi-queue mixed fd userptr rebind
  * @multi-queue-mixed-fd-userptr-invalidate:
- *	multi-queue-mixed fd userptr invalidate
+ *	multi-queue mixed fd userptr invalidate
  * @multi-queue-mixed-fd-userptr-invalidate-race:
- *	multi-queue-mixed fd userptr invalidate race
+ *	multi-queue mixed fd userptr invalidate race
  * @multi-queue-cm-basic:
- * 	multi-queue cm basic
+ *	multi-queue cm basic
  * @multi-queue-cm-fd-basic:
- * 	multi-queue cm fd basic
+ *	multi-queue cm fd basic
  * @multi-queue-cm-userptr:
  *	multi-queue compute mode userptr
  * @multi-queue-cm-rebind:

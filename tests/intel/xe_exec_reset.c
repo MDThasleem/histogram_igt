@@ -350,9 +350,13 @@ test_balancer(int fd, int gt, int class, int n_exec_queues, int n_execs,
  * Description: Test long spinners with many preemptable jobs, use queues again spinners complete on media GT
  *
  * SUBTEST: multi-queue-long-spin-many-queue-switch
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
  * Description: Test long spinners with many jobs with multi-queue switching
  *
  * SUBTEST: multi-queue-long-spin-reuse-many-queue-switch
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
  * Description: Test long spinners with many jobs with multi-queue switching, use queues again once spinners complete
  *
  * SUBTEST: gt-reset
@@ -383,43 +387,67 @@ test_balancer(int fd, int gt, int class, int n_exec_queues, int n_execs,
  * Description: Test compute mode close exec_queues close fd
  *
  * SUBTEST: multi-queue-cat-error
- * Description: Test cat error with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test cat error with Multi-Queue
  *
  * SUBTEST: multi-queue-cat-error-on-secondary
- * Description: Test cat error with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test cat error with Multi-Queue
  *              on a secondary queue
  *
  * SUBTEST: multi-queue-gt-reset
- * Description: Test GT reset with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test GT reset with Multi-Queue
  *
  * SUBTEST: multi-queue-cancel
- * Description: Test engine reset with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test engine reset with Multi-Queue
  *
  * SUBTEST: multi-queue-cancel-on-secondary
- * Description: Test engine reset with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test engine reset with Multi-Queue
  *              on a secondary queue
  *
  * SUBTEST: multi-queue-close-fd
- * Description: Test close fd with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test close fd with Multi-Queue
  *
  * SUBTEST: multi-queue-close-execqueues
- * Description: Test close execqueues with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test close execqueues with Multi-Queue
  *
  * SUBTEST: cm-multi-queue-cat-error
- * Description: Test compute mode cat error with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test compute mode cat error with Multi-Queue
  *
  * SUBTEST: cm-multi-queue-cat-error-on-secondary
- * Description: Test compute mode cat error with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test compute mode cat error with Multi-Queue
  *              on a secondary queue
  *
  * SUBTEST: cm-multi-queue-gt-reset
- * Description: Test compute mode GT reset with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test compute mode GT reset with Multi-Queue
  *
  * SUBTEST: cm-multi-queue-close-fd
- * Description: Test compute mode close fd with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test compute mode close fd with Multi-Queue
  *
  * SUBTEST: cm-multi-queue-close-execqueues
- * Description: Test compute mode close execqueues with multi_queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description: Test compute mode close execqueues with Multi-Queue
  */
 
 static void

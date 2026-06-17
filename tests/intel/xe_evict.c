@@ -559,11 +559,7 @@ static unsigned int working_set(uint64_t vram_size, uint64_t system_size,
  * arg[1]:
  *
  * @small:			small
- * @small-multi-queue:		small multi queue
- * @small-multi-queue-priority:
- * 				small multi queue priority
  * @small-external:		small external
- * @small-external-multi-queue: small external multi queue
  * @small-multi-vm:		small multi VM
  * @beng-small:			small bind exec_queue
  * @beng-small-external:	small external bind exec_queue
@@ -593,12 +589,7 @@ static unsigned int working_set(uint64_t vram_size, uint64_t system_size,
  * arg[1]:
  *
  * @small-cm:			small compute machine
- * @small-multi-queue-cm:	small multi queue compute machine
- * @small-multi-queue-priority-cm:
- * 				small multi queue priority compute machine
  * @small-external-cm:		small external compute machine
- * @small-external-multi-queue-cm:
- * 				small external compute machine multi queue
  * @small-multi-vm-cm:		small multi VM compute machine
  * @beng-small-cm:		small bind exec_queue compute machine
  * @beng-small-external-cm:	small external bind exec_queue compute machine
@@ -629,8 +620,6 @@ static unsigned int working_set(uint64_t vram_size, uint64_t system_size,
  * arg[1]:
  *
  * @mixed-threads-small:	mixed threads small
- * @mixed-threads-small-multi-queue:
- * 				mixed threads small multi queue
  * @mixed-many-threads-small:	mixed many threads small
  * @mixed-threads-small-multi-vm:
  * 				mixed threads small multi vm
@@ -668,8 +657,6 @@ static unsigned int working_set(uint64_t vram_size, uint64_t system_size,
  *
  * arg[1]:
  * @cm-threads-small:		compute mode threads small
- * @cm-threads-small-multi-queue:
- * 				compute mode threads small multi queue
  * @cm-threads-small-multi-vm:	compute mode threads small multi vm
  * @beng-cm-threads-small:	bind exec_queue compute mode threads small
  * @beng-cm-threads-small-multi-vm:
@@ -700,7 +687,6 @@ static unsigned int working_set(uint64_t vram_size, uint64_t system_size,
  *
  * @threads-small:		threads small
  * @beng-threads-small:		bind exec_queue threads small
- * @threads-small-multi-queue:	threads small multi queue
  * @threads-small-multi-vm:	threads small multi vm
  * @beng-threads-small-multi-vm:
  *				bind exec_queue threads small multi vm
@@ -720,6 +706,54 @@ static unsigned int working_set(uint64_t vram_size, uint64_t system_size,
  * @beng-threads-large-multi-vm:
  *				bind exec_queue threads large multi vm
  * @beng-threads-large:		bind exec_queue threads large
+ *
+ */
+/**
+ * SUBTEST: evict-%s
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description:  %arg[1] evict test.
+ * Test category: functionality test
+ *
+ * arg[1]:
+ *
+ * @small-multi-queue:		small multi queue
+ * @small-multi-queue-priority:	small multi queue priority
+ * @small-external-multi-queue: small external multi queue
+ *
+ * SUBTEST: evict-%s
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description:  %arg[1] evict test.
+ * Feature: compute machine
+ * Test category: functionality test
+ *
+ * arg[1]:
+ *
+ * @small-multi-queue-cm:	small multi queue compute machine
+ * @small-multi-queue-priority-cm:	small multi queue priority compute machine
+ * @small-external-multi-queue-cm:	small external compute machine multi queue
+ *
+ * SUBTEST: evict-mixed-threads-small-multi-queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description:  mixed threads small multi queue evict test.
+ * Feature: mixed threads
+ * Test category: functionality test
+ *
+ * SUBTEST: evict-cm-threads-small-multi-queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description:  compute mode threads small multi queue evict test.
+ * Feature: compute mode threads
+ * Test category: functionality test
+ *
+ * SUBTEST: evict-threads-small-multi-queue
+ * Mega feature: Multi-Queue
+ * Sub-category: Multi-Queue tests
+ * Description:  threads small multi queue evict test.
+ * Feature: threads
+ * Test category: functionality test
  *
  */
 
