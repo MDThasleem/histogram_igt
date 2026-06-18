@@ -251,6 +251,10 @@ static void update_display(data_t *data, uint32_t test_type)
 		if (data->output_format != DSC_FORMAT_RGB)
 			mode = get_next_mode(output, index++);
 
+		if (mode && data->force_joined_pipes == JOINED_PIPES_DEFAULT &&
+		    intel_mode_needs_joiner(data->drm_fd, mode))
+			continue;
+
 		if (mode == NULL)
 			goto reset;
 

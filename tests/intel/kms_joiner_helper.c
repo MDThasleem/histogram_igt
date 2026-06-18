@@ -225,6 +225,14 @@ bool intel_max_hdisplay_non_joiner_mode_found(int drm_fd, drmModeConnector *conn
 	return found;
 }
 
+bool intel_mode_needs_joiner(int drm_fd, drmModeModeInfo *mode)
+{
+	int max_dotclock = igt_get_max_dotclock(drm_fd);
+
+	return igt_bigjoiner_possible(drm_fd, mode, max_dotclock) ||
+	       igt_ultrajoiner_possible(drm_fd, mode, max_dotclock);
+}
+
 /**
  * igt_is_joiner_supported_by_source:
  * @drm_fd: drm file descriptor
