@@ -6769,32 +6769,46 @@ bool igt_is_aux_less_alpm_enabled(int drmfd, char *connector_name)
 
 /**
  * igt_get_output_max_bpc:
- * @drmfd: A drm file descriptor
- * @connector_name: Name of the libdrm connector we're going to use
+ * @output: Output to query.
+ * @maximum: Pointer to store the maximum supported bpc value.
  *
- * Returns: The maximum bpc from the connector debugfs.
+ * Read and parse the connector's debugfs output_bpc entry to obtain the
+ * maximum supported bits-per-component value.
+ *
+ * Returns: true on success, false on failure.
  */
-unsigned int igt_get_output_max_bpc(igt_output_t *output)
+bool igt_get_output_max_bpc(igt_output_t *output, unsigned int *maximum)
 {
 	igt_display_t *display = output->display;
 	int drmfd = display->drm_fd;
 	char buf[24];
 	char *start_loc;
 	int fd, res;
-	unsigned int maximum;
+
+	if (!maximum)
+		return false;
+
+	*maximum = 0;
 
 	fd = igt_debugfs_connector_dir(drmfd, output->name, O_RDONLY);
-	igt_assert(fd >= 0);
+	if (fd < 0)
+		return false;
 
 	res = igt_debugfs_simple_read(fd, "output_bpc", buf, sizeof(buf));
-	igt_require(res > 0);
-
 	close(fd);
+	if (res <= 0)
+		return false;
 
-	igt_assert(start_loc = strstr(buf, "Maximum: "));
-	igt_assert_eq(sscanf(start_loc, "Maximum: %u", &maximum), 1);
+	buf[res < sizeof(buf) ? res : sizeof(buf) - 1] = '\0';
 
-	return maximum;
+	start_loc = strstr(buf, "Maximum: ");
+	if (!start_loc)
+		return false;
+
+	if (sscanf(start_loc, "Maximum: %u", maximum) != 1)
+		return false;
+
+	return true;
 }
 
 /**
@@ -6838,8 +6852,11 @@ unsigned int igt_get_crtc_current_bpc(igt_crtc_t *crtc)
 static unsigned int get_current_bpc(igt_crtc_t *crtc, igt_output_t *output,
 				    unsigned int bpc)
 {
-	unsigned int maximum = igt_get_output_max_bpc(output);
+	unsigned int maximum;
 	unsigned int current = igt_get_crtc_current_bpc(crtc);
+
+	igt_require_f(igt_get_output_max_bpc(output, &maximum),
+		      "Failed to read max bpc for %s\n", igt_output_name(output));
 
 	igt_require_f(maximum >= bpc,
 		      "Monitor doesn't support %u bpc, max is %u\n", bpc,

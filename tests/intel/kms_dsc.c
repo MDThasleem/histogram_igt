@@ -426,8 +426,11 @@ int igt_main_args("l", NULL, help_str, opt_handler, &data)
 		igt_require(is_dsc_supported_by_source(data.drm_fd));
 
 		for_each_connected_output(&data.display, output) {
+			unsigned int maximum;
+
 			if (is_dsc_supported_by_sink(data.drm_fd, output) &&
-			    igt_get_output_max_bpc(output) >= MIN_DSC_BPC)
+			    igt_get_output_max_bpc(output, &maximum) &&
+			    maximum >= MIN_DSC_BPC)
 				data.valid_output[data.count++] = output;
 		}
 	}

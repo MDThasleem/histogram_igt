@@ -254,6 +254,7 @@ static void test_bpc_switch(data_t *data, uint32_t flags)
 
 	for_each_connected_output(display, output) {
 		igt_crtc_t *crtc;
+		unsigned int maximum;
 
 		if (!has_max_bpc(output)) {
 			igt_info("%s: Doesn't support IGT_CONNECTOR_MAX_BPC.\n",
@@ -261,7 +262,12 @@ static void test_bpc_switch(data_t *data, uint32_t flags)
 			continue;
 		}
 
-		if (igt_get_output_max_bpc(output) < 10) {
+		if (!igt_get_output_max_bpc(output, &maximum)) {
+			igt_info("%s: Failed to read max bpc.\n", igt_output_name(output));
+			continue;
+		}
+
+		if (maximum < 10) {
 			igt_info("%s: Doesn't support 10 bpc.\n", igt_output_name(output));
 			continue;
 		}
@@ -531,6 +537,7 @@ static void test_hdr(data_t *data, uint32_t flags)
 
 	for_each_connected_output(display, output) {
 		igt_crtc_t *crtc;
+		unsigned int maximum;
 
 		/* To test HDR, 10 bpc is required, so we need to
 		 * set MAX_BPC property to 10bpc prior to setting
@@ -555,7 +562,12 @@ static void test_hdr(data_t *data, uint32_t flags)
 			continue;
 		}
 
-		if (igt_get_output_max_bpc(output) < 10) {
+		if (!igt_get_output_max_bpc(output, &maximum)) {
+			igt_info("%s: Failed to read max bpc.\n", igt_output_name(output));
+			continue;
+		}
+
+		if (maximum < 10) {
 			igt_info("%s: Doesn't support 10 bpc.\n", igt_output_name(output));
 			continue;
 		}

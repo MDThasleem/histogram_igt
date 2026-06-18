@@ -480,11 +480,19 @@ static void test_dsc_bpc(data_t *data)
 
 	/* Find max supported bpc */
 	for_each_crtc(&data->display, crtc) {
+		unsigned int maximum;
+
 		output = data->output[crtc->crtc_index];
 		if (!output || !igt_output_is_connected(output))
 			continue;
 		igt_info("Checking bpc support of conn %s\n", output->name);
-		max_supported_bpc[crtc->crtc_index] = igt_get_output_max_bpc(output);
+		if (!igt_get_output_max_bpc(output, &maximum)) {
+			igt_info("Failed to read max bpc for conn %s\n", output->name);
+			max_supported_bpc[crtc->crtc_index] = 0;
+			continue;
+		}
+
+		max_supported_bpc[crtc->crtc_index] = maximum;
 	}
 
 	/* Setup all outputs */

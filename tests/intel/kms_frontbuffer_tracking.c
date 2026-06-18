@@ -2281,6 +2281,8 @@ static void setup_drrs(void)
 
 static void setup_hdr(void)
 {
+	unsigned int maximum;
+
 	if (!igt_output_has_prop(prim_mode_params.output, IGT_CONNECTOR_MAX_BPC) ||
 	    !igt_output_get_prop(prim_mode_params.output, IGT_CONNECTOR_MAX_BPC) ||
 	    !igt_output_supports_hdr(prim_mode_params.output)) {
@@ -2294,7 +2296,13 @@ static void setup_hdr(void)
 		return;
 	}
 
-	if (igt_get_output_max_bpc(prim_mode_params.output) < 10) {
+	if (!igt_get_output_max_bpc(prim_mode_params.output, &maximum)) {
+		igt_info("Can't test HDR: Failed to read max bpc for %s.\n",
+			 igt_output_name(prim_mode_params.output));
+		return;
+	}
+
+	if (maximum < 10) {
 		igt_info("Can't test HDR: %s doesn't support 10 bpc.\n", igt_output_name(prim_mode_params.output));
 		return;
 	}

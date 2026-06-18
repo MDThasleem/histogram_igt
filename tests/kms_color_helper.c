@@ -40,7 +40,10 @@ bool crtc_output_combo_valid(data_t *data, igt_crtc_t *crtc)
 bool
 panel_supports_deep_color(igt_output_t *output)
 {
-	unsigned int maximum = igt_get_output_max_bpc(output);
+	unsigned int maximum;
+
+	if (!igt_get_output_max_bpc(output, &maximum))
+		return false;
 
 	igt_info("Max supported bit depth: %d\n", maximum);
 
