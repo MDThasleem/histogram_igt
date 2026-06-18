@@ -35,3 +35,16 @@ uint32_t hars_petruska_f54_1_random_unsafe(void)
 {
 	return hars_petruska_f54_1_random(&global);
 }
+
+void hars_petruska_f54_1_random_perturb(uint32_t xor)
+{
+	uint32_t seed = hars_petruska_f54_1_random_seed(0) ^ xor;
+	hars_petruska_f54_1_random_seed(seed);
+	hars_petruska_f54_1_random_seed(hars_petruska_f54_1_random_unsafe());
+}
+
+/* Returns: pseudo-random number in interval [0, ep_ro) */
+uint32_t hars_petruska_f54_1_random_unsafe_max(uint32_t ep_ro)
+{
+	return ((uint64_t)hars_petruska_f54_1_random_unsafe() * ep_ro) >> 32;
+}
