@@ -41,6 +41,7 @@
 #include "i915/gem_create.h"
 #include "i915/gem_mman.h"
 #include "igt_debugfs.h"
+#include "igt_rand.h"
 #include "intel_reg.h"
 #include "ioctl_wrappers.h"
 
@@ -52,15 +53,7 @@
 #define REVERSE_OFFSET 0x40
 #define RANDOM_OFFSET 0x80
 
-static uint32_t
-hars_petruska_f54_1_random (void)
-{
-	static uint32_t state = 0x12345678;
-
-#define rol(x,k) ((x << k) | (x >> (32-k)))
-	return state = (state ^ rol (state, 5) ^ rol (state, 24)) + 0x37798849;
-#undef rol
-}
+static uint32_t random_state = 0x12345678;
 
 #define ELAPSED(a,b) (1e6*((b)->tv_sec - (a)->tv_sec) + ((b)->tv_usec - (a)->tv_usec))
 static int run(unsigned batch_size,
@@ -106,7 +99,7 @@ static int run(unsigned batch_size,
 			mem_reloc[n].offset = batch_size - 8 - (8*n % (batch_size - 16));
 		else if (flags & RANDOM_OFFSET)
 			mem_reloc[n].offset = 8 +
-				8*hars_petruska_f54_1_random() % (batch_size - 16);
+				8*hars_petruska_f54_1_random(&random_state) % (batch_size - 16);
 		else
 			mem_reloc[n].offset = 1024;
 		mem_reloc[n].read_domains = I915_GEM_DOMAIN_RENDER;
@@ -135,7 +128,7 @@ static int run(unsigned batch_size,
 		execbuf.flags |= I915_EXEC_NO_RELOC;
 
 	for (n = 0; n < num_relocs; n++) {
-		target[n] = hars_petruska_f54_1_random() % num_objects;
+		target[n] = hars_petruska_f54_1_random(&random_state) % num_objects;
 		if (flags & LUT)
 			reloc[n].target_handle = target[n];
 		else
