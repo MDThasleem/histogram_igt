@@ -42,6 +42,7 @@
 #include "drm.h"
 #include "drmtest.h"
 #include "i915/gem_create.h"
+#include "igt_rand.h"
 #include "igt_stats.h"
 #include "intel_io.h"
 #include "ioctl_wrappers.h"
@@ -92,14 +93,7 @@ struct trace_wait {
 	uint32_t handle;
 } __attribute__((packed));
 
-static uint32_t hars_petruska_f54_1_random(void)
-{
-	static uint32_t state = 0x12345678;
-
-#define rol(x,k) ((x << k) | (x >> (32-k)))
-	return state = (state ^ rol (state, 5) ^ rol (state, 24)) + 0x37798849;
-#undef rol
-}
+static uint32_t random_state = 0x12345678;
 
 static double elapsed(const struct timespec *start, const struct timespec *end)
 {
@@ -277,7 +271,7 @@ static double replay(const char *filename, long nop, long range)
 				sizeof(*exec_objects)))->handle = bo[0];
 
 			if (nop > 0) {
-				eb.batch_start_offset = hars_petruska_f54_1_random();
+				eb.batch_start_offset = hars_petruska_f54_1_random(&random_state);
 				eb.batch_start_offset =
 					((uint64_t)eb.batch_start_offset * range) >> 32;
 				eb.batch_start_offset = ALIGN(eb.batch_start_offset, 64);
