@@ -549,7 +549,7 @@ static void test_hdr(data_t *data, uint32_t flags)
 			continue;
 		}
 
-		if ((flags & ~TEST_INVALID_HDR) && !igt_is_panel_hdr(data->fd, output)) {
+		if (!(flags & TEST_INVALID_HDR) && !igt_is_panel_hdr(data->fd, output)) {
 			igt_info("%s: Can't run HDR tests on non-HDR panel.\n",
 				 igt_output_name(output));
 			continue;
@@ -606,7 +606,7 @@ static void test_hdr(data_t *data, uint32_t flags)
 					igt_plane_set_fb(data->primary, NULL);
 					igt_remove_fb(data->fd, &data->afb);
 					test_fini(data);
-					break;
+					continue;
 				}
 
 				/* Reset IGT display state; hardware was not changed. */
