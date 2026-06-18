@@ -40,6 +40,8 @@
 #include "i915/gem.h"
 #include "i915/gem_create.h"
 #include "igt.h"
+#include "igt_rand.h"
+
 /**
  * TEST: gem exec lut handle
  * Description: Exercises the basic execbuffer using the handle LUT interface.
@@ -65,15 +67,7 @@ int target[MAX_NUM_RELOC];
 struct drm_i915_gem_exec_object2 gem_exec[MAX_NUM_EXEC+1];
 struct drm_i915_gem_relocation_entry mem_reloc[MAX_NUM_RELOC];
 
-static uint32_t state = 0x12345678;
-
-static uint32_t
-hars_petruska_f54_1_random (void)
-{
-#define rol(x,k) ((x << k) | (x >> (32-k)))
-    return state = (state ^ rol (state, 5) ^ rol (state, 24)) + 0x37798849;
-#undef rol
-}
+static uint32_t random_state = 0x12345678;
 
 static int has_exec_lut(int fd)
 {
@@ -164,7 +158,7 @@ int igt_simple_main()
 					execbuf.flags |= I915_EXEC_NO_RELOC;
 
 				for (j = 0; j < m; j++) {
-					target[j] = hars_petruska_f54_1_random() % n;
+					target[j] = hars_petruska_f54_1_random(&random_state) % n;
 					reloc[j].target_handle = target[j];
 					reloc[j].presumed_offset = -1;
 				}
