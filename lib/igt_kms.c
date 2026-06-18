@@ -7939,16 +7939,11 @@ igt_crtc_t *igt_next_crtc(igt_display_t *display, igt_crtc_t *crtc)
  */
 igt_crtc_t *igt_random_crtc(igt_display_t *display)
 {
-	igt_crtc_t *crtcs[IGT_MAX_PIPES];
-	igt_crtc_t *crtc;
-	int n = 0;
-
-	for_each_crtc(display, crtc)
-		crtcs[n++] = crtc;
+	int n = igt_display_n_crtcs(display);
 
 	igt_skip_on_f(!n, "No CRTCs on device\n");
 
-	return crtcs[rand() % n];
+	return igt_crtc_for_crtc_index(display, rand() % n);
 }
 
 static drmModeConnectorPtr igt_wait_for_connector(int drm_fd, unsigned int connector_id,
