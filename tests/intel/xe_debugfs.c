@@ -39,11 +39,23 @@ IGT_TEST_DESCRIPTION("Validate Xe debugfs devnodes and their contents");
 	__m && ((__i) = __builtin_ctz(__m), 1);	\
 	__m &= __m - 1)
 
+/* Validation types for debugfs read tests */
+enum debugfs_validate_type {
+	VALIDATE_NONE,		/* Just check file exists */
+	VALIDATE_NON_EMPTY,	/* Just check buffer is not empty */
+	VALIDATE_CONTAINS_STR,	/* Check buffer contains expected string */
+	VALIDATE_INT_GE_ZERO,	/* Parse as integer, verify >= 0 */
+	VALIDATE_BOOL,		/* Check bool value (0 or 1) */
+};
+
 struct check_entry {
 	const char *name_fmt;
 	int mode;
 	bool (*condition)(struct xe_device *xe_dev);
 	unsigned int (*iter_mask)(struct xe_device *xe_dev);
+	bool optional;
+	enum debugfs_validate_type validate;
+	const char *expected_str;
 };
 
 static unsigned int gt_iter_mask(struct xe_device *xe_dev)
@@ -131,6 +143,124 @@ static bool find_not_tested_files(int dir_fd, struct igt_list_head *hit_entries)
 	return found_not_tested;
 }
 
+/* Validate that debugfs buffer is non-empty or contains expected string */
+static bool validate_string(int dirfd, const char *file_name, const char *expected_str)
+{
+	char buf[4096];
+	int ret = 0;
+
+	ret = igt_sysfs_read(dirfd, file_name, buf, sizeof(buf) - 1);
+	if (ret < 0)
+		return false;
+	buf[ret] = '\0';
+
+	/* Check for empty buffer */
+	if (strlen(buf) == 0) {
+		igt_info("Empty output from %s\n", file_name);
+		return false;
+	}
+
+	/* If expecting specific string, verify it's present */
+	if (expected_str && !strstr(buf, expected_str)) {
+		igt_info("Expected '%s' not found in %s\n", expected_str, file_name);
+		return false;
+	}
+
+	if (expected_str)
+		igt_info("Successfully read %s: found '%s'\n", file_name, expected_str);
+	else
+		igt_info("Successfully read %s: %zd bytes\n%s\n", file_name, strlen(buf), buf);
+
+	return true;
+}
+
+static const char *mode_to_str(int mode)
+{
+	switch (mode & O_ACCMODE) {
+	case O_RDONLY: return "RO";
+	case O_WRONLY: return "WO";
+	case O_RDWR:   return "RW";
+	default:       return "UNKNOWN";
+	}
+}
+
+static bool validate_bool_file(int dirfd, const char *file_name, int mode)
+{
+	int orig_val = 0, read_val = 0, test_val = 0;
+
+	if (igt_sysfs_scanf(dirfd, file_name, "%d", &orig_val) != 1) {
+		return false;
+	}
+
+	if (orig_val != 0 && orig_val != 1) {
+		igt_info("Unexpected bool value: %d\n", orig_val);
+		return false;
+	}
+
+	if (mode == O_RDWR) {
+		test_val = orig_val ? 0 : 1;
+
+		if (igt_sysfs_printf(dirfd, file_name, "%d", test_val) < 0) {
+			igt_info("Failed to write %d to %s\n", test_val, file_name);
+			return false;
+		}
+
+		if (igt_sysfs_scanf(dirfd, file_name, "%d", &read_val) != 1 || read_val != test_val)
+			return false;
+
+		/* Restore original value */
+		if (igt_sysfs_printf(dirfd, file_name, "%d", orig_val) < 0) {
+			igt_warn("Failed to restore original value for %s\n", file_name);
+			return false;
+		}
+	}
+
+	igt_info("Successfully validated %s bool %s\n", mode_to_str(mode), file_name);
+	return true;
+}
+
+static bool validate_int_file(int dirfd, const char *file_name, int mode)
+{
+	int orig_val = 0, new_val = 0, read_val = 0;
+
+	if (igt_sysfs_scanf(dirfd, file_name, "%d", &orig_val) != 1)
+		return false;
+
+	if (orig_val < 0) {
+		igt_info("Unexpected negative value %d in %s\n", orig_val, file_name);
+		return false;
+	}
+
+	if (mode == O_RDWR) {
+		new_val = orig_val + 1;
+		if (new_val < 0)
+			new_val = orig_val - 1;
+		if (igt_sysfs_printf(dirfd, file_name, "%d", new_val) < 0) {
+			igt_info("Failed to write %d to %s\n", new_val, file_name);
+			return false;
+		}
+		if (igt_sysfs_scanf(dirfd, file_name, "%d", &read_val) != 1)
+			return false;
+		if (read_val != new_val) {
+			igt_info("Unexpected value in %s: expected %d, got %d\n", file_name,
+				 new_val, read_val);
+			return false;
+		}
+		/* Restore original value */
+		if (igt_sysfs_printf(dirfd, file_name, "%d", orig_val) < 0) {
+			igt_warn("Failed to restore original value for %s\n", file_name);
+			return false;
+		}
+
+		igt_info("Successfully validated writing int %s: %d\n",
+			 file_name, new_val);
+	} else {
+		igt_info("Successfully validated reading int %s: %d\n",
+			 file_name, orig_val);
+	}
+	return true;
+}
+
 static bool file_in_dir_exists(int dirfd, const char *file_name, int mode)
 {
 	int fd = openat(dirfd, file_name, mode);
@@ -143,6 +273,36 @@ static bool file_in_dir_exists(int dirfd, const char *file_name, int mode)
 	return false;
 }
 
+static bool validate_debugfs_file(int dirfd, const char *file_name, int mode,
+				  enum debugfs_validate_type validate, const char *expected_str)
+{
+	bool result = true;
+
+	if (validate == VALIDATE_NONE)
+		return true;
+
+	switch (validate) {
+	case VALIDATE_NON_EMPTY:
+		result = validate_string(dirfd, file_name, NULL);
+		break;
+	case VALIDATE_CONTAINS_STR:
+		result = validate_string(dirfd, file_name, expected_str);
+		break;
+	case VALIDATE_INT_GE_ZERO:
+		result = validate_int_file(dirfd, file_name, mode);
+		break;
+	case VALIDATE_BOOL:
+		result = validate_bool_file(dirfd, file_name, mode);
+		break;
+	default:
+		igt_warn("Unknown validate type %d for %s\n", validate, file_name);
+		result = false;
+		break;
+	}
+
+	return result;
+}
+
 /*
  * Return: negative error code on failure, or number of missing files
  */
@@ -151,6 +311,7 @@ static int debugfs_validate_entries(struct xe_device *xe_dev, int dir_fd,
 {
 	struct igt_list_head hit_entries;
 	int missing_count = 0;
+	int fail_count = 0;
 	int err = 0;
 
 	IGT_INIT_LIST_HEAD(&hit_entries);
@@ -210,9 +371,22 @@ static int debugfs_validate_entries(struct xe_device *xe_dev, int dir_fd,
 			}
 
 			if (!file_in_dir_exists(dir_fd, entry->name, check->mode)) {
-				igt_warn("Missing debugfs file: %s\n", entry->name);
-				missing_count++;
+				if (check->optional) {
+					igt_info("Optional entry %s not found (skipped)\n",
+						 entry->name);
+				} else {
+					igt_info("Missing debugfs file: %s\n",
+						 entry->name);
+					missing_count++;
+				}
+			} else {
+				if (!validate_debugfs_file(dir_fd, entry->name, check->mode,
+							   check->validate, check->expected_str)) {
+					igt_info("Fail at debugfs file: %s\n", entry->name);
+					fail_count++;
+				}
 			}
+
 		}
 	}
 
@@ -229,7 +403,10 @@ out:
 		}
 	}
 
-	return (err < 0) ? err : missing_count;
+	if (fail_count || missing_count)
+		igt_warn("Fails: %d missing debugfs file(s): %d\n", fail_count, missing_count);
+
+	return (err < 0) ? err : (missing_count + fail_count);
 }
 
 /**
@@ -240,6 +417,7 @@ static void test_root_dir(struct xe_device *xe_dev)
 {
 	const struct check_entry expected_files[] = {
 		{ "clients", O_RDONLY },
+		{ "disable_late_binding", O_RDWR, .optional = true, .validate = VALIDATE_BOOL },
 		{ "forcewake_all", O_WRONLY },
 		{ "gem_names", O_RDONLY },
 		{ "gt%u", O_RDONLY, NULL, gt_iter_mask }, /* gt0, gt1, ... */
@@ -247,6 +425,12 @@ static void test_root_dir(struct xe_device *xe_dev)
 		{ "info", O_RDONLY },
 		{ "name", O_RDONLY },
 		{ "tile%u", O_RDONLY, NULL, tile_iter_mask }, /* tile0, tile1, ... */
+		{ "poor_man_system_atomic_support", O_RDWR, .optional = true, .validate = VALIDATE_BOOL },
+		{ "dgfx_pkg_residencies", O_RDONLY, .optional = true, .validate = VALIDATE_NON_EMPTY },
+		{ "dgfx_pcie_link_residencies", O_RDONLY, .optional = true, .validate = VALIDATE_CONTAINS_STR, .expected_str = "PCIE LINK" },
+		{ "sriov_info", O_RDONLY, .optional = true, .validate = VALIDATE_NON_EMPTY },
+		{ "workarounds", O_RDONLY, .optional = true, .validate = VALIDATE_NON_EMPTY },
+		{ "atomic_svm_timeslice_ms", O_RDWR, .optional = true, .validate = VALIDATE_INT_GE_ZERO },
 	};
 	int debugfs_fd = igt_debugfs_dir(xe_dev->fd);
 	int missing_count;
