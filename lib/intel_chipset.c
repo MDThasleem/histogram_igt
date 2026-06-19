@@ -64,15 +64,14 @@
 enum pch_type intel_pch;
 
 /**
- * intel_get_pci_device:
+ * intel_pci_device_by_class:
  *
  * Looks up the main graphics pci device using libpciaccess.
  *
  * Returns:
  * The pci_device, exits the program on any failures.
  */
-struct pci_device *
-intel_get_pci_device(void)
+static struct pci_device *intel_pci_device_by_class(unsigned int class)
 {
 	struct pci_device *pci_dev;
 	int error;
@@ -81,7 +80,7 @@ intel_get_pci_device(void)
 	igt_fail_on_f(error != 0,
 		      "Couldn't initialize PCI system\n");
 
-	/* Grab the graphics card. Try the canonical slot first, then
+	/* Grab the Intel device. Try the canonical slot first, then
 	 * walk the entire PCI bus for a matching device. */
 	pci_dev = pci_device_find_by_slot(0, 0, 2, 0);
 	if (pci_dev == NULL || pci_dev->vendor_id != 0x8086) {
@@ -93,7 +92,7 @@ intel_get_pci_device(void)
 		match.subvendor_id = PCI_MATCH_ANY;
 		match.subdevice_id = PCI_MATCH_ANY;
 
-		match.device_class = 0x3 << 16;
+		match.device_class = class << 16;
 		match.device_class_mask = 0xff << 16;
 
 		match.match_data = 0;
@@ -102,14 +101,52 @@ intel_get_pci_device(void)
 		pci_dev = pci_device_next(iter);
 		pci_iterator_destroy(iter);
 	}
-	igt_require_f(pci_dev, "Couldn't find Intel graphics card\n");
+	if (!pci_dev)
+		return NULL;
 
 	error = pci_device_probe(pci_dev);
-	igt_fail_on_f(error != 0,
-		      "Couldn't probe graphics card\n");
+	igt_fail_on_f(error != 0, "Couldn't probe the PCI device, class %#x\n", class);
 
 	if (pci_dev->vendor_id != 0x8086)
-		errx(1, "Graphics card is non-intel");
+		errx(1, "PCI device class %#x is non-intel", class);
+
+	return pci_dev;
+}
+
+/**
+ * intel_get_pci_device_display:
+ *
+ * Looks up display class pci device using libpciaccess
+ *
+ * Returns: The pci_device, exits the program on any failures
+ */
+struct pci_device *intel_get_pci_device_display(void)
+{
+	/* PCI display class (0x3) device */
+	struct pci_device *pci_dev = intel_pci_device_by_class(0x3);
+
+	igt_require_f(pci_dev, "Couldn't find Intel graphics device\n");
+
+	return pci_dev;
+}
+
+/**
+ * intel_get_pci_device:
+ *
+ * Looks up display and accelerator class pci devices using libpciaccess
+ *
+ * Returns: The pci_device, exits the program on any failures
+ */
+struct pci_device *intel_get_pci_device(void)
+{
+	/* PCI display class (0x3) device */
+	struct pci_device *pci_dev = intel_pci_device_by_class(0x3);
+
+	/* PCI accelerator class (0x12) device */
+	if (!pci_dev)
+		pci_dev = intel_pci_device_by_class(0x12);
+
+	igt_require_f(pci_dev, "Couldn't find Intel graphics or accelerator device\n");
 
 	return pci_dev;
 }

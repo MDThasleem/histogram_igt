@@ -1508,7 +1508,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	devid = intel_get_pci_device()->device_id;
+	devid = intel_get_pci_device_display()->device_id;
 
 	/*
 	 * check if the requires registers are
@@ -1677,7 +1677,7 @@ int main(int argc, char *argv[])
 		break;
 	}
 
-	intel_register_access_init(&mmio_data, intel_get_pci_device(), 0);
+	intel_register_access_init(&mmio_data, intel_get_pci_device_display(), 0);
 
 	if (auto_scanline_offset)
 		scanline_offset = default_scanline_offset(devid, pipe);

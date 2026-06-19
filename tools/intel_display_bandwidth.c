@@ -152,14 +152,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	devid = intel_get_pci_device()->device_id;
+	devid = intel_get_pci_device_display()->device_id;
 
 	if (!has_de_power2(devid)) {
 		fprintf(stderr, "Display bandwidth counter not available\n");
 		return 2;
 	}
 
-	intel_register_access_init(&mmio_data, intel_get_pci_device(), 0);
+	intel_register_access_init(&mmio_data, intel_get_pci_device_display(), 0);
 
 	if (has_de_power2_abox0_abox1(devid))
 		measure_de_power2_abox0_abox1(devid, sleep_duration);

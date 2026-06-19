@@ -2468,7 +2468,7 @@ int main(int argc, char **argv)
 	struct pci_device *pci_dev;
 	struct intel_mmio_data mmio_data;
 
-	pci_dev = intel_get_pci_device();
+	pci_dev = intel_get_pci_device_display();
 	devid = pci_dev->device_id; /* XXX not true when mapping! */
 
 	do_self_tests();

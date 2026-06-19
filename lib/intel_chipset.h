@@ -36,6 +36,7 @@
 #define BIT(x) (1ul <<(x))
 
 struct pci_device *intel_get_pci_device(void);
+struct pci_device *intel_get_pci_device_display(void);
 uint32_t intel_get_drm_devid(int fd);
 
 struct intel_device_info {

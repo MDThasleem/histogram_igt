@@ -280,7 +280,7 @@ int main (int argc, char *argv[])
 	       "with overscan compensation properties: it is just a temporary "
 	       "solution that may or may not work. Use it at your own risk.\n");
 
-	pci_dev = intel_get_pci_device();
+	pci_dev = intel_get_pci_device_display();
 	intel_register_access_init(&mmio_data, pci_dev, 0);
 	devid = pci_dev->device_id;
 
