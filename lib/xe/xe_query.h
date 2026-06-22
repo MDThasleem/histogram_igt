@@ -153,6 +153,7 @@ struct drm_xe_query_gt_list *xe_gt_list(int fd);
 struct drm_xe_query_oa_units *xe_oa_units(int fd);
 unsigned int xe_number_engines(int fd);
 bool xe_has_vram(int fd);
+bool xe_has_survivability(int fd);
 uint64_t xe_vram_size(int fd, int gt);
 uint64_t xe_visible_vram_size(int fd, int gt);
 uint64_t xe_available_vram_size(int fd, int gt);

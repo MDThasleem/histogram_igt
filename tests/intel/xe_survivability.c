@@ -217,7 +217,7 @@ int igt_main()
 
 	igt_fixture() {
 		fd = drm_open_driver(DRIVER_XE);
-		igt_require(IS_BATTLEMAGE(intel_get_drm_devid(fd)));
+		igt_require(xe_has_survivability(fd));
 		vf_device = intel_is_vf_device(fd);
 		igt_require_f(!vf_device, "survivability mode not supported in VF\n");
 		pci_xe = igt_device_get_pci_device(fd);

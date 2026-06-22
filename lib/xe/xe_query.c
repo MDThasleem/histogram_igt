@@ -23,6 +23,7 @@
 #include "igt_debugfs.h"
 #include "ioctl_wrappers.h"
 #include "igt_map.h"
+#include "intel_common.h"
 #include "intel_pat.h"
 
 #include "xe_query.h"
@@ -812,6 +813,19 @@ xe_dev_FN(xe_number_engines, engines->num_engines, unsigned int);
  * Returns true if xe device @fd has vram otherwise false.
  */
 xe_dev_FN(xe_has_vram, has_vram, bool);
+
+/**
+ * xe_has_survivability:
+ * @fd: xe device fd
+ *
+ * Returns true if xe device @fd supports survivability mode. Survivability
+ * mode is supported on discrete platforms from Battlemage (BMG) onwards.
+ */
+bool xe_has_survivability(int fd)
+{
+	return is_intel_dgfx(fd) &&
+	       intel_graphics_ver(intel_get_drm_devid(fd)) >= IP_VER(20, 1);
+}
 
 /**
  * xe_vram_size:

@@ -377,16 +377,16 @@ static void close_configfs_group(int configfs_fd, int configfs_device_fd)
 int igt_main()
 {
 	int fd, configfs_fd, configfs_device_fd;
-	uint32_t devid;
 	bool is_vf_device;
+	bool has_survivability;
 	const char *engine = NULL;
 
 	igt_fixture() {
 		struct drm_xe_engine_class_instance *hwe;
 
 		fd = drm_open_driver(DRIVER_XE);
-		devid = intel_get_drm_devid(fd);
 		is_vf_device = intel_is_vf_device(fd);
+		has_survivability = xe_has_survivability(fd);
 		set_bus_addr(fd);
 
 		xe_for_each_engine(fd, hwe) {
@@ -410,7 +410,7 @@ int igt_main()
 
 	igt_describe("Validate survivability mode");
 	igt_subtest("survivability-mode") {
-		igt_require(IS_BATTLEMAGE(devid));
+		igt_require(has_survivability);
 		igt_require_f(!is_vf_device, "survivability mode not supported in VF\n");
 		configfs_device_fd = create_device_configfs_group(configfs_fd);
 		test_survivability_mode(configfs_device_fd);
