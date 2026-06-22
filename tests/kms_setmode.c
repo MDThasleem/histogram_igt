@@ -795,14 +795,13 @@ static void test_one_combination(const struct test_config *tconf,
 			/*
 			 * Handle BW limitations on intel hardware:
 			 *
-			 * if force joiner (or) mode resolution > 5K (or) mode clock > max_dotclock,
+			 * if force joiner is enabled (or) the mode requires bigjoiner,
 			 * then ignore
 			 *   - last crtc in single/multi-connector config
 			 *   - consecutive crtcs in multi-connector config
 			 *
 			 * in multi-connector config ignore if
-			 *   - previous crtc (force joiner (or) mode resolution > 5K (or)
-			 *     mode clock > max_dotclock) and
+			 *   - previous crtc (force joiner (or) mode requires bigjoiner) and
 			 *   - current & previous crtcs are consecutive
 			 */
 			if (((igt_check_force_joiner_status(drm_fd, conn_name) ||

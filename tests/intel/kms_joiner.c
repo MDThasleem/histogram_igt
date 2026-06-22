@@ -651,10 +651,10 @@ int igt_main()
 			drmModeConnector *connector = output->config.connector;
 
 			/*
-			 * Bigjoiner will come in to the picture when the
-			 * resolution > 5K or clock > max-dot-clock.
-			 * Ultrajoiner will come in to the picture when the
-			 * resolution > 10K or clock > 2 * max-dot-clock.
+			 * Bigjoiner is required when a mode exceeds the single-pipe
+			 * platform limits checked by igt_bigjoiner_possible().
+			 * Ultrajoiner is required when a mode exceeds the limits checked
+			 * by igt_ultrajoiner_possible().
 			 */
 			bigjoiner_found = bigjoiner_mode_found(data.drm_fd, connector, max_dotclock, &mode);
 			ultrajoiner_found = ultrajoiner_mode_found(data.drm_fd, connector, max_dotclock, &mode);

@@ -7064,8 +7064,9 @@ int intel_get_max_pipe_hdisplay(int drm_fd)
  * @mode: libdrm mode
  * @max_dotclock: Max pixel clock frequency
  *
- * Bigjoiner will come into the picture, when the requested
- * mode resolution > 5K or mode clock > max_dotclock.
+ * Bigjoiner is required when the requested mode exceeds single-pipe
+ * platform limits, i.e. hdisplay is above the platform threshold or
+ * clock is above @max_dotclock.
  *
  * Returns: True if mode requires Bigjoiner, else False.
  */
@@ -7082,10 +7083,10 @@ bool igt_bigjoiner_possible(int drm_fd, drmModeModeInfo *mode, int max_dotclock)
  * @max_dot_clock: max dot clock frequency
  * @mode: libdrm mode to be filled
  *
- * Bigjoiner will come in to the picture when the
- * resolution > 5K or clock > max-dot-clock.
+ * Finds the first connector mode that requires bigjoiner support based on
+ * igt_bigjoiner_possible(), while excluding modes that require ultrajoiner.
  *
- * Returns: True if big joiner found in connector modes
+ * Returns: True if a bigjoiner mode is found.
  */
 bool bigjoiner_mode_found(int drm_fd, drmModeConnector *connector,
 			  int max_dotclock, drmModeModeInfo *mode)
@@ -7402,14 +7403,14 @@ bool igt_check_bigjoiner_support(igt_display_t *display)
 	max_dotclock = igt_get_max_dotclock(display->drm_fd);
 
 	/*
-	 * if force joiner (or) mode resolution > 5K (or) mode.clock > max dot-clock,
+	 * if force joiner is enabled (or) the mode requires bigjoiner,
 	 * then ignore
 	 *  - if the consecutive pipe is not available
 	 *  - last crtc in single/multi-connector config
 	 *  - consecutive crtcs in multi-connector config
 	 *
 	 * in multi-connector config ignore if
-	 *  - previous crtc (force joiner or mode resolution > 5K or mode.clock > max dot-clock) and
+	 *  - previous crtc (force joiner or mode requires bigjoiner) and
 	 *  - current & previous crtcs are consecutive
 	 */
 	for (i = 0; i < pipes_in_use; i++) {

@@ -1787,12 +1787,12 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	/*
 	 * Handle BW limitations on intel hardware:
 	 *
-	 * if force joiner (or) mode resolution > 5K (or) mode clock > max_dotclock, then ignore
+	 * if force joiner is enabled (or) the mode requires bigjoiner, then ignore
 	 *  - last crtc in single/multi-connector config
 	 *  - consecutive crtcs in multi-connector config
 	 *
 	 * in multi-connector config ignore if
-	 *  - previous crtc (force joiner or mode resolution > 5K or mode clock > max_dotclock) and
+	 *  - previous crtc (force joiner or mode requires bigjoiner) and
 	 *  - current & previous crtcs are consecutive
 	 */
 	if (!is_intel_device(drm_fd))
