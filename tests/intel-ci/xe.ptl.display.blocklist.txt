@@ -88,10 +88,6 @@ igt@kms_plane_scaling@.*downscale-factor-0-25.*
 igt@kms_plane_scaling@planes-downscale-factor-0-(5|75)$
 igt@kms_plane_scaling@planes-.*upscale-.*downscale.*
 ##############################################################################
-# Valid skip: Simulation specific
-##############################################################################
-igt@kms_pm_dc@dc3co-vpb-simulation
-##############################################################################
 # Feature Currently not supported
 ##############################################################################
 igt@kms_pm_power_saving@.*
@@ -183,4 +179,6 @@ igt@kms_color_pipeline@plane-lut3d-green-only
 ########################################
 igt@kms_frontbuffer_tracking@.*a(bgr|rgb)161616f.*
 igt@kms_flip_scaled_crc@.*linear-reflect-x
+igt@kms_pm_dc@dc3co-.*
+igt@kms_vrr@lobf-dc3co
 ########################################

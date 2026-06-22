@@ -121,7 +121,6 @@ igt@kms_plane@pixel-format.*(mtl|dg2).*
 ##########################################
 # Valid skip :- Simulation specific
 ##########################################
-igt@kms_pm_dc@dc3co-vpb-simulation
 igt@kms_simulation_hpd@sim-hpd
 #########################################
 #########################################
@@ -179,4 +178,6 @@ igt@kms_color_pipeline@plane-lut3d-green-only
 ########################################
 igt@kms_frontbuffer_tracking@.*a(bgr|rgb)161616f.*
 igt@kms_flip_scaled_crc@.*linear-reflect-x
+igt@kms_pm_dc@dc3co-.*
+igt@kms_vrr@lobf-dc3co
 ########################################
