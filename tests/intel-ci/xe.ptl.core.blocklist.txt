@@ -53,6 +53,11 @@ igt@xe_pm@d3hot-i2c
 ##################################################################
 igt@xe_compute@ccs-mode-basic
 igt@xe_compute@ccs-mode-compute-kernel
+#################################################################
+# Tests not applicable for the platform
+##################################################################
+igt@xe_exec_multi_queue@.*
+igt@.*@.*multi-queue.*
 ##################################################################
 # Expected skips as the tests are not supported on PTL
 ##################################################################
