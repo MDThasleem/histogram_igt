@@ -360,8 +360,12 @@ int igt_main()
 	/* dynamic test based on sdma_info.available rings */
 	igt_describe("amdgpu secure bounce");
 	igt_subtest("amdgpu-secure-bounce")
-	amdgpu_secure_bounce(device, fd, &sdma_info, get_ip_block(device,
-			AMDGPU_HW_IP_DMA), is_secure);
+	{
+		igt_skip_on_f(is_apu(&gpu_info),
+				"Secure bounce requires VRAM/GTT separation (dGPU only)\n");
+		amdgpu_secure_bounce(device, fd, &sdma_info, get_ip_block(device,
+				AMDGPU_HW_IP_DMA), is_secure);
+	}
 
 #ifdef AMDGPU_USERQ_ENABLED
 	igt_describe("amdgpu gfx command submission write linear helper with user queue");
