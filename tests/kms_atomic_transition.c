@@ -1026,6 +1026,16 @@ retry:
 		bool found = igt_override_all_active_output_modes_to_fit_bw(&data->display);
 		igt_require_f(found, "No valid mode combo found.\n");
 
+		if (is_intel_device(data->drm_fd)) {
+			for_each_crtc(&data->display, crtc) {
+				igt_pipe_crc_free(data->pipe_crcs[crtc->crtc_index]);
+				data->pipe_crcs[crtc->crtc_index] = NULL;
+			}
+		}
+
+		igt_remove_fb(data->drm_fd, &data->fbs[0]);
+		igt_remove_fb(data->drm_fd, &data->fbs[1]);
+
 		goto retry;
 	}
 	igt_display_commit2(&data->display, COMMIT_ATOMIC);
