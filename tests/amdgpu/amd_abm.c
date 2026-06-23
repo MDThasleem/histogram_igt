@@ -35,7 +35,7 @@
 #define DEBUGFS_CURRENT_BACKLIGHT_PWM "amdgpu_current_backlight_pwm"
 #define DEBUGFS_TARGET_BACKLIGHT_PWM "amdgpu_target_backlight_pwm"
 #define BACKLIGHT_PATH "/sys/class/backlight/amdgpu_bl0"
-#define PANEL_POWER_SAVINGS_PATH "/sys/class/drm/card0-%s/amdgpu/panel_power_savings"
+#define PANEL_POWER_SAVINGS_ATTR "amdgpu/panel_power_savings"
 #define MK_COLOR(r, g, b)	((0 << 24) | (r << 16) | (g << 8) | b)
 
 typedef struct data {
@@ -252,14 +252,23 @@ static int backlight_write_brightness(int value)
 static void set_abm_level(data_t *data, igt_output_t *output, int level)
 {
 	char buf[PATH_MAX];
-	int fd;
+	int fd, conn_fd;
 
-	igt_assert(snprintf(buf, PATH_MAX, PANEL_POWER_SAVINGS_PATH,
-			    output->name) < PATH_MAX);
+	/* Open the connector's sysfs directory via the IGT helper, which
+	 * derives the real DRM card index instead of assuming card0. On
+	 * systems where the amdgpu device is not card0 (e.g. another DRM
+	 * node grabbed card0), the previous hardcoded "card0-<conn>" path
+	 * did not exist and panel_power_savings could never be found.
+	 */
+	conn_fd = igt_connector_sysfs_open(data->drm_fd, output->config.connector);
+	igt_skip_on_f(conn_fd < 0, "Cannot open sysfs dir for connector %s\n",
+		      output->name);
 
-	fd = open(buf, O_WRONLY);
+	fd = openat(conn_fd, PANEL_POWER_SAVINGS_ATTR, O_WRONLY);
+	close(conn_fd);
 
-	igt_skip_on_f(fd == -1, "Cannot find %s. Is it an OLED?\n", buf);
+	igt_skip_on_f(fd == -1, "Cannot find %s for %s. Is it an OLED?\n",
+		      PANEL_POWER_SAVINGS_ATTR, output->name);
 
 	igt_assert_eq(snprintf(buf, sizeof(buf), "%d", level),
 		      write(fd, buf, 1));

@@ -63,25 +63,27 @@ static void test_fini(data_t *data)
 static char *find_aux_dev(data_t *data, igt_output_t *output,
 				char *aux_dev, size_t max_aux_dev_len)
 {
-	char sysfs_name[PATH_MAX] = { 0 };
-	/* +7 only to get rid of snprintf_chk warning.
-	 * Path name cannot exceed the size of PATH_MAX anyway.
-	 */
-	char conn_dir_name[PATH_MAX+7] = { 0 };
 	DIR *dir;
 	struct dirent *dirent;
+	int conn_fd;
 
 	aux_dev[0] = 0;
 
-	if(igt_sysfs_path(data->fd, sysfs_name, sizeof(sysfs_name))) {
-			snprintf(conn_dir_name, sizeof(conn_dir_name),
-					"%s%scard0%s%s",
-					sysfs_name, "/", "-", output->name);
-	}
-
-	dir = opendir(conn_dir_name);
-	if (!dir)
+	/* Open the connector's sysfs directory via the IGT helper, which
+	 * derives the real DRM card index instead of assuming card0. On
+	 * systems where the amdgpu device is not card0 (e.g. another DRM
+	 * node grabbed card0), the previous hardcoded "card0-<conn>" path
+	 * did not exist and the AUX device could never be found.
+	 */
+	conn_fd = igt_connector_sysfs_open(data->fd, output->config.connector);
+	if (conn_fd < 0)
 		return NULL;
+
+	dir = fdopendir(conn_fd);
+	if (!dir) {
+		close(conn_fd);
+		return NULL;
+	}
 
 	while((dirent = readdir(dir))) {
 		if (strncmp(dirent->d_name, "drm_dp_aux", sizeof("drm_dp_aux")-1))
