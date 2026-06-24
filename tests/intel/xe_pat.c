@@ -1783,10 +1783,11 @@ static void __false_sharing(int fd, const struct fs_pat_entry *fs_entry)
 
 	/* Unblock after cpu started to spin */
 	batch[i++] = MI_SEMAPHORE_WAIT_CMD | MI_SEMAPHORE_POLL |
-		     MI_SEMAPHORE_SAD_NEQ_SDD | (4 - 2);
+		     MI_SEMAPHORE_SAD_NEQ_SDD | 3;
 	batch[i++] = 0;
 	batch[i++] = addr + CPUDW_INC;
 	batch[i++] = addr >> 32;
+	batch[i++] = 0;
 
 	loop_addr = i;
 	batch[i++] = MI_STORE_DWORD_IMM_GEN4;
