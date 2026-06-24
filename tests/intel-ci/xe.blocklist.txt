@@ -4,6 +4,7 @@ igt@meta_test(@.*)?
 # Non-Intel driver tests
 ##################################################################
 igt@amdgpu.*
+igt@asahi.*
 igt@msm.*
 igt@nouveau_.*
 igt@panfrost.*
