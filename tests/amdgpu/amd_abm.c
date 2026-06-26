@@ -31,12 +31,43 @@
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
+#include <dirent.h>
 
 #define DEBUGFS_CURRENT_BACKLIGHT_PWM "amdgpu_current_backlight_pwm"
 #define DEBUGFS_TARGET_BACKLIGHT_PWM "amdgpu_target_backlight_pwm"
-#define BACKLIGHT_PATH "/sys/class/backlight/amdgpu_bl0"
+#define BACKLIGHT_DIR "/sys/class/backlight"
 #define PANEL_POWER_SAVINGS_ATTR "amdgpu/panel_power_savings"
 #define MK_COLOR(r, g, b)	((0 << 24) | (r << 16) | (g << 8) | b)
+
+/*
+ * The amdgpu backlight device is named amdgpu_bl<N> where N is derived from
+ * the DRM primary node index (see amdgpu_dm_backlight.c). On systems where
+ * the amdgpu DRM node is not card0 (e.g. card1), the device is amdgpu_bl1,
+ * not amdgpu_bl0. Discover it at runtime instead of hardcoding the name.
+ */
+static char backlight_path[PATH_MAX];
+
+static void find_backlight_device(void)
+{
+	DIR *dir;
+	struct dirent *ent;
+
+	dir = opendir(BACKLIGHT_DIR);
+	igt_require_f(dir, "Cannot open %s\n", BACKLIGHT_DIR);
+
+	while ((ent = readdir(dir))) {
+		if (strncmp(ent->d_name, "amdgpu_bl", 9) == 0) {
+			snprintf(backlight_path, sizeof(backlight_path),
+				 "%s/%s", BACKLIGHT_DIR, ent->d_name);
+			break;
+		}
+	}
+	closedir(dir);
+
+	igt_require_f(backlight_path[0] != '\0',
+		      "No amdgpu_bl* backlight device found in %s\n",
+		      BACKLIGHT_DIR);
+}
 
 typedef struct data {
 	igt_display_t display;
@@ -234,7 +265,7 @@ static int backlight_write_brightness(int value)
 	char src[64];
 	int len;
 
-	igt_assert(snprintf(full, PATH_MAX, "%s/%s", BACKLIGHT_PATH, "brightness") < PATH_MAX);
+	igt_assert(snprintf(full, PATH_MAX, "%s/%s", backlight_path, "brightness") < PATH_MAX);
 	fd = open(full, O_WRONLY);
 	if (fd == -1)
 		return -errno;
@@ -288,7 +319,7 @@ static int backlight_read_max_brightness(int *result)
 	char dst[64];
 	int r, e;
 
-	igt_assert(snprintf(full, PATH_MAX, "%s/%s", BACKLIGHT_PATH, "max_brightness") < PATH_MAX);
+	igt_assert(snprintf(full, PATH_MAX, "%s/%s", backlight_path, "max_brightness") < PATH_MAX);
 
 	fd = open(full, O_RDONLY);
 	if (fd == -1)
@@ -527,6 +558,8 @@ int igt_main()
 		kmstest_set_vt_graphics_mode();
 
 		igt_display_require(&data.display, data.drm_fd);
+
+		find_backlight_device();
 
 		test_init(&data);
 	}
