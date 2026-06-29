@@ -300,7 +300,7 @@ static void igt_hook_update_test_name_pre_call(struct igt_hook *igt_hook, struct
 	if (len + 1 > *size_ptr) {
 		size_t fullname_size;
 
-		*size_ptr *= 2;
+		*size_ptr += len + 1;
 		*name_ptr = realloc(*name_ptr, *size_ptr);
 
 		fullname_size = igt_hook_calc_test_fullname_size(igt_hook);
