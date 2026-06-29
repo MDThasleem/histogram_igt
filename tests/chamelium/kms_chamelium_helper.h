@@ -81,6 +81,9 @@ typedef struct {
 	int drm_fd;
 
 	struct chamelium_edid *edids[IGT_CUSTOM_EDID_COUNT];
+	struct alsa *audio_alsa;
+	struct igt_fb audio_fb;
+	drmModeConnector *audio_connector;
 } chamelium_data_t;
 
 void chamelium_init_test(chamelium_data_t *data);
