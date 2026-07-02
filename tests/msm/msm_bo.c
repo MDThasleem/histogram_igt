@@ -9,8 +9,8 @@
 #include "igt_msm.h"
 
 /*
- * Tests for MSM buffer object allocation
- * Tests DRM_IOCTL_MSM_GEM_NEW functionality
+ * Tests for MSM buffer object allocation and information
+ * Tests DRM_IOCTL_MSM_GEM_NEW and DRM_IOCTL_MSM_GEM_INFO functionality
  */
 
 #define DEFAULT_BUFFER_SIZE 4096
@@ -28,7 +28,7 @@ int igt_main()
 	igt_subtest("bo-alloc-basic") {
 		struct msm_bo *bo;
 
-		bo = igt_msm_bo_new(dev, DEFAULT_BUFFER_SIZE, 0);
+		bo = igt_msm_bo_new(dev, DEFAULT_BUFFER_SIZE, MSM_BO_WC);
 		igt_assert_f(bo, "Failed to allocate buffer object\n");
 		igt_assert_f(bo->handle != 0, "Buffer object handle is 0\n");
 		igt_assert_f(bo->size == DEFAULT_BUFFER_SIZE,
@@ -49,15 +49,22 @@ int igt_main()
 		igt_msm_bo_free(bo);
 	}
 
-	igt_describe("Test uncached buffer object allocation");
+	igt_describe("Test uncached buffer object allocation (deprecated flag)");
 	igt_subtest("bo-alloc-uncached") {
-		struct msm_bo *bo;
+		struct drm_msm_gem_new req = { 0 };
+		int ret;
 
-		bo = igt_msm_bo_new(dev, DEFAULT_BUFFER_SIZE, MSM_BO_UNCACHED);
-		igt_assert_f(bo, "Failed to allocate uncached buffer object\n");
-		igt_assert_f(bo->handle != 0, "Buffer object handle is 0\n");
+		req.size = DEFAULT_BUFFER_SIZE;
+		req.flags = MSM_BO_UNCACHED;
 
-		igt_msm_bo_free(bo);
+		ret = igt_ioctl(dev->fd, DRM_IOCTL_MSM_GEM_NEW, &req);
+		if (ret == 0) {
+			igt_info("MSM_BO_UNCACHED supported on this kernel\n");
+			gem_close(dev->fd, req.handle);
+		} else {
+			igt_assert_eq(errno, EINVAL);
+			igt_info("MSM_BO_UNCACHED not supported (deprecated)\n");
+		}
 	}
 
 	igt_describe("Test allocation with zero size (should fail)");
@@ -86,7 +93,7 @@ int igt_main()
 		struct msm_bo *bo;
 		size_t size = DEFAULT_BUFFER_SIZE - 3; /* Unaligned size */
 
-		bo = igt_msm_bo_new(dev, size, 0);
+		bo = igt_msm_bo_new(dev, size, MSM_BO_WC);
 		igt_assert_f(bo, "Failed to allocate buffer with unaligned size\n");
 		igt_assert_f(bo->handle != 0, "Buffer object handle is 0\n");
 
